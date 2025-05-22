@@ -6,12 +6,7 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
-    // Parse query parameters from the URL
-    const url = new URL(request.url)
-    const proofSetId = url.searchParams.get('proofSetId')
-    const pieceCid = url.searchParams.get('pieceCid')
-    const baseUrl = url.searchParams.get('baseUrl')
-
+    const { proofSetId, pieceCid, baseUrl } = parseSearchParams(request)
     if (!proofSetId || !pieceCid || !baseUrl) {
       return new Response('Missing required fields', { status: 400 })
     }
@@ -37,4 +32,18 @@ export default {
       return new Response('Failed to fetch content', { status: 502 })
     }
   }
+}
+
+/**
+ * Parse query parameters from the request URL
+ * @param {Request} request
+ * @returns {{proofSetId: string; pieceCid: string; baseUrl: string;}}
+ */
+function parseSearchParams (request) {
+  const url = new URL(request.url)
+  const proofSetId = url.searchParams.get('proofSetId')
+  const pieceCid = url.searchParams.get('pieceCid')
+  const baseUrl = url.searchParams.get('baseUrl')
+
+  return { proofSetId, pieceCid, baseUrl }
 }
