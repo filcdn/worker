@@ -1,0 +1,25 @@
+{
+  "private": false,
+  "name": "filcdn-worker",
+  "version": "1.0.0",
+  "description": "FilCDN Cloudflare Worker",
+  "main": "bin/worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy --env production",
+    "deploy:dev": "wrangler deploy --env dev",
+    "dev": "wrangler dev --env dev",
+    "start": "wrangler dev",
+    "test": "vitest run",
+    "lint": "prettier --check . && standard",
+    "lint:fix": "prettier --write . && standard --fix ."
+  },
+  "author": "Space Meridian <filcdn@meridian.space>",
+  "license": "MIT",
+  "devDependencies": {
+    "@checkernetwork/prettier-config": "^1.0.1",
+    "@cloudflare/vitest-pool-workers": "^0.8.29",
+    "standard": "^17.1.2",
+    "vitest": "3.1.3",
+    "wrangler": "^4.15.1"
+  }
+}
