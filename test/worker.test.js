@@ -5,7 +5,7 @@ import { retrieveFile } from '../lib/retrieval.js'
 
 describe('worker.fetch', () => {
   it('returns 405 for non-GET requests', async () => {
-    const req = withRequest(1, 'foo', 'bar', 'POST')
+    const req = withRequest(1, 'foo', 'POST')
     const res = await worker.fetch(req, {}, {})
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
@@ -13,7 +13,7 @@ describe('worker.fetch', () => {
 
   it('returns 400 if required fields are missing', async () => {
     const mockRetrieveFile = vi.fn()
-    const req = withRequest(undefined, 'foo', 'bar')
+    const req = withRequest(undefined, 'foo')
     const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(400)
     expect(await res.text()).toBe('Missing required fields')
@@ -29,7 +29,8 @@ describe('worker.fetch', () => {
     }
     mockRetrieveFile.mockResolvedValue(fakeResponse)
 
-    const req = withRequest(1, 'foo', 'bar')
+    const req = withRequest(1, 'foo')
+    console.log('req', req)
     const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
 
     expect(res.status).toBe(200)
@@ -40,7 +41,7 @@ describe('worker.fetch', () => {
   it('returns 502 if retrieveFile throws', async () => {
     const mockRetrieveFile = vi.fn()
     mockRetrieveFile.mockRejectedValue(new Error('fail'))
-    const req = withRequest(1, 'foo', 'bar')
+    const req = withRequest(1, 'foo')
     const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
 
     expect(res.status).toBe(502)
@@ -56,7 +57,7 @@ describe('worker.fetch', () => {
     }
     mockRetrieveFile.mockResolvedValue(fakeResponse)
 
-    const req = withRequest(1, 'foo', 'bar')
+    const req = withRequest(1, 'foo')
     const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
 
     expect(res.status).toBe(502)
@@ -66,9 +67,8 @@ describe('worker.fetch', () => {
   it('fetches the file from calibnet storage provider', async () => {
     const expectedHash = '61214c558a8470634437a941420a258c43ef1e89364d7347f02789f5a898dcb1'
     const pieceCid = 'baga6ea4seaqkzso6gijktpl22dxarxq25iynurceicxpst35yjrcp72uq3ziwpi'
-    const baseUrl = 'yablu.net'
 
-    const req = withRequest(196, baseUrl, pieceCid)
+    const req = withRequest(196, pieceCid)
     const res = await worker.fetch(req, {}, {}, { retrieveFile })
 
     expect(res.status).toBe(200)
@@ -82,15 +82,13 @@ describe('worker.fetch', () => {
 /**
  *
  * @param {number} proofSetId
- * @param {string} baseUrl
  * @param {string} pieceCid
  * @param {string} method
- * @returns {string}
+ *
+ * @returns {Request}
  */
-function withRequest (proofSetId, baseUrl, pieceCid, method = 'GET') {
-  const url = new URL('https://host/path')
+function withRequest (proofSetId, pieceCid, method = 'GET') {
+  const url = new URL(`http://worker.cloudflare.com/${pieceCid}`)
   if (proofSetId) url.searchParams.set('proofSetId', proofSetId)
-  if (baseUrl) url.searchParams.set('baseUrl', baseUrl)
-  if (pieceCid) url.searchParams.set('pieceCid', pieceCid)
   return new Request(url, { method })
 }

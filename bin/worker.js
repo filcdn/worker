@@ -1,19 +1,24 @@
 import { retrieveFile as defaultRetrieveFile } from '../lib/retrieval.js'
 
+// Hardcoded base URL for the file retrieval
+// In the future either user should supply the base URL
+// or worker should be retrieve database or chain
+const BASE_URL = 'yablu.net'
+
 export default {
   async fetch (request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     if (request.method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
-    const { proofSetId, pieceCid, baseUrl } = parseSearchParams(request)
-    if (!proofSetId || !pieceCid || !baseUrl) {
+    const { proofSetId, pieceCid } = parseSearchParams(request)
+    if (!proofSetId || !pieceCid) {
       return new Response('Missing required fields', { status: 400 })
     }
 
     let fetchResponse; let content; let success = false
     try {
-      fetchResponse = await retrieveFile(baseUrl, pieceCid, env.CACHE_TTL)
+      fetchResponse = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
 
       if (fetchResponse.ok) {
         success = true
@@ -37,14 +42,14 @@ export default {
 
 /**
  * Parse query parameters from the request URL
+ *
  * @param {Request} request
- * @returns {{proofSetId: string; pieceCid: string; baseUrl: string;}}
+ * @returns {{proofSetId: string; pieceCid: string;}}
  */
 function parseSearchParams (request) {
   const url = new URL(request.url)
   const proofSetId = url.searchParams.get('proofSetId')
-  const pieceCid = url.searchParams.get('pieceCid')
-  const baseUrl = url.searchParams.get('baseUrl')
+  const pieceCid = url.pathname.split('/')[1] // Extract pieceCid from the path
 
-  return { proofSetId, pieceCid, baseUrl }
+  return { pieceCid, proofSetId }
 }
