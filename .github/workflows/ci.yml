@@ -35,10 +35,5 @@ jobs:
           postCommands: |
             rm -f wrangler.toml
           environment: production
-          secrets: |
-            INFLUX_TOKEN
         env:
-          INFLUX_METRIC_NAME: ${{ vars.INFLUX_METRIC_NAME }}
-          INFLUX_URL: ${{ vars.INFLUX_URL }}
-          INFLUX_TOKEN: ${{ secrets.INFLUX_TOKEN }}
-          INFLUX_DATABASE: ${{ vars.INFLUX_DATABASE }}
+          CACHE_TTL: ${{ vars.CACHE_TTL }}
