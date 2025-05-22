@@ -13,7 +13,7 @@ export default {
 
     let fetchResponse; let content; let success = false
     try {
-      fetchResponse = await retrieveFile(baseUrl, pieceCid)
+      fetchResponse = await retrieveFile(baseUrl, pieceCid, env.CACHE_TTL)
 
       if (fetchResponse.ok) {
         success = true
@@ -27,6 +27,7 @@ export default {
     if (success) {
       const headers = new Headers()
       headers.set('Content-Type', fetchResponse.headers.get('Content-Type') || 'application/octet-stream')
+      headers.set('Cache-Control', 'public, max-age=86400') // 1 day
       return new Response(content, { status: 200, headers })
     } else {
       return new Response('Failed to fetch content', { status: 502 })
