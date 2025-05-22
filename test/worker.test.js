@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 describe('Cloudflare Worker', () => {
   it('forwards request and returns response from fetch', async () => {
-    const expected = new Response({ status: 200 })
+    const expected = new Response(null, { status: 200 })
 
     // Mock global fetch
     global.fetch = vi.fn().mockResolvedValue(expected)
