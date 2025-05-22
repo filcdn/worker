@@ -12,9 +12,6 @@ export default {
     const pieceCid = url.searchParams.get('pieceCid')
     const baseUrl = url.searchParams.get('baseUrl')
 
-    console.log('url:', url)
-    console.log('proofSetId:', proofSetId)
-
     if (!proofSetId || !pieceCid || !baseUrl) {
       return new Response('Missing required fields', { status: 400 })
     }
