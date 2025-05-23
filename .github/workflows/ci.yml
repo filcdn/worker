@@ -15,18 +15,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: cloudflare/wrangler-action@v3
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Wrangler
-        run: npm install -g wrangler
-
       - run: npm run lint
       - run: npm test
-
-      - name: Cleanup
-        run: rm -f wrangler.toml
 
   deploy:
     if: github.ref == 'refs/heads/main'
@@ -34,9 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install wrangler
-        run: npm install -g wrangler
+      - uses: cloudflare/wrangler-action@v3
 
       - name: Create D1 DB // Only run if the database does not exist
         run: |
@@ -52,6 +45,3 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Cleanup
-        run: rm -f wrangler.toml
