@@ -30,7 +30,6 @@ describe('worker.fetch', () => {
     mockRetrieveFile.mockResolvedValue(fakeResponse)
 
     const req = withRequest(1, 'foo')
-    console.log('req', req)
     const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
 
     expect(res.status).toBe(200)
@@ -88,7 +87,9 @@ describe('worker.fetch', () => {
  * @returns {Request}
  */
 function withRequest (proofSetId, pieceCid, method = 'GET') {
-  const url = new URL(`http://worker.cloudflare.com/${pieceCid}`)
-  if (proofSetId) url.searchParams.set('proofSetId', proofSetId)
+  let url = 'http://worker.cloudflare.com'
+  if (proofSetId) url += `/${proofSetId}`
+  if (pieceCid) url += `/${pieceCid}`
+
   return new Request(url, { method })
 }

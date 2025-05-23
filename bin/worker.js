@@ -11,7 +11,7 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
-    const { proofSetId, pieceCid } = parseSearchParams(request)
+    const { proofSetId, pieceCid } = parseRequest(request)
     if (!proofSetId || !pieceCid) {
       return new Response('Missing required fields', { status: 400 })
     }
@@ -46,10 +46,9 @@ export default {
  * @param {Request} request
  * @returns {{proofSetId: string; pieceCid: string;}}
  */
-function parseSearchParams (request) {
+function parseRequest (request) {
   const url = new URL(request.url)
-  const proofSetId = url.searchParams.get('proofSetId')
-  const pieceCid = url.pathname.split('/')[1] // Extract pieceCid from the path
+  const [proofSetId, pieceCid] = url.pathname.split('/').filter(Boolean)
 
-  return { pieceCid, proofSetId }
+  return { proofSetId, pieceCid }
 }
