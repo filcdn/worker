@@ -17,7 +17,7 @@ export default {
       return new Response('Missing required fields', { status: 400 })
     }
 
-    // TODO: Record retrieval stats to D1 asynchronously (does not block response)
+    // TODO: Record retrieval stats to D1 asynchronously (do not block response)
     return await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
   }
 }
