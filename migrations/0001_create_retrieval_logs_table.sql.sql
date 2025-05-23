@@ -4,7 +4,7 @@ CREATE TABLE retrieval_logs (
   timestamp TEXT NOT NULL,
   hostname TEXT NOT NULL,
   piece_cid TEXT NOT NULL,
-  success INTEGER NOT NULL CHECK (success IN (0, 1)),
+  response_status,
   error_reason TEXT,
   egress_bytes INTEGER NOT NULL
 );

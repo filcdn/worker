@@ -42,7 +42,7 @@ describe('logRetrievalResult', () => {
     console.log(await env.DB.prepare(''))
 
     const readOutput = await env.DB.prepare(
-      `SELECT id,hostname,piece_cid,success,error_reason,egress_bytes FROM retrieval_logs WHERE hostname = '${HOSTNAME}' AND piece_cid = '${PIECE_CID}'`
+      `SELECT id,hostname,piece_cid,response_status,error_reason,egress_bytes FROM retrieval_logs WHERE hostname = '${HOSTNAME}' AND piece_cid = '${PIECE_CID}'`
     ).all()
     const result = readOutput.results
     console.log('Read Output:', result)
@@ -52,7 +52,7 @@ describe('logRetrievalResult', () => {
         id: 1,
         hostname: 'example.com',
         piece_cid: 'QmExamplePieceCid1234',
-        success: 1,
+        response_status: 200,
         error_reason: null,
         egress_bytes: 1234
       }

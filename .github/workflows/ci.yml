@@ -15,10 +15,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Setup wrangler.toml
-        run: |
-          cp wrangler.toml.example wrangler.toml
-          envsubst < wrangler.toml.example > wrangler.toml
 
       - name: Install dependencies
         run: npm ci
@@ -42,10 +38,6 @@ jobs:
       - name: Install wrangler
         run: npm install -g wrangler
 
-      - name: Set up wrangler.toml
-        run: |
-          cp wrangler.toml.example wrangler.toml
-          envsubst < wrangler.toml.example > wrangler.toml
       - name: Create D1 DB // Only run if the database does not exist
         run: |
           if ! wrangler d1 db list | grep -q filcdn-db; then
