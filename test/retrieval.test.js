@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { retrieveFile } from './retrieval'
+import { retrieveFile } from '../lib/retrieval.js'
 
 describe('retrieveFile', () => {
   const baseUrl = 'example.com'
