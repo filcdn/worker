@@ -1,0 +1,15 @@
+name = "filcdn-worker"
+main = "bin/worker.js"
+compatibility_date = "2024-12-05"
+compatibility_flags = ["nodejs_compat"]
+
+[env.dev.vars]
+ENVIRONMENT = "dev"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "filcdn-stats"
+database_id = "filcdn-stats"
