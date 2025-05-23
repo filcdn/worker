@@ -18,6 +18,8 @@ export default {
     }
 
     // TODO: Record retrieval stats to D1 asynchronously (do not block response)
-    return await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
+    const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
+    response.headers.set('Cache-Control', `max-age=${env.CACHE_TTL}`)
+    return response
   }
 }
