@@ -12,4 +12,3 @@ node_modules/
 .wrangler
 data/
 config/
-wrangler.toml
