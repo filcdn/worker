@@ -7,7 +7,7 @@
   "scripts": {
     "deploy": "wrangler deploy --env production",
     "deploy:dev": "wrangler deploy --env dev",
-    "dev": "wrangler dev --env dev",
+    "dev": "wrangler dev --env dev && wrangler d1 migrations apply filcdn-stats --local",
     "start": "wrangler dev",
     "test": "vitest run",
     "lint": "prettier --check . && standard",
@@ -20,6 +20,6 @@
     "@cloudflare/vitest-pool-workers": "^0.8.32",
     "standard": "^17.1.2",
     "vitest": "3.1.4",
-    "wrangler": "^4.15.1"
+    "wrangler": "^4.16.1"
   }
 }

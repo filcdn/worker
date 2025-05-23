@@ -25,6 +25,12 @@ cp wrangler.toml.example wrangler.toml
 npm run dev
 ```
 
+5. Run tests
+
+```
+npm test
+```
+
 ## Deployment (Github Actions)
 
 In order to deploy your worker via Github Actions, you need to have a
