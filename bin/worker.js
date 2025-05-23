@@ -1,3 +1,4 @@
+import { parseRequest } from '../lib/request.js'
 import { retrieveFile as defaultRetrieveFile } from '../lib/retrieval.js'
 
 // Hardcoded base URL for the file retrieval
@@ -16,39 +17,7 @@ export default {
       return new Response('Missing required fields', { status: 400 })
     }
 
-    let fetchResponse; let content; let success = false
-    try {
-      fetchResponse = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
-
-      if (fetchResponse.ok) {
-        success = true
-        content = await fetchResponse.arrayBuffer()
-      }
-    } catch (e) {
-      console.error(`Failed to retrieve file: ${e}`)
-    }
-
     // TODO: Record retrieval stats to D1 asynchronously (does not block response)
-    if (success) {
-      const headers = new Headers()
-      headers.set('Content-Type', fetchResponse.headers.get('Content-Type') || 'application/octet-stream')
-      headers.set('Cache-Control', 'public, max-age=86400') // 1 day
-      return new Response(content, { status: 200, headers })
-    } else {
-      return new Response('Failed to fetch content', { status: 502 })
-    }
+    return await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
   }
-}
-
-/**
- * Parse query parameters from the request URL
- *
- * @param {Request} request
- * @returns {{proofSetId: string; pieceCid: string;}}
- */
-function parseRequest (request) {
-  const url = new URL(request.url)
-  const [proofSetId, pieceCid] = url.pathname.split('/').filter(Boolean)
-
-  return { proofSetId, pieceCid }
 }

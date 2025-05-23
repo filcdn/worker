@@ -19,48 +19,14 @@ describe('worker.fetch', () => {
     expect(await res.text()).toBe('Missing required fields')
   })
 
-  it('returns 200 and content if retrieveFile succeeds', async () => {
-    const mockRetrieveFile = vi.fn()
-    const fakeContent = new Uint8Array([1, 2, 3])
-    const fakeResponse = {
-      ok: true,
-      arrayBuffer: vi.fn(() => Promise.resolve(fakeContent.buffer)),
-      headers: new Headers({ 'Content-Type': 'application/test' })
-    }
-    mockRetrieveFile.mockResolvedValue(fakeResponse)
-
-    const req = withRequest(1, 'foo')
+  it('returns the response from retrieveFile', async () => {
+    const fakeResponse = new Response('hello', { status: 201, headers: { 'X-Test': 'yes' } })
+    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const req = withRequest(2, 'bar')
     const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
-
-    expect(res.status).toBe(200)
-    expect(await res.arrayBuffer()).toEqual(fakeContent.buffer)
-    expect(res.headers.get('Content-Type')).toBe('application/test')
-  })
-
-  it('returns 502 if retrieveFile throws', async () => {
-    const mockRetrieveFile = vi.fn()
-    mockRetrieveFile.mockRejectedValue(new Error('fail'))
-    const req = withRequest(1, 'foo')
-    const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
-
-    expect(res.status).toBe(502)
-    expect(await res.text()).toBe('Failed to fetch content')
-  })
-
-  it('returns 502 if retrieveFile returns non-ok response', async () => {
-    const mockRetrieveFile = vi.fn()
-    const fakeResponse = {
-      ok: false,
-      arrayBuffer: vi.fn(() => Promise.resolve(new ArrayBuffer(0))),
-      headers: new Headers()
-    }
-    mockRetrieveFile.mockResolvedValue(fakeResponse)
-
-    const req = withRequest(1, 'foo')
-    const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
-
-    expect(res.status).toBe(502)
-    expect(await res.text()).toBe('Failed to fetch content')
+    expect(res.status).toBe(201)
+    expect(await res.text()).toBe('hello')
+    expect(res.headers.get('X-Test')).toBe('yes')
   })
 
   it('fetches the file from calibnet storage provider', async () => {
