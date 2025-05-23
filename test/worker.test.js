@@ -9,6 +9,7 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, {}, {})
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
+    expect(res.headers.get('Cache-Control')).toBe(null)
   })
 
   it('returns 400 if required fields are missing', async () => {
@@ -17,16 +18,18 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(400)
     expect(await res.text()).toBe('Missing required fields')
+    expect(res.headers.get('Cache-Control')).toBe(null)
   })
 
   it('returns the response from retrieveFile', async () => {
     const fakeResponse = new Response('hello', { status: 201, headers: { 'X-Test': 'yes' } })
     const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
     const req = withRequest(2, 'bar')
-    const res = await worker.fetch(req, {}, {}, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, { CACHE_TTL: 86400 }, {}, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(201)
     expect(await res.text()).toBe('hello')
     expect(res.headers.get('X-Test')).toBe('yes')
+    expect(res.headers.get('Cache-Control')).toBe('max-age=86400')
   })
 
   it('fetches the file from calibnet storage provider', async () => {
@@ -34,13 +37,14 @@ describe('worker.fetch', () => {
     const pieceCid = 'baga6ea4seaqkzso6gijktpl22dxarxq25iynurceicxpst35yjrcp72uq3ziwpi'
 
     const req = withRequest(196, pieceCid)
-    const res = await worker.fetch(req, {}, {}, { retrieveFile })
+    const res = await worker.fetch(req, { CACHE_TTL: 86400 }, {}, { retrieveFile })
 
     expect(res.status).toBe(200)
     // get the sha256 hash of the content
     const content = await res.bytes()
     const hash = createHash('sha256').update(content).digest('hex')
     expect(hash).toEqual(expectedHash)
+    expect(res.headers.get('Cache-Control')).toBe('max-age=86400')
   })
 })
 
