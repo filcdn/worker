@@ -11,15 +11,9 @@ and cache from the Filecoin PDP Storage Providers.
 npm install
 ```
 
-2. Copy example files
+2. Edit environment variables inside `wrangler.toml` files
 
-```
-cp wrangler.toml.example wrangler.toml
-```
-
-3. Edit environment variables inside `wrangler.toml` files
-
-4. Run your worker
+3. Run your worker
 
 ```
 npm run dev
