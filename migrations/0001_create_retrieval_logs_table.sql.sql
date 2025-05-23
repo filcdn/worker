@@ -5,6 +5,6 @@ CREATE TABLE retrieval_logs (
   hostname TEXT NOT NULL,
   piece_cid TEXT NOT NULL,
   response_status INTEGER NOT NULL,
-  error_reason TEXT,
-  egress_bytes INTEGER NOT NULL
+  egress_bytes INTEGER NOT NULL,
+  cache_miss BOOLEAN NOT NULL
 );
