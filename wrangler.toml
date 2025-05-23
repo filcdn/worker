@@ -5,6 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 [env.dev.vars]
 ENVIRONMENT = "dev"
+CACHE_TTL = 86400
 
 [env.production.vars]
 ENVIRONMENT = "production"
+CACHE_TTL = "$CACHE_TTL"
