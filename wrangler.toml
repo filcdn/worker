@@ -5,6 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [env.dev.vars]
 ENVIRONMENT = "dev"
+CACHE_TTL = 86400
 
 [env.production.vars]
 ENVIRONMENT = "production"
@@ -13,3 +14,4 @@ ENVIRONMENT = "production"
 binding = "DB"
 database_name = "filcdn-stats"
 database_id = "filcdn-stats"
+CACHE_TTL = "$CACHE_TTL"
