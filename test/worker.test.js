@@ -1,7 +1,14 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
 import worker from '../bin/worker.js'
 import { createHash } from 'node:crypto'
 import { retrieveFile } from '../lib/retrieval.js'
+import { applyMigrations } from './setup-db.js'
+import { env } from 'cloudflare:test'
+import assert from 'node:assert/strict'
+
+beforeAll(() => {
+  applyMigrations(env)
+})
 
 describe('worker.fetch', () => {
   it('returns 405 for non-GET requests', async () => {
@@ -41,6 +48,99 @@ describe('worker.fetch', () => {
     const content = await res.bytes()
     const hash = createHash('sha256').update(content).digest('hex')
     expect(hash).toEqual(expectedHash)
+  })
+  it('stores retrieval results with cache miss and content length set in D1', async () => {
+    const pieceCid = 'PIECE_CID_FOR_CACHE_MISS_TEST'
+    const fakeResponse = new Response('file', {
+      status: 200,
+      headers: {
+        'CF-Cache-Status': 'MISS',
+        'Content-Length': '1234'
+      }
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const req = withRequest(196, pieceCid)
+    const res = await worker.fetch(req, env, {}, { retrieveFile: mockRetrieveFile })
+    assert.strictEqual(res.status, 200)
+    const readOutput = await env.DB.prepare(
+      `SELECT id, hostname, piece_cid, response_status, egress_bytes, cache_miss, proof_set_id 
+       FROM retrieval_logs 
+       WHERE piece_cid = ?`
+    ).bind(pieceCid).all()
+    const result = readOutput.results
+    assert.deepStrictEqual(result, [
+      {
+        id: 1, // Assuming this is the first log entry
+        hostname: 'yablu.net',
+        piece_cid: pieceCid,
+        response_status: 200,
+        egress_bytes: 1234,
+        cache_miss: 1, // 1 for true, 0 for false
+        proof_set_id: 196
+      }
+    ])
+  })
+  it('stores retrieval results with cache hit and content length set in D1', async () => {
+    const pieceCid = 'PIECE_CID_FOR_CACHE_HIT_TEST'
+    const fakeResponse = new Response('file', {
+      status: 200,
+      headers: {
+        'CF-Cache-Status': 'HIT',
+        'Content-Length': '1234'
+      }
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const req = withRequest(196, pieceCid)
+    const res = await worker.fetch(req, env, {}, { retrieveFile: mockRetrieveFile })
+    assert.strictEqual(res.status, 200)
+    const readOutput = await env.DB.prepare(
+      `SELECT id, hostname, piece_cid, response_status, egress_bytes, cache_miss, proof_set_id 
+       FROM retrieval_logs 
+       WHERE piece_cid = ?`
+    ).bind(pieceCid).all()
+    const result = readOutput.results
+    assert.deepStrictEqual(result, [
+      {
+        id: 1, // Assuming this is the first log entry
+        hostname: 'yablu.net',
+        piece_cid: pieceCid,
+        response_status: 200,
+        egress_bytes: 1234,
+        cache_miss: 0, // 1 for true, 0 for false
+        proof_set_id: 196
+      }
+    ])
+  })
+  it('stores retrieval results content length not set in D1', async () => {
+    const pieceCid = 'PIECE_CID_FOR_CONTENT_LENGTH_NOT_SET_TEST'
+    const fakeResponse = new Response('file', {
+      status: 200,
+      headers: {
+        'CF-Cache-Status': 'HIT'
+      }
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const req = withRequest(196, pieceCid)
+    const res = await worker.fetch(req, env, {}, { retrieveFile: mockRetrieveFile })
+    assert.strictEqual(res.status, 200)
+    const readOutput = await env.DB.prepare(
+      `SELECT id, hostname, piece_cid, response_status, egress_bytes, cache_miss, proof_set_id 
+       FROM retrieval_logs 
+       WHERE piece_cid = ?`
+    ).bind(pieceCid).all()
+    const result = readOutput.results
+    // If content length is not set, egress_bytes should be 0
+    assert.deepStrictEqual(result, [
+      {
+        id: 1, // Assuming this is the first log entry
+        hostname: 'yablu.net',
+        piece_cid: pieceCid,
+        response_status: 200,
+        egress_bytes: 0,
+        cache_miss: 0, // 1 for true, 0 for false
+        proof_set_id: 196
+      }
+    ])
   })
 })
 

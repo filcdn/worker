@@ -1,5 +1,6 @@
 import { parseRequest } from '../lib/request.js'
 import { retrieveFile as defaultRetrieveFile } from '../lib/retrieval.js'
+import { logRetrievalResult } from '../lib/store.js'
 
 // Hardcoded base URL for the file retrieval
 // In the future either user should supply the base URL
@@ -18,6 +19,9 @@ export default {
     }
 
     // TODO: Record retrieval stats to D1 asynchronously (do not block response)
-    return await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
+    const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
+    const cacheStatus = response.headers.get('CF-Cache-Status')
+    await logRetrievalResult(env, { hostname: BASE_URL, pieceCid, response, cacheMiss: cacheStatus !== 'HIT', proofSetId })
+    return response
   }
 }

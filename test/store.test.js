@@ -15,7 +15,7 @@ describe('logRetrievalResult', () => {
 
     const response = new Response(null, {
       status: 200,
-      headers: { 'content-length': '1234' }
+      headers: { 'Content-Length': '1234' }
     })
 
     await logRetrievalResult(env, {
@@ -31,8 +31,6 @@ describe('logRetrievalResult', () => {
         `SELECT id,hostname,piece_cid,response_status,egress_bytes,cache_miss,proof_set_id FROM retrieval_logs WHERE hostname = '${HOSTNAME}' AND piece_cid = '${PIECE_CID}'`
     ).all()
     const result = readOutput.results
-    console.log('Read Output:', result)
-
     assert.deepStrictEqual(result, [
       {
         id: 1,
