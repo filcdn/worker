@@ -18,10 +18,9 @@ export default {
       return new Response('Missing required fields', { status: 400 })
     }
 
-    // TODO: Record retrieval stats to D1 asynchronously (do not block response)
     const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
     const cacheStatus = response.headers.get('CF-Cache-Status')
-    await logRetrievalResult(env, { hostname: BASE_URL, pieceCid, response, cacheMiss: cacheStatus !== 'HIT', proofSetId })
+    logRetrievalResult(env, { hostname: BASE_URL, pieceCid, response, cacheMiss: cacheStatus !== 'HIT', proofSetId })
     return response
   }
 }
