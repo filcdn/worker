@@ -31,10 +31,11 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           preCommands: |
-            envsubst < wrangler.toml > wrangler.toml.tmp && mv wrangler.toml.tmp wrangler.toml &&
+            set -e
+            envsubst < wrangler.toml > wrangler.toml.tmp && mv wrangler.toml.tmp wrangler.toml
             if ! wrangler d1 list | grep -q filcdn-db; then
               wrangler d1 create filcdn-db
-            fi &&
+            fi
             wrangler d1 migrations apply filcdn-db
           postCommands: |
             rm -f wrangler.toml
