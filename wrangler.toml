@@ -6,10 +6,12 @@ compatibility_flags = ["nodejs_compat"]
 [env.dev.vars]
 ENVIRONMENT = "dev"
 CACHE_TTL = 86400
+DNS_ROOT = ".localhost"
 
 [env.production.vars]
 ENVIRONMENT = "production"
 CACHE_TTL = "$CACHE_TTL"
+DNS_ROOT = ".calibration.filcdn.dev"
 
 [[d1_databases]]
 binding = "DB"
