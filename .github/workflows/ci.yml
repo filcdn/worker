@@ -36,7 +36,7 @@ jobs:
             if ! wrangler d1 db list | grep -q filcdn-db; then
               wrangler d1 db create filcdn-db
             fi &&
-            wrangler d1 migrations apply filcdn-stats
+            wrangler d1 migrations apply filcdn-db
           postCommands: |
             rm -f wrangler.toml
           environment: production
