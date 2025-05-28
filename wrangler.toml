@@ -10,3 +10,8 @@ CACHE_TTL = 86400
 [env.production.vars]
 ENVIRONMENT = "production"
 CACHE_TTL = "$CACHE_TTL"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "filcdn-db"
+database_id = "filcdn-db"
