@@ -13,7 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
+
       - run: npm run lint
       - run: npm test
 
@@ -30,6 +32,11 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           preCommands: |
             envsubst < wrangler.toml > wrangler.toml.tmp && mv wrangler.toml.tmp wrangler.toml
+           &&
+            if ! wrangler d1 list | grep -q filcdn-db; then
+              wrangler d1 create filcdn-db
+            fi &&
+            wrangler d1 migrations apply filcdn-db
           postCommands: |
             rm -f wrangler.toml
           environment: production
