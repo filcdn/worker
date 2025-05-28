@@ -13,5 +13,5 @@ CACHE_TTL = "$CACHE_TTL"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "filcdn-stats"
-database_id = "filcdn-stats"
+database_name = "filcdn-db"
+database_id = "filcdn-db"
