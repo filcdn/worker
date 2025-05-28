@@ -32,7 +32,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           preCommands: |
             envsubst < wrangler.toml > wrangler.toml.tmp && mv wrangler.toml.tmp wrangler.toml
-            run: &&
+           &&
             if ! wrangler d1 db list | grep -q filcdn-db; then
               wrangler d1 db create filcdn-db
             fi &&
