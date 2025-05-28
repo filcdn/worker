@@ -13,7 +13,6 @@ export default {
     }
 
     const { clientWalletAddress, pieceCid, error } = parseRequest(request, env)
-    console.log({error, pieceCid, clientWalletAddress})
     if (error || !clientWalletAddress || !pieceCid) {
       return new Response(error ?? 'Missing required fields', { status: 400 })
     }
