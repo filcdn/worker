@@ -7,23 +7,37 @@ and cache from the Filecoin PDP Storage Providers.
 
 1. Install dependencies
 
-```
-npm install
-```
+   ```
+   npm install
+   ```
 
-2. Edit environment variables inside `wrangler.toml` files
+2. Run tests
 
-3. Run your worker
+   ```
+   npm test
+   ```
 
-```
-npm run dev
-```
+3. Fix linting and formatting issues:
 
-5. Run tests
+   ```
+   npm run lint:fix
+   ```
 
-```
-npm test
-```
+### Run the worker locally
+
+1. Choose a wallet address you will use for the requests, e.g. `0x123`.
+
+2. Edit your `/etc/hosts` file and add an entry for `0x123.localhost`:
+
+   ```
+   127.0.0.1»foo.localhost
+   ```
+
+3. Start the worker locally
+
+   ```
+   npm run dev
+   ```
 
 ## Deployment (Github Actions)
 
