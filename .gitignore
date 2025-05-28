@@ -11,8 +11,4 @@ node_modules/
 .dev.vars
 .wrangler
 data/
-<<<<<<< HEAD
 config/
-=======
-config/
->>>>>>> main
