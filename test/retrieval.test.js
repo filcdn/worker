@@ -16,7 +16,7 @@ describe('retrieveFile', () => {
     await retrieveFile(baseUrl, pieceCid)
     expect(fetchMock).toHaveBeenCalledWith(
       `https://${baseUrl}/piece/${pieceCid}`,
-      expect.any(Object)
+      expect.any(Object),
     )
   })
 
@@ -39,9 +39,9 @@ describe('retrieveFile', () => {
       cacheTtlByStatus: {
         '200-299': 555,
         404: 0,
-        '500-599': 0
+        '500-599': 0,
       },
-      cacheEverything: true
+      cacheEverything: true,
     })
   })
 

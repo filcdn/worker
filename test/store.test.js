@@ -15,7 +15,7 @@ describe('logRetrievalResult', () => {
 
     const response = new Response(null, {
       status: 200,
-      headers: { 'content-length': '1234' }
+      headers: { 'content-length': '1234' },
     })
 
     await logRetrievalResult(env, {
@@ -23,12 +23,12 @@ describe('logRetrievalResult', () => {
       ownerAddress: OWNER_ADDRESS,
       clientAddress: CLIENT_ADDRESS,
       cacheMiss: false,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
     console.log(await env.DB.prepare(''))
 
     const readOutput = await env.DB.prepare(
-        `SELECT owner_address,client_address,response_status,egress_bytes,cache_miss FROM retrieval_logs WHERE owner_address = '${OWNER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`
+      `SELECT owner_address,client_address,response_status,egress_bytes,cache_miss FROM retrieval_logs WHERE owner_address = '${OWNER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`,
     ).all()
     const result = readOutput.results
     console.log('Read Output:', result)
@@ -39,8 +39,8 @@ describe('logRetrievalResult', () => {
         client_address: CLIENT_ADDRESS,
         response_status: 200,
         egress_bytes: 1234,
-        cache_miss: 0
-      }
+        cache_miss: 0,
+      },
     ])
   })
 })
