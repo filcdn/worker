@@ -18,6 +18,7 @@ jobs:
 
       - run: npm run lint
       - run: npm test
+      
       - name: Check YAML formatting with Prettier
         run: npx prettier --check .github/workflows/**/*.yml
 
