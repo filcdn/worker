@@ -1,8 +1,8 @@
-export async function applyMigrations (env) {
+export async function applyMigrations(env) {
   const modules = import.meta.glob('../migrations/*.sql', {
     query: '?raw',
     import: 'default',
-    eager: true
+    eager: true,
   })
 
   const migrations = Object.entries(modules)
@@ -12,7 +12,7 @@ export async function applyMigrations (env) {
   for (const sql of migrations) {
     const statements = sql
       .split(';')
-      .map(s => s.trim())
+      .map((s) => s.trim())
       .filter(Boolean)
 
     for (const stmt of statements) {

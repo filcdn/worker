@@ -42,11 +42,16 @@ describe('worker.fetch', () => {
     const req = withRequest(undefined, 'foo')
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(400)
-    expect(await res.text()).toBe('Invalid hostname: filcdn.io. It must end with .filcdn.io.')
+    expect(await res.text()).toBe(
+      'Invalid hostname: filcdn.io. It must end with .filcdn.io.',
+    )
   })
 
   it('returns the response from retrieveFile', async () => {
-    const fakeResponse = new Response('hello', { status: 201, headers: { 'X-Test': 'yes' } })
+    const fakeResponse = new Response('hello', {
+      status: 201,
+      headers: { 'X-Test': 'yes' },
+    })
     const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
     const req = withRequest('0xDead', 'baga1234')
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
@@ -153,11 +158,9 @@ describe('worker.fetch', () => {
 })
 
 /**
- *
  * @param {string} clientWalletAddress
  * @param {string} defaultPieceCid
  * @param {string} method
- *
  * @returns {Request}
  */
 function withRequest (clientWalletAddress, defaultPieceCid, method = 'GET') {
