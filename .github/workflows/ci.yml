@@ -30,7 +30,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          preCommands: './scripts/pre-deploy.sh'
+          preCommands: './bin/pre-deploy.sh'
           postCommands: |
             rm -f wrangler.toml
           environment: production
