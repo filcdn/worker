@@ -24,9 +24,8 @@ export default {
     }
 
     const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
-    const cacheStatus = response.headers.get('CF-Cache-Status')
     const timestamp = new Date().toISOString()
-    ctx.waitUntil(logRetrievalResult(env, { ownerAddress: OWNER_ADDRESS_YABLU, clientAddress:clientWalletAddress, response, cacheMiss: cacheStatus !== 'HIT', timestamp }))
+    ctx.waitUntil(logRetrievalResult(env, { ownerAddress: OWNER_ADDRESS_YABLU, clientAddress: clientWalletAddress, response, timestamp }))
     return response
   }
 }

@@ -15,14 +15,16 @@ describe('logRetrievalResult', () => {
 
     const response = new Response(null, {
       status: 200,
-      headers: { 'Content-Length': '1234' }
+      headers: {
+        'Content-Length': '1234',
+        'CF-Cache-Status': 'HIT'
+      }
     })
 
     await logRetrievalResult(env, {
       response,
       ownerAddress: OWNER_ADDRESS,
       clientAddress: CLIENT_ADDRESS,
-      cacheMiss: false,
       timestamp: new Date().toISOString()
     })
     console.log(await env.DB.prepare(''))
