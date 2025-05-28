@@ -10,8 +10,8 @@
     "deploy": "wrangler deploy --env production",
     "deploy:dev": "wrangler deploy --env dev",
     "dev": "wrangler dev --env dev && wrangler d1 migrations apply filcdn-stats --local",
-    "lint": "prettier --check . && standard",
-    "lint:fix": "prettier --write . && standard --fix .",
+    "lint": "eslint && prettier --check",
+    "lint:fix": "eslint --fix && prettier --write .",
     "start": "wrangler dev",
     "test": "vitest run"
   },
@@ -24,7 +24,6 @@
   "devDependencies": {
     "@checkernetwork/prettier-config": "^1.0.1",
     "@cloudflare/vitest-pool-workers": "^0.8.33",
-    "standard": "^17.1.2",
     "vitest": "3.1.4",
     "wrangler": "^4.17.0"
   }
