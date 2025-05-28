@@ -12,9 +12,10 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
-    const { proofSetId, pieceCid } = parseRequest(request)
-    if (!proofSetId || !pieceCid) {
-      return new Response('Missing required fields', { status: 400 })
+    const { clientWalletAddress, pieceCid, error } = parseRequest(request, env)
+    console.log({error, pieceCid, clientWalletAddress})
+    if (error || !clientWalletAddress || !pieceCid) {
+      return new Response(error ?? 'Missing required fields', { status: 400 })
     }
 
     // TODO: Record retrieval stats to D1 asynchronously (do not block response)
