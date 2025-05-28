@@ -13,9 +13,9 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
-    const { proofSetId, pieceCid } = parseRequest(request)
-    if (!proofSetId || !pieceCid) {
-      return new Response('Missing required fields', { status: 400 })
+    const { clientWalletAddress, pieceCid, error } = parseRequest(request, env)
+    if (error || !clientWalletAddress || !pieceCid) {
+      return new Response(error ?? 'Missing required fields', { status: 400 })
     }
 
     const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
