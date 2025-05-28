@@ -14,8 +14,13 @@ export default {
     }
 
     const { clientWalletAddress, pieceCid, error } = parseRequest(request, env)
-    if (error || !clientWalletAddress || !pieceCid) {
-      return new Response(error ?? 'Missing required fields', { status: 400 })
+    if (error) {
+      console.error(error)
+      return new Response(error, { status: 400 })
+    }
+
+    if (!clientWalletAddress || !pieceCid) {
+      return new Response('Missing required fields', { status: 400 })
     }
 
     const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
