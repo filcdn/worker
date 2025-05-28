@@ -159,15 +159,15 @@ describe('worker.fetch', () => {
 
 /**
  * @param {string} clientWalletAddress
- * @param {string} defaultPieceCid
+ * @param {string} pieceCid
  * @param {string} method
  * @returns {Request}
  */
-function withRequest (clientWalletAddress, defaultPieceCid, method = 'GET') {
+function withRequest (clientWalletAddress, pieceCid, method = 'GET') {
   let url = 'http://'
   if (clientWalletAddress) url += `${clientWalletAddress}.`
   url += DNS_ROOT.slice(1) // remove the trailing '.'
-  if (defaultPieceCid) url += `/${defaultPieceCid}`
+  if (pieceCid) url += `/${pieceCid}`
   console.log('REQUEST URL:', url)
 
   return new Request(url, { method })
