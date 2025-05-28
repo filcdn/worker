@@ -20,7 +20,7 @@ jobs:
       - run: npm test
       
       - name: Check YAML formatting with Prettier
-        run: npx prettier --check .github/workflows/**/*.yml
+        run: npm prettier --check .github/workflows/**/*.yml
 
   deploy:
     if: github.ref == 'refs/heads/main'
