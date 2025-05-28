@@ -10,8 +10,8 @@ beforeAll(() => {
 
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
-    const HOSTNAME = 'example.com'
-    const PIECE_CID = 'QmExamplePieceCid1234'
+    const OWNER_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
+    const CLIENT_ADDRESS = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     const response = new Response(null, {
       status: 200,
@@ -19,29 +19,27 @@ describe('logRetrievalResult', () => {
     })
 
     await logRetrievalResult(env, {
-      hostname: HOSTNAME,
-      pieceCid: PIECE_CID,
       response,
-      proofSetId: 1,
-      cacheMiss: false
+      ownerAddress: OWNER_ADDRESS,
+      clientAddress: CLIENT_ADDRESS,
+      cacheMiss: false,
+      timestamp: new Date().toISOString()
     })
     console.log(await env.DB.prepare(''))
 
     const readOutput = await env.DB.prepare(
-        `SELECT id,hostname,piece_cid,response_status,egress_bytes,cache_miss,proof_set_id FROM retrieval_logs WHERE hostname = '${HOSTNAME}' AND piece_cid = '${PIECE_CID}'`
+        `SELECT owner_address,client_address,response_status,egress_bytes,cache_miss FROM retrieval_logs WHERE owner_address = '${OWNER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`
     ).all()
     const result = readOutput.results
     console.log('Read Output:', result)
 
     assert.deepStrictEqual(result, [
       {
-        id: 1,
-        hostname: 'example.com',
-        piece_cid: 'QmExamplePieceCid1234',
+        owner_address: OWNER_ADDRESS,
+        client_address: CLIENT_ADDRESS,
         response_status: 200,
         egress_bytes: 1234,
-        cache_miss: 0,
-        proof_set_id: 1
+        cache_miss: 0
       }
     ])
   })
