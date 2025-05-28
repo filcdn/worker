@@ -1,4 +1,4 @@
-#/bin/bash -e
+#/bin/sh -e
 
 envsubst < wrangler.toml > wrangler.toml.tmp && mv wrangler.toml.tmp wrangler.toml
 if ! wrangler d1 list | grep -q filcdn-db; then
