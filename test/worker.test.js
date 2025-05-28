@@ -51,6 +51,7 @@ describe('worker.fetch', () => {
   })
   it('stores retrieval results with cache miss and content length set in D1', async () => {
     const pieceCid = 'PIECE_CID_FOR_CACHE_MISS_TEST'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     const fakeResponse = new Response('file', {
       status: 200,
       headers: {
@@ -63,9 +64,9 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, env, {}, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, hostname, piece_cid, response_status, egress_bytes, cache_miss, proof_set_id 
+      `SELECT id, owner_address, response_status, egress_bytes, cache_miss, client_address
        FROM retrieval_logs 
-       WHERE piece_cid = ?`
+       WHERE client_address = ?`
     ).bind(pieceCid).all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
@@ -94,9 +95,9 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, env, {}, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, hostname, piece_cid, response_status, egress_bytes, cache_miss, proof_set_id 
+      `SELECT id, owner_address, response_status, egress_bytes, cache_miss, client_address 
        FROM retrieval_logs 
-       WHERE piece_cid = ?`
+       WHERE client_address = ?`
     ).bind(pieceCid).all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
@@ -124,9 +125,9 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, env, {}, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, hostname, piece_cid, response_status, egress_bytes, cache_miss, proof_set_id 
+      `SELECT id, owner_address, piece_cid, response_status, egress_bytes, cache_miss, client_address 
        FROM retrieval_logs 
-       WHERE piece_cid = ?`
+       WHERE client_address = ?`
     ).bind(pieceCid).all()
     const result = readOutput.results
     // If content length is not set, egress_bytes should be 0

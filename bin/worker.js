@@ -6,7 +6,7 @@ import { logRetrievalResult } from '../lib/store.js'
 // In the future either user should supply the base URL
 // or worker should be retrieve database or chain
 const BASE_URL = 'yablu.net'
-
+const OWNER_ADDRESS_YABLU = '0x7469b47e006d0660ab92ae560b27a1075eecf97f'
 export default {
   async fetch (request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     if (request.method !== 'GET') {
@@ -20,7 +20,8 @@ export default {
 
     const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
     const cacheStatus = response.headers.get('CF-Cache-Status')
-    logRetrievalResult(env, { hostname: BASE_URL, pieceCid, response, cacheMiss: cacheStatus !== 'HIT', proofSetId })
+    const timestamp = new Date().toISOString()
+    ctx.waitUntil(logRetrievalResult(env, { ownerAddress: OWNER_ADDRESS_YABLU, clientAddress:clientWalletAddress, response, cacheMiss: cacheStatus !== 'HIT', timestamp }))
     return response
   }
 }
