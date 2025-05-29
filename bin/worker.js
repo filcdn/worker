@@ -8,7 +8,7 @@ const BASE_URL = 'yablu.net'
 
 export default {
   /**
-   * @param {any} request
+   * @param {Request} request
    * @param {Env} env
    * @param {ExecutionContext} ctx
    * @param {object} options
