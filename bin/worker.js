@@ -8,6 +8,14 @@ import { logRetrievalResult } from '../lib/store.js'
 const BASE_URL = 'yablu.net'
 const OWNER_ADDRESS_YABLU = '0x7469b47e006d0660ab92ae560b27a1075eecf97f'
 export default {
+  /**
+   * @param {Request} request
+   * @param {Env} env
+   * @param {ExecutionContext} ctx
+   * @param {object} options
+   * @param {typeof defaultRetrieveFile} [options.retrieveFile]
+   * @returns
+   */
   async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     if (request.method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405 })
