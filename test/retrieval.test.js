@@ -8,7 +8,9 @@ describe('retrieveFile', () => {
   let fetchMock
 
   beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, status: 200, headers: new Headers({}) })
     global.fetch = fetchMock
   })
 
@@ -46,7 +48,7 @@ describe('retrieveFile', () => {
   })
 
   it('returns the fetch response', async () => {
-    const response = { ok: true, status: 200 }
+    const response = { ok: true, status: 200, headers: new Headers({}) }
     fetchMock.mockResolvedValueOnce(response)
     const result = await retrieveFile(baseUrl, pieceCid)
     expect(result.response).toBe(response)
