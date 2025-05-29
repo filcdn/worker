@@ -10,7 +10,7 @@ DNS_ROOT = ".localhost"
 
 [env.production.vars]
 ENVIRONMENT = "production"
-CACHE_TTL = "$CACHE_TTL"
+CACHE_TTL = 86400
 DNS_ROOT = ".calibration.filcdn.io"
 
 [[d1_databases]]
