@@ -17,6 +17,3 @@ DNS_ROOT = ".calibration.filcdn.io"
 binding = "DB"
 database_name = "filcdn-db"
 database_id = "filcdn-db"
-
-[observability.logs]
-enabled = true
