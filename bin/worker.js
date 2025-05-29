@@ -7,6 +7,14 @@ import { retrieveFile as defaultRetrieveFile } from '../lib/retrieval.js'
 const BASE_URL = 'yablu.net'
 
 export default {
+  /**
+   * @param {any} request
+   * @param {Env} env
+   * @param {ExecutionContext} ctx
+   * @param {object} options
+   * @param {typeof defaultRetrieveFile} [options.retrieveFile]
+   * @returns
+   */
   async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     if (request.method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405 })
