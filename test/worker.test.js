@@ -62,7 +62,13 @@ describe('worker.fetch', () => {
       status: 201,
       headers: { 'X-Test': 'yes' },
     })
-    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const mockRetrieveFile = vi
+      .fn()
+      .mockResolvedValue({
+        response: fakeResponse,
+        cacheMiss: true,
+        contentLength: 1234,
+      })
     const req = withRequest('0xDead', 'baga1234')
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(201)
@@ -90,7 +96,13 @@ describe('worker.fetch', () => {
         'Content-Length': '1234',
       },
     })
-    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const mockRetrieveFile = vi
+      .fn()
+      .mockResolvedValue({
+        response: fakeResponse,
+        cacheMiss: true,
+        contentLength: 1234,
+      })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
@@ -120,7 +132,13 @@ describe('worker.fetch', () => {
         'Content-Length': '1234',
       },
     })
-    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const mockRetrieveFile = vi
+      .fn()
+      .mockResolvedValue({
+        response: fakeResponse,
+        cacheMiss: false,
+        contentLength: 1234,
+      })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
@@ -149,7 +167,13 @@ describe('worker.fetch', () => {
         'CF-Cache-Status': 'HIT',
       },
     })
-    const mockRetrieveFile = vi.fn().mockResolvedValue(fakeResponse)
+    const mockRetrieveFile = vi
+      .fn()
+      .mockResolvedValue({
+        response: fakeResponse,
+        cacheMiss: false,
+        contentLength: undefined,
+      })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
@@ -185,7 +209,6 @@ function withRequest(clientWalletAddress, pieceCid, method = 'GET') {
   if (clientWalletAddress) url += `${clientWalletAddress}.`
   url += DNS_ROOT.slice(1) // remove the trailing '.'
   if (pieceCid) url += `/${pieceCid}`
-  console.log('REQUEST URL:', url)
 
   return new Request(url, { method })
 }

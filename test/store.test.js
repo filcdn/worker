@@ -13,21 +13,14 @@ describe('logRetrievalResult', () => {
     const OWNER_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
     const CLIENT_ADDRESS = '0xabcdef1234567890abcdef1234567890abcdef12'
 
-    const response = new Response(null, {
-      status: 200,
-      headers: {
-        'Content-Length': '1234',
-        'CF-Cache-Status': 'HIT',
-      },
-    })
-
     await logRetrievalResult(env, {
-      response,
       ownerAddress: OWNER_ADDRESS,
       clientAddress: CLIENT_ADDRESS,
+      cacheMiss: false,
+      contentLength: 1234,
+      responseStatus: 200,
       timestamp: new Date().toISOString(),
     })
-    console.log(await env.DB.prepare(''))
 
     const readOutput = await env.DB.prepare(
       `SELECT owner_address,client_address,response_status,egress_bytes,cache_miss FROM retrieval_logs WHERE owner_address = '${OWNER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`,

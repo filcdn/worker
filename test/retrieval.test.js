@@ -49,6 +49,6 @@ describe('retrieveFile', () => {
     const response = { ok: true, status: 200 }
     fetchMock.mockResolvedValueOnce(response)
     const result = await retrieveFile(baseUrl, pieceCid)
-    expect(result).toBe(response)
+    expect(result.response).toBe(response)
   })
 })
