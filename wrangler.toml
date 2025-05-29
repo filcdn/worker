@@ -16,4 +16,4 @@ DNS_ROOT = ".calibration.filcdn.io"
 [[d1_databases]]
 binding = "DB"
 database_name = "filcdn-db"
-database_id = "filcdn-db"
+database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
