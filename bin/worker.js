@@ -40,7 +40,7 @@ export default {
       pieceCid,
       env.CACHE_TTL,
     )
-    const ttfb = performance.now() - t1
+    const fetchTtfb = performance.now() - t1
     ctx.waitUntil(
       logRetrievalResult(env, {
         ownerAddress: OWNER_ADDRESS_YABLU,
@@ -50,8 +50,8 @@ export default {
         responseStatus: response.status,
         timestamp: new Date().toISOString(),
         performanceStats: {
-          ttfb,
-          workerExecutionTime: performance.now() - t0,
+          fetchTtfb,
+          workerTtfb: performance.now() - t0,
         },
       }),
     )

@@ -212,7 +212,7 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT response_status, ttfb, worker_execution_time, client_address 
+      `SELECT response_status, fetch_ttfb, worker_ttfb, client_address 
        FROM retrieval_logs 
        WHERE client_address = ?`,
     )
@@ -223,8 +223,8 @@ describe('worker.fetch', () => {
 
     assert.deepStrictEqual(result.client_address, defaultClientAddress)
     assert.strictEqual(result.response_status, 200)
-    assert.ok(result.ttfb > 0)
-    assert.ok(result.worker_execution_time > 0)
+    assert.ok(result.fetch_ttfb > 0)
+    assert.ok(result.worker_ttfb > 0)
   })
 })
 
