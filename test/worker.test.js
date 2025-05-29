@@ -221,7 +221,6 @@ describe('worker.fetch', () => {
     assert.strictEqual(readOutput.results.length, 1)
     const result = readOutput.results[0]
 
-    // If content length is not set, egress_bytes should be 0
     assert.deepStrictEqual(result.client_address, defaultClientAddress)
     assert.strictEqual(result.response_status, 200)
     assert.ok(result.ttfb > 0)
