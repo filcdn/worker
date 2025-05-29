@@ -19,6 +19,26 @@ jobs:
       - run: npm run lint
       - run: npm test
 
+      - name: test notification
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "alerts",
+              "text": "Test message from `${{ github.event.repository.name }}`",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":wave:"
+                  }
+                }
+              ]
+            }
+
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: [test]
