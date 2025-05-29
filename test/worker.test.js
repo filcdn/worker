@@ -62,13 +62,11 @@ describe('worker.fetch', () => {
       status: 201,
       headers: { 'X-Test': 'yes' },
     })
-    const mockRetrieveFile = vi
-      .fn()
-      .mockResolvedValue({
-        response: fakeResponse,
-        cacheMiss: true,
-        contentLength: 1234,
-      })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: true,
+      contentLength: 1234,
+    })
     const req = withRequest('0xDead', 'baga1234')
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(201)
@@ -96,13 +94,11 @@ describe('worker.fetch', () => {
         'Content-Length': '1234',
       },
     })
-    const mockRetrieveFile = vi
-      .fn()
-      .mockResolvedValue({
-        response: fakeResponse,
-        cacheMiss: true,
-        contentLength: 1234,
-      })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: true,
+      contentLength: 1234,
+    })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
@@ -132,13 +128,11 @@ describe('worker.fetch', () => {
         'Content-Length': '1234',
       },
     })
-    const mockRetrieveFile = vi
-      .fn()
-      .mockResolvedValue({
-        response: fakeResponse,
-        cacheMiss: false,
-        contentLength: 1234,
-      })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: false,
+      contentLength: 1234,
+    })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
@@ -167,13 +161,11 @@ describe('worker.fetch', () => {
         'CF-Cache-Status': 'HIT',
       },
     })
-    const mockRetrieveFile = vi
-      .fn()
-      .mockResolvedValue({
-        response: fakeResponse,
-        cacheMiss: false,
-        contentLength: undefined,
-      })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: false,
+      contentLength: undefined,
+    })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
