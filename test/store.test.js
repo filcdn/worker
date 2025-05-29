@@ -17,15 +17,15 @@ describe('logRetrievalResult', () => {
       status: 200,
       headers: {
         'Content-Length': '1234',
-        'CF-Cache-Status': 'HIT'
-      }
+        'CF-Cache-Status': 'HIT',
+      },
     })
 
     await logRetrievalResult(env, {
       response,
       ownerAddress: OWNER_ADDRESS,
       clientAddress: CLIENT_ADDRESS,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
     console.log(await env.DB.prepare(''))
 

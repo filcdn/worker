@@ -25,7 +25,14 @@ export default {
 
     const response = await retrieveFile(BASE_URL, pieceCid, env.CACHE_TTL)
     const timestamp = new Date().toISOString()
-    ctx.waitUntil(logRetrievalResult(env, { ownerAddress: OWNER_ADDRESS_YABLU, clientAddress: clientWalletAddress, response, timestamp }))
+    ctx.waitUntil(
+      logRetrievalResult(env, {
+        ownerAddress: OWNER_ADDRESS_YABLU,
+        clientAddress: clientWalletAddress,
+        response,
+        timestamp,
+      }),
+    )
     return response
-  }
+  },
 }
