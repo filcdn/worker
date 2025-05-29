@@ -39,9 +39,6 @@ export default {
       }),
     )
 
-    return new Response(response.body, {
-      status: response.status,
-      headers: Object.fromEntries(response.headers.entries()),
-    })
+    return response
   },
 }
