@@ -13,6 +13,10 @@ beforeAll(() => {
   applyMigrations(env)
 })
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 const DNS_ROOT = '.filcdn.io'
 env.DNS_ROOT = DNS_ROOT
 
@@ -104,7 +108,7 @@ describe('worker.fetch', () => {
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
       `SELECT id, response_status, egress_bytes, cache_miss, client_address
-       FROM retrieval_logs 
+       FROM retrieval_logs
        WHERE client_address = ?`,
     )
       .bind(defaultClientAddress)
@@ -137,8 +141,8 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, response_status, egress_bytes, cache_miss, client_address 
-       FROM retrieval_logs 
+      `SELECT id, response_status, egress_bytes, cache_miss, client_address
+       FROM retrieval_logs
        WHERE client_address = ?`,
     )
       .bind(defaultClientAddress)
@@ -170,8 +174,8 @@ describe('worker.fetch', () => {
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, response_status, egress_bytes, cache_miss, client_address 
-       FROM retrieval_logs 
+      `SELECT id, response_status, egress_bytes, cache_miss, client_address
+       FROM retrieval_logs
        WHERE client_address = ?`,
     )
       .bind(defaultClientAddress)
@@ -187,6 +191,40 @@ describe('worker.fetch', () => {
         cache_miss: 0, // 1 for true, 0 for false
       },
     ])
+  })
+  it('stores retrieval performance stats in D1', async () => {
+    const fakeResponse = new Response('file', {
+      status: 200,
+      headers: {
+        'CF-Cache-Status': 'MISS',
+        'Content-Length': '1234',
+      },
+    })
+    const mockRetrieveFile = async () => {
+      await sleep(1) // Simulate a delay
+      return {
+        response: fakeResponse,
+        cacheMiss: true,
+        contentLength: 1234,
+      }
+    }
+    const req = withRequest(defaultClientAddress, defaultPieceCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    assert.strictEqual(res.status, 200)
+    const readOutput = await env.DB.prepare(
+      `SELECT response_status, fetch_ttfb, worker_ttfb, client_address
+       FROM retrieval_logs
+       WHERE client_address = ?`,
+    )
+      .bind(defaultClientAddress)
+      .all()
+    assert.strictEqual(readOutput.results.length, 1)
+    const result = readOutput.results[0]
+
+    assert.deepStrictEqual(result.client_address, defaultClientAddress)
+    assert.strictEqual(result.response_status, 200)
+    assert.ok(result.fetch_ttfb > 0)
+    assert.ok(result.worker_ttfb > 0)
   })
 })
 
