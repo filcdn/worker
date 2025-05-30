@@ -10,7 +10,7 @@
   "scripts": {
     "deploy": "wrangler deploy --env production",
     "deploy:dev": "wrangler deploy --env dev",
-    "dev": "wrangler dev --env dev && wrangler d1 migrations apply filcdn-stats --local",
+    "dev": "wrangler d1 migrations apply dev-db --local --env dev && wrangler dev --env dev",
     "lint": "eslint && prettier --check . && tsc -p .",
     "lint:fix": "eslint --fix && prettier --write .",
     "start": "wrangler dev",
