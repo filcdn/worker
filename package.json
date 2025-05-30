@@ -24,7 +24,7 @@
   "devDependencies": {
     "@checkernetwork/prettier-config": "^1.0.1",
     "@cloudflare/vitest-pool-workers": "^0.8.33",
-    "@types/node": "^22.15.24",
+    "@types/node": "^22.15.27",
     "typescript": "^5.8.3",
     "vitest": "3.1.4",
     "wrangler": "^4.17.0"
