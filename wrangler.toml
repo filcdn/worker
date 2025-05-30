@@ -13,6 +13,11 @@ ENVIRONMENT = "production"
 CACHE_TTL = 86400
 DNS_ROOT = ".calibration.filcdn.io"
 
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "filcdn-db"
+database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "filcdn-db"
