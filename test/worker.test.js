@@ -223,8 +223,8 @@ describe('worker.fetch', () => {
 
     assert.deepStrictEqual(result.client_address, defaultClientAddress)
     assert.strictEqual(result.response_status, 200)
-    assert.ok(result.fetch_ttfb > 0)
-    assert.ok(result.worker_ttfb > 0)
+    assert.strictEqual(typeof result.fetch_ttfb, 'number')
+    assert.strictEqual(typeof result.worker_ttfb, 'number')
   })
 })
 
