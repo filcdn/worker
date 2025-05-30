@@ -17,8 +17,8 @@ export default {
    * @returns
    */
   async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
-    // Worker entry timestamps
-    const t0 = performance.now()
+    const workerStartedAt = performance.now()
+
     if (request.method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405 })
     }
@@ -33,14 +33,19 @@ export default {
       return new Response('Missing required fields', { status: 400 })
     }
 
-    // Timestamp to measure file retrieval performance
-    const t1 = performance.now()
+    // Timestamp to measure file retrieval performance (from cache and from SP)
+    const fetchStartedAt = performance.now()
+
     const { response, cacheMiss, contentLength } = await retrieveFile(
       BASE_URL,
       pieceCid,
       env.CACHE_TTL,
     )
-    const fetchTtfb = performance.now() - t1
+
+    const firstByteAt = performance.now()
+    const fetchTtfb = firstByteAt - fetchStartedAt
+    const workerTtfb = firstByteAt - workerStartedAt
+
     ctx.waitUntil(
       logRetrievalResult(env, {
         ownerAddress: OWNER_ADDRESS_YABLU,
@@ -51,7 +56,7 @@ export default {
         timestamp: new Date().toISOString(),
         performanceStats: {
           fetchTtfb,
-          workerTtfb: performance.now() - t0,
+          workerTtfb,
         },
       }),
     )
