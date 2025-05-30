@@ -17,6 +17,7 @@ export default {
    * @returns
    */
   async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
+    const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
 
     if (request.method !== 'GET') {
@@ -53,7 +54,7 @@ export default {
         cacheMiss,
         contentLength,
         responseStatus: response.status,
-        timestamp: new Date().toISOString(),
+        timestamp: requestTimestamp,
         performanceStats: {
           fetchTtfb,
           workerTtfb,
