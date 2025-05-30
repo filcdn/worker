@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
-import * as cloudFlareWorker from '../bin/worker.js'
+import workerImpl from '../bin/worker.js'
 import { createHash } from 'node:crypto'
 import {
   retrieveFile,
@@ -36,7 +36,7 @@ describe('worker.fetch', () => {
           waitUntilCalls.push(promise)
         },
       }
-      const response = await cloudFlareWorker.default.fetch(request, env, ctx, {
+      const response = await workerImpl.fetch(request, env, ctx, {
         retrieveFile,
       })
       await Promise.all(waitUntilCalls)
