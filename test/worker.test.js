@@ -226,7 +226,7 @@ describe('worker.fetch', () => {
     assert.strictEqual(typeof result.fetch_ttfb, 'number')
     assert.strictEqual(typeof result.worker_ttfb, 'number')
   })
-  it.only('stores requst country code in D1', async () => {
+  it('stores requst country code in D1', async () => {
     const mockRetrieveFile = async () => {
       return {
         response: new Response('file', {
