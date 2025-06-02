@@ -226,19 +226,53 @@ describe('worker.fetch', () => {
     assert.strictEqual(typeof result.fetch_ttfb, 'number')
     assert.strictEqual(typeof result.worker_ttfb, 'number')
   })
+  it.only('stores requst country code in D1', async () => {
+    const mockRetrieveFile = async () => {
+      return {
+        response: new Response('file', {
+          status: 200,
+        }),
+        cacheMiss: true,
+        contentLength: 1234,
+      }
+    }
+    const req = withRequest(defaultClientAddress, defaultPieceCid, 'GET', {
+      'CF-IPCountry': 'US',
+    })
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    assert.strictEqual(res.status, 200)
+    const { results } = await env.DB.prepare(
+      `SELECT request_country_code
+       FROM retrieval_logs
+       WHERE client_address = ?`,
+    )
+      .bind(defaultClientAddress)
+      .all()
+    assert.deepStrictEqual(results, [
+      {
+        request_country_code: 'US',
+      },
+    ])
+  })
 })
 
 /**
  * @param {string} clientWalletAddress
  * @param {string} pieceCid
  * @param {string} method
+ * @param {Object} headers
  * @returns {Request}
  */
-function withRequest(clientWalletAddress, pieceCid, method = 'GET') {
+function withRequest(
+  clientWalletAddress,
+  pieceCid,
+  method = 'GET',
+  headers = {},
+) {
   let url = 'http://'
   if (clientWalletAddress) url += `${clientWalletAddress}.`
   url += DNS_ROOT.slice(1) // remove the trailing '.'
   if (pieceCid) url += `/${pieceCid}`
 
-  return new Request(url, { method })
+  return new Request(url, { method, headers })
 }
