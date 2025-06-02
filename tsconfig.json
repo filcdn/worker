@@ -18,6 +18,11 @@
     "declarationMap": true,
     "resolveJsonModule": true
   },
-  "include": ["bin", "lib", "tests", "worker-configuration.d.ts"],
-  "exclude": ["dist/**/*"]
+  "include": [
+    "retriever",
+    "indexer",
+    "eslint.config.js",
+    "worker-configuration.d.ts"
+  ],
+  "exclude": ["dist/**/*", "*/test"]
 }

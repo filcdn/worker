@@ -1,12 +1,7 @@
-import { describe, it, beforeAll } from 'vitest'
+import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
 import { logRetrievalResult } from '../lib/store.js'
 import { env } from 'cloudflare:test'
-import { applyMigrations } from './setup-db.js'
-
-beforeAll(() => {
-  applyMigrations(env)
-})
 
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {

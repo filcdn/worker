@@ -1,27 +1,26 @@
 {
-  "name": "@filcdn/monorepo",
+  "name": "@filcdn/indexer",
   "version": "1.0.0",
   "private": true,
-  "description": "FilCDN Cloudflare Workers Monorepo",
+  "description": "FilCDN Indexer Worker",
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
-  "workspaces": [
-    "indexer",
-    "retriever"
-  ],
+  "main": "bin/indexer.js",
   "scripts": {
-    "deploy:calibnet": "npm run deploy --workspaces --if-present",
-    "lint": "eslint && prettier --check . && tsc -p .",
-    "lint:fix": "eslint --fix && prettier --write .",
-    "test": "npm test --workspaces --if-present"
+    "deploy:calibnet": "wrangler deploy --env calibnet",
+    "start": "wrangler d1 migrations apply dev-db --local --env dev --cwd ../retriever  && wrangler dev --env dev",
+    "test": "vitest run"
   },
   "prettier": "@checkernetwork/prettier-config",
+  "dependencies": {
+    "debug": "^4.4.1",
+    "neostandard": "^0.12.1",
+    "prettier": "^3.5.3"
+  },
   "devDependencies": {
     "@checkernetwork/prettier-config": "^1.0.1",
     "@cloudflare/vitest-pool-workers": "^0.8.34",
     "@types/node": "^22.15.29",
-    "neostandard": "^0.12.1",
-    "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "vitest": "3.1.4",
     "wrangler": "^4.17.0"
