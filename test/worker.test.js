@@ -69,7 +69,6 @@ describe('worker.fetch', () => {
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: fakeResponse,
       cacheMiss: true,
-      contentLength: 1234,
     })
     const req = withRequest('0xDead', 'baga1234')
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
@@ -83,7 +82,6 @@ describe('worker.fetch', () => {
       '61214c558a8470634437a941420a258c43ef1e89364d7347f02789f5a898dcb1'
     const req = withRequest('0xDead', defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile })
-
     expect(res.status).toBe(200)
     // get the sha256 hash of the content
     const content = await res.bytes()
@@ -91,17 +89,17 @@ describe('worker.fetch', () => {
     expect(hash).toEqual(expectedHash)
   })
   it('stores retrieval results with cache miss and content length set in D1', async () => {
-    const fakeResponse = new Response('file', {
+    const body = 'file content'
+    const expectedEgressBytes = Buffer.byteLength(body, 'utf8')
+    const fakeResponse = new Response(body, {
       status: 200,
       headers: {
         'CF-Cache-Status': 'MISS',
-        'Content-Length': '1234',
       },
     })
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: fakeResponse,
       cacheMiss: true,
-      contentLength: 1234,
     })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
@@ -119,23 +117,23 @@ describe('worker.fetch', () => {
         id: 1, // Assuming this is the first log entry
         client_address: defaultClientAddress,
         response_status: 200,
-        egress_bytes: 1234,
+        egress_bytes: expectedEgressBytes,
         cache_miss: 1, // 1 for true, 0 for false
       },
     ])
   })
   it('stores retrieval results with cache hit and content length set in D1', async () => {
-    const fakeResponse = new Response('file', {
+    const body = 'file content'
+    const expectedEgressBytes = Buffer.byteLength(body, 'utf8')
+    const fakeResponse = new Response(body, {
       status: 200,
       headers: {
         'CF-Cache-Status': 'HIT',
-        'Content-Length': '1234',
       },
     })
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: fakeResponse,
       cacheMiss: false,
-      contentLength: 1234,
     })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
@@ -153,51 +151,17 @@ describe('worker.fetch', () => {
         id: 1, // Assuming this is the first log entry
         client_address: defaultClientAddress,
         response_status: 200,
-        egress_bytes: 1234,
-        cache_miss: 0, // 1 for true, 0 for false
-      },
-    ])
-  })
-  it('stores retrieval results content length not set in D1', async () => {
-    const fakeResponse = new Response('file', {
-      status: 200,
-      headers: {
-        'CF-Cache-Status': 'HIT',
-      },
-    })
-    const mockRetrieveFile = vi.fn().mockResolvedValue({
-      response: fakeResponse,
-      cacheMiss: false,
-      contentLength: undefined,
-    })
-    const req = withRequest(defaultClientAddress, defaultPieceCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
-    assert.strictEqual(res.status, 200)
-    const readOutput = await env.DB.prepare(
-      `SELECT id, response_status, egress_bytes, cache_miss, client_address
-       FROM retrieval_logs
-       WHERE client_address = ?`,
-    )
-      .bind(defaultClientAddress)
-      .all()
-    const result = readOutput.results
-    // If content length is not set, egress_bytes should be 0
-    assert.deepStrictEqual(result, [
-      {
-        id: 1, // Assuming this is the first log entry
-        client_address: defaultClientAddress,
-        response_status: 200,
-        egress_bytes: 0,
+        egress_bytes: expectedEgressBytes,
         cache_miss: 0, // 1 for true, 0 for false
       },
     ])
   })
   it('stores retrieval performance stats in D1', async () => {
-    const fakeResponse = new Response('file', {
+    const body = 'file content'
+    const fakeResponse = new Response(body, {
       status: 200,
       headers: {
         'CF-Cache-Status': 'MISS',
-        'Content-Length': '1234',
       },
     })
     const mockRetrieveFile = async () => {
@@ -205,7 +169,6 @@ describe('worker.fetch', () => {
       return {
         response: fakeResponse,
         cacheMiss: true,
-        contentLength: 1234,
       }
     }
     const req = withRequest(defaultClientAddress, defaultPieceCid)
@@ -227,13 +190,13 @@ describe('worker.fetch', () => {
     assert.strictEqual(typeof result.worker_ttfb, 'number')
   })
   it('stores request country code in D1', async () => {
+    const body = 'file content'
     const mockRetrieveFile = async () => {
       return {
-        response: new Response('file', {
+        response: new Response(body, {
           status: 200,
         }),
         cacheMiss: true,
-        contentLength: 1234,
       }
     }
     const req = withRequest(defaultClientAddress, defaultPieceCid, 'GET', {
@@ -253,6 +216,37 @@ describe('worker.fetch', () => {
         request_country_code: 'US',
       },
     ])
+  })
+  it('returns 502 when response body is null', async () => {
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response(null, { status: 200 }),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, defaultPieceCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+
+    expect(res.status).toBe(502)
+    const json = await res.json()
+    expect(json.error).toContain('no readable body')
+  })
+  it('measures egress correctly from real storage provider', async () => {
+    const req = withRequest(defaultClientAddress, defaultPieceCid)
+
+    const res = await worker.fetch(req, env, { retrieveFile })
+
+    assert.strictEqual(res.status, 200)
+
+    const content = await res.arrayBuffer()
+    const actualBytes = content.byteLength
+
+    const { results } = await env.DB.prepare(
+      'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ?',
+    )
+      .bind(defaultClientAddress)
+      .all()
+
+    assert.strictEqual(results.length, 1)
+    assert.strictEqual(results[0].egress_bytes, actualBytes)
   })
 })
 

@@ -1,5 +1,8 @@
 import { parseRequest } from '../lib/request.js'
-import { retrieveFile as defaultRetrieveFile } from '../lib/retrieval.js'
+import {
+  retrieveFile as defaultRetrieveFile,
+  measureStreamedEgress,
+} from '../lib/retrieval.js'
 import { logRetrievalResult } from '../lib/store.js'
 
 // Hardcoded base URL for the file retrieval
@@ -37,32 +40,63 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const { response, cacheMiss, contentLength } = await retrieveFile(
+    const { response, cacheMiss } = await retrieveFile(
       BASE_URL,
       pieceCid,
       env.CACHE_TTL,
     )
+
+    if (!response.body) {
+      return new Response(
+        JSON.stringify({
+          error: 'Upstream response has no readable body.',
+          reason:
+            'The storage provider returned a response without a body, which cannot be streamed or measured for egress.',
+          upstreamUrl: request.url,
+          status: 502,
+        }),
+        {
+          status: 502,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
+    // Stream and count bytes
+    // We create two identical streams, one for the egress measurement and the other for returning the response as soon as possible
+    const streams = response.body.tee()
+    const reader = streams[0].getReader()
+    const egressPromise = measureStreamedEgress(reader)
 
     const firstByteAt = performance.now()
     const fetchTtfb = firstByteAt - fetchStartedAt
     const workerTtfb = firstByteAt - workerStartedAt
 
     ctx.waitUntil(
-      logRetrievalResult(env, {
-        ownerAddress: OWNER_ADDRESS_YABLU,
-        clientAddress: clientWalletAddress,
-        cacheMiss,
-        contentLength,
-        responseStatus: response.status,
-        timestamp: requestTimestamp,
-        performanceStats: {
-          fetchTtfb,
-          workerTtfb,
-        },
-        requestCountryCode,
-      }),
+      (async () => {
+        const egressBytes = await egressPromise
+
+        await logRetrievalResult(env, {
+          ownerAddress: OWNER_ADDRESS_YABLU,
+          clientAddress: clientWalletAddress,
+          cacheMiss,
+          egressBytes,
+          responseStatus: response.status,
+          timestamp: requestTimestamp,
+          performanceStats: {
+            fetchTtfb,
+            workerTtfb,
+          },
+          requestCountryCode,
+        })
+      })(),
     )
 
-    return response
+    // Return immediately, proxying the transformed response
+    return new Response(streams[1], {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    })
   },
 }
