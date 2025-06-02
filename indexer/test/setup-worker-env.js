@@ -1,4 +1,4 @@
 import { env } from 'cloudflare:test'
-import { applyMigrations } from '../../retriever/test/setup-db.js'
+import { applyMigrations } from '../../db/test/setup-db.js'
 
 await applyMigrations(env)

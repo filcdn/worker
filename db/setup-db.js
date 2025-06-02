@@ -1,3 +1,6 @@
+/// <reference types="vite/client" />
+
+/** @param {Env} env */
 export async function applyMigrations(env) {
   const modules = import.meta.glob('../migrations/*.sql', {
     query: '?raw',
@@ -7,7 +10,7 @@ export async function applyMigrations(env) {
 
   const migrations = Object.entries(modules)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, sql]) => sql)
+    .map(([, sql]) => /** @type {string} */ (sql))
 
   for (const sql of migrations) {
     const statements = sql

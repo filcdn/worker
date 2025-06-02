@@ -8,8 +8,8 @@
   "main": "bin/indexer.js",
   "scripts": {
     "deploy:calibnet": "wrangler deploy --env calibnet",
-    "start": "wrangler d1 migrations apply dev-db --local --env dev --cwd ../retriever && wrangler dev --env dev",
-    "test": "vitest run"
+    "start": "wrangler d1 migrations apply dev-db --local --env dev --cwd ../db && wrangler dev --env dev",
+    "test": "wrangler d1 migrations apply test-db --local --cwd ../db && vitest run"
   },
   "prettier": "@checkernetwork/prettier-config",
   "dependencies": {
