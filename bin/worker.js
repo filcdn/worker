@@ -19,9 +19,6 @@ export default {
   async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
-    console.log(
-      `Retrieval request received at ${requestTimestamp} for ${request.url}`,
-    )
     const requestCountryCode = request.headers.get('CF-IPCountry')
     if (request.method !== 'GET') {
       return new Response('Method Not Allowed', { status: 405 })
