@@ -1,5 +1,5 @@
-name = "filcdn-worker"
-main = "bin/worker.js"
+name = "filcdn-indexer"
+main = "bin/indexer.js"
 compatibility_date = "2024-12-05"
 compatibility_flags = ["nodejs_compat"]
 
@@ -10,20 +10,16 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf100"
 
 [env.dev.vars]
 ENVIRONMENT = "dev"
-CACHE_TTL = 86400
-DNS_ROOT = ".localhost"
 
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "dev-db"
-database_id = "8cc92155-16f6-426a-b782-2965e0daf100"
+database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 
-[env.production.vars]
-ENVIRONMENT = "production"
-CACHE_TTL = 86400
-DNS_ROOT = ".calibration.filcdn.io"
+[env.calibration.vars]
+ENVIRONMENT = "calibration"
 
-[[env.production.d1_databases]]
+[[env.calibration.d1_databases]]
 binding = "DB"
 database_name = "filcdn-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"

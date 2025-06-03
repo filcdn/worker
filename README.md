@@ -23,7 +23,7 @@ and cache from the Filecoin PDP Storage Providers.
    npm run lint:fix
    ```
 
-### Run the worker locally
+### Run the Retriever worker locally
 
 1. Choose a wallet address you will use for the requests, e.g. `0x123`.
 
@@ -33,11 +33,17 @@ and cache from the Filecoin PDP Storage Providers.
    127.0.0.1»foo.localhost
    ```
 
-3. Start the worker locally
+3. Start the retriever worker locally
 
    ```
-   npm run dev
+   npm start -w retriever
    ```
+
+### Run the Indexer worker locally
+
+```
+npm start -w indexer
+```
 
 ## Deployment (Github Actions)
 
