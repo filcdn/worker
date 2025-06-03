@@ -35,9 +35,8 @@ export async function retrieveFile(baseUrl, pieceCid, cacheTtl = 86400) {
 }
 
 /**
- * Measures the egress of a request by reading from a readable stream and
- * writing to a writable stream and return the total number of bytes
- * transferred.
+ * Measures the egress of a request by reading from a readable stream and return
+ * the total number of bytes transferred.
  *
  * @param {ReadableStreamDefaultReader<Uint8Array>} reader - The reader for the
  *   readable stream.
