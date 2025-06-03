@@ -6,6 +6,61 @@ export default {
    * @returns {Promise<Response>}
    */
   async fetch(request, env, ctx) {
-    return new Response('Not Implemented', { status: 501 })
+    if (request.method !== 'POST') {
+      return new Response('Method Not Allowed', { status: 405 })
+    }
+    const payload = await request.json()
+    if (request.url === '/proof-set-created') {
+      if (!payload.set_id || !payload.owner) {
+        return new Response('Bad Request', { status: 400 })
+      }
+      await env.DB.prepare(
+        `
+          INSERT INTO indexer_proof_sets (
+            set_id,
+            owner
+          )
+          VALUES (?, ?)
+          ON CONFLICT DO NOTHING
+        `,
+      )
+        .bind(payload.set_id, payload.owner)
+        .run()
+      return new Response('OK', { status: 200 })
+    } else if (request.url === 'roots-added') {
+      if (
+        !payload.set_id ||
+        !payload.root_ids ||
+        !Array.isArray(payload.root_ids) ||
+        !payload.root_ids.every(
+          (/** @type {any} */ item) => typeof item === 'string',
+        )
+      ) {
+        return new Response('Bad Request', { status: 400 })
+      }
+      await env.DB.prepare(
+        `
+          INSERT INTO indexer_roots (
+            root_id,
+            set_id
+          )
+          VALUES ${new Array(payload.root_ids.length)
+            .fill(null)
+            .map(() => '(?, ?)')
+            .join(', ')}
+          ON CONFLICT DO NOTHING
+        `,
+      )
+        .bind(
+          payload.root_ids.flatMap((/** @type {string} */ rootId) => [
+            String(rootId),
+            String(payload.set_id),
+          ]),
+        )
+        .run()
+      return new Response('OK', { status: 200 })
+    } else {
+      return new Response('Not Found', { status: 404 })
+    }
   },
 }
