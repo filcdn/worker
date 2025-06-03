@@ -1,9 +1,12 @@
-import { describe, it } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import workerImpl from '../bin/indexer.js'
-import { env, ctx } from 'cloudflare:test'
+import { env } from 'cloudflare:test'
 
-describe('retriever.fetch', () => {
-  it.skip('works', () => {
-    workerImpl.fetch(new Request('https://example.com/'), env, ctx)
+describe('retriever.indexer', () => {
+  it('returns 405 for non-POST requests', async () => {
+    const req = new Request('https://host/', { method: 'GET' })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(405)
+    expect(await res.text()).toBe('Method Not Allowed')
   })
 })
