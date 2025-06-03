@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20250525.0 2024-12-05 nodejs_compat
 declare namespace Cloudflare {
 	interface Env {
-		ENVIRONMENT: "dev" | "calibnet";
+		ENVIRONMENT: "dev" | "calibration ";
 		CACHE_TTL: 86400;
 		DNS_ROOT: ".localhost" | ".calibration.filcdn.io";
 		DB: D1Database;
@@ -3804,7 +3804,11 @@ type AIGatewayHeaders = {
     [key: string]: string | number | boolean | object;
 };
 type AIGatewayUniversalRequest = {
+<<<<<<< HEAD
     provider: AIGatewayProviders | string;  
+=======
+    provider: AIGatewayProviders | string;
+>>>>>>> main
     endpoint: string;
     headers: Partial<AIGatewayHeaders>;
     query: unknown;
@@ -3820,7 +3824,11 @@ declare abstract class AiGateway {
         gateway?: GatewayOptions;
         extraHeaders?: object;
     }): Promise<Response>;
+<<<<<<< HEAD
     getUrl(provider?: AIGatewayProviders | string): Promise<string>;  
+=======
+    getUrl(provider?: AIGatewayProviders | string): Promise<string>;
+>>>>>>> main
 }
 interface AutoRAGInternalError extends Error {
 }
@@ -4584,7 +4592,11 @@ interface IncomingRequestCfPropertiesTLSClientAuthPlaceholder {
     certNotAfter: "";
 }
 /** Possible outcomes of TLS verification */
+<<<<<<< HEAD
 declare type CertVerificationStatus = 
+=======
+declare type CertVerificationStatus =
+>>>>>>> main
 /** Authentication succeeded */
 "SUCCESS"
 /** No certificate was presented */
@@ -4643,7 +4655,11 @@ interface D1ExecResult {
     count: number;
     duration: number;
 }
+<<<<<<< HEAD
 type D1SessionConstraint = 
+=======
+type D1SessionConstraint =
+>>>>>>> main
 // Indicates that the first query should go to the primary, and the rest queries
 // using the same D1DatabaseSession will go to any replica that is consistent with
 // the bookmark maintained by the session (returned by the first query).
@@ -5081,7 +5097,11 @@ declare namespace Rpc {
     // The reason for using a generic type here is to build a serializable subset of structured
     //   cloneable composite types. This allows types defined with the "interface" keyword to pass the
     //   serializable check as well. Otherwise, only types defined with the "type" keyword would pass.
+<<<<<<< HEAD
     type Serializable<T> = 
+=======
+    type Serializable<T> =
+>>>>>>> main
     // Structured cloneables
     BaseType
     // Structured cloneable composites

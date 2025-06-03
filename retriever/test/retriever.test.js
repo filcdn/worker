@@ -56,6 +56,16 @@ describe('retriever.fetch', () => {
     )
   })
 
+  it('returns 400 if provided client address is invalid', async () => {
+    const mockRetrieveFile = vi.fn()
+    const req = withRequest('bar', defaultPieceCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe(
+      'Invalid address: bar. Address must be a valid ethereum address.',
+    )
+  })
+
   it('returns the response from retrieveFile', async () => {
     const fakeResponse = new Response('hello', {
       status: 201,
@@ -66,17 +76,17 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
       contentLength: 1234,
     })
-    const req = withRequest('0xDead', 'baga1234')
+    const req = withRequest(defaultClientAddress, 'baga1234')
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(201)
     expect(await res.text()).toBe('hello')
     expect(res.headers.get('X-Test')).toBe('yes')
   })
 
-  it('fetches the file from calibnet storage provider', async () => {
+  it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
       '61214c558a8470634437a941420a258c43ef1e89364d7347f02789f5a898dcb1'
-    const req = withRequest('0xDead', defaultPieceCid)
+    const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile })
 
     expect(res.status).toBe(200)
