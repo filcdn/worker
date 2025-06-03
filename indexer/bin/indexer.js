@@ -43,19 +43,21 @@ export default {
         `
           INSERT INTO indexer_roots (
             root_id,
-            set_id
+            set_id,
+            root_cid
           )
           VALUES ${new Array(payload.root_ids.length)
             .fill(null)
-            .map(() => '(?, ?)')
+            .map(() => '(?, ?, ?)')
             .join(', ')}
           ON CONFLICT DO NOTHING
         `,
       )
         .bind(
-          ...payload.root_ids.flatMap((/** @type {string} */ rootId) => [
+          ...payload.root_ids.flatMap((/** @type {string} */ rootId, i) => [
             String(rootId),
             String(payload.set_id),
+            payload.root_cids ? String(payload.root_cids[i]) : null,
           ]),
         )
         .run()

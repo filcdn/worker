@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS indexer_proof_sets (
 
 CREATE TABLE IF NOT EXISTS indexer_roots (
   root_id TEXT PRIMARY KEY,
-  set_id TEXT NOT NULL
+  set_id TEXT NOT NULL,
+  root_cid TEXT -- Enforce once event contains this field
 );
 
 CREATE TABLE IF NOT EXISTS indexer_proof_set_rails (

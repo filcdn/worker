@@ -75,9 +75,14 @@ describe('retriever.indexer', () => {
     it('inserts roots for a proof set', async () => {
       const setId = randomId()
       const rootIds = [randomId(), randomId()]
+      const rootCids = [randomId(), randomId()]
       const req = new Request('https://host/roots-added', {
         method: 'POST',
-        body: JSON.stringify({ set_id: setId, root_ids: rootIds }),
+        body: JSON.stringify({
+          set_id: setId,
+          root_ids: rootIds,
+          root_cids: rootCids,
+        }),
       })
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(200)
@@ -91,17 +96,24 @@ describe('retriever.indexer', () => {
       expect(roots.length).toBe(2)
       expect(roots[0].root_id).toBe(rootIds[0])
       expect(roots[0].set_id).toBe(setId)
+      expect(roots[0].root_cid).toBe(rootCids[0])
       expect(roots[1].root_id).toBe(rootIds[1])
       expect(roots[1].set_id).toBe(setId)
+      expect(roots[1].root_cid).toBe(rootCids[1])
     })
 
     it('does not insert duplicate roots for the same proof set', async () => {
       const setId = randomId()
       const rootIds = [randomId(), randomId()]
+      const rootCids = [randomId(), randomId()]
       for (let i = 0; i < 2; i++) {
         const req = new Request('https://host/roots-added', {
           method: 'POST',
-          body: JSON.stringify({ set_id: setId, root_ids: rootIds }),
+          body: JSON.stringify({
+            set_id: setId,
+            root_ids: rootIds,
+            root_cids: rootCids,
+          }),
         })
         const res = await workerImpl.fetch(req, env)
         expect(res.status).toBe(200)
@@ -114,6 +126,25 @@ describe('retriever.indexer', () => {
         .bind(setId)
         .all()
       expect(roots.length).toBe(2)
+    })
+    it('defaults to root_cid = null if not provided', async () => {
+      const setId = randomId()
+      const rootIds = [randomId(), randomId()]
+      const req = new Request('https://host/roots-added', {
+        method: 'POST',
+        body: JSON.stringify({ set_id: setId, root_ids: rootIds }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: roots } = await env.DB.prepare(
+        'SELECT * FROM indexer_roots WHERE set_id = ?',
+      )
+        .bind(setId)
+        .all()
+      expect(roots[0].root_cid).toBeNull()
+      expect(roots[1].root_cid).toBeNull()
     })
   })
 
