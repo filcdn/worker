@@ -9,7 +9,7 @@
  * @param {number} params.responseStatus - The HTTP response status code.
  * @param {boolean | null} params.cacheMiss - Whether the retrieval was a cache
  *   miss.
- * @param {{ fetchTtfb: number; workerTtfb: number }} [params.performanceStats]
+ * @param {{ fetchTtfb: number; fetchTtlb: number; workerTtfb: number }} [params.performanceStats]
  *   - Performance statistics.
  *
  * @param {string} params.timestamp - The timestamp of the retrieval.
@@ -41,10 +41,11 @@ export async function logRetrievalResult(env, params) {
         egress_bytes,
         cache_miss,
         fetch_ttfb,
+        fetch_ttlb,
         worker_ttfb,
         request_country_code
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
       .bind(
@@ -55,6 +56,7 @@ export async function logRetrievalResult(env, params) {
         egressBytes,
         cacheMiss,
         performanceStats?.fetchTtfb ?? null,
+        performanceStats?.fetchTtlb ?? null,
         performanceStats?.workerTtfb ?? null,
         requestCountryCode,
       )
