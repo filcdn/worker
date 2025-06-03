@@ -37,7 +37,7 @@ export default {
 
     if (!isValidEthereumAddress(clientWalletAddress)) {
       return new Response(
-        `Invalid address: ${clientWalletAddress}. Address must match ethereum 0x address format.`,
+        `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
         { status: 400 },
       )
     }
