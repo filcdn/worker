@@ -73,7 +73,7 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('X-Test')).toBe('yes')
   })
 
-  it('fetches the file from calibnet storage provider', async () => {
+  it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
       '61214c558a8470634437a941420a258c43ef1e89364d7347f02789f5a898dcb1'
     const req = withRequest('0xDead', defaultPieceCid)

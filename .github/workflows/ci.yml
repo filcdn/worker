@@ -34,7 +34,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           preCommands: './bin/pre-deploy.sh'
-          environment: calibnet
+          environment: calibration
       - name: Deploy Indexer
         uses: cloudflare/wrangler-action@v3
         with:
@@ -42,7 +42,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           preCommands: './bin/pre-deploy.sh'
-          environment: calibnet
+          environment: calibration
       - if: failure()
         uses: slackapi/slack-github-action@v2.1.0
         with:

@@ -16,10 +16,10 @@ binding = "DB"
 database_name = "dev-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 
-[env.calibnet.vars]
-ENVIRONMENT = "calibnet"
+[env.calibration.vars]
+ENVIRONMENT = "calibration"
 
-[[env.calibnet.d1_databases]]
+[[env.calibration.d1_databases]]
 binding = "DB"
 database_name = "filcdn-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
