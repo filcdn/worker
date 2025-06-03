@@ -62,7 +62,7 @@ describe('retriever.fetch', () => {
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(400)
     expect(await res.text()).toBe(
-      'Invalid address: bar. Address must match ethereum 0x address format.',
+      'Invalid address: bar. Address must be a valid ethereum address.',
     )
   })
 
