@@ -31,8 +31,9 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: proofSets } = await env.DB
-        .prepare('SELECT * FROM indexer_proof_sets WHERE set_id = ?')
+      const { results: proofSets } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_sets WHERE set_id = ?',
+      )
         .bind(setId)
         .all()
       expect(proofSets.length).toBe(1)
@@ -51,8 +52,9 @@ describe('retriever.indexer', () => {
         expect(await res.text()).toBe('OK')
       }
 
-      const { results: proofSets } = await env.DB
-        .prepare('SELECT * FROM indexer_proof_sets WHERE set_id = ?')
+      const { results: proofSets } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_sets WHERE set_id = ?',
+      )
         .bind(setId)
         .all()
       expect(proofSets.length).toBe(1)
@@ -72,7 +74,7 @@ describe('retriever.indexer', () => {
 
     it('inserts roots for a proof set', async () => {
       const setId = randomId()
-      const rootIds = [randomId(), randomId(),]
+      const rootIds = [randomId(), randomId()]
       const req = new Request('https://host/roots-added', {
         method: 'POST',
         body: JSON.stringify({ set_id: setId, root_ids: rootIds }),
@@ -81,8 +83,9 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: roots } = await env.DB
-        .prepare('SELECT * FROM indexer_roots WHERE set_id = ?')
+      const { results: roots } = await env.DB.prepare(
+        'SELECT * FROM indexer_roots WHERE set_id = ?',
+      )
         .bind(setId)
         .all()
       expect(roots.length).toBe(2)
@@ -105,11 +108,103 @@ describe('retriever.indexer', () => {
         expect(await res.text()).toBe('OK')
       }
 
-      const { results: roots } = await env.DB
-        .prepare('SELECT * FROM indexer_roots WHERE set_id = ?')
+      const { results: roots } = await env.DB.prepare(
+        'SELECT * FROM indexer_roots WHERE set_id = ?',
+      )
         .bind(setId)
         .all()
       expect(roots.length).toBe(2)
+    })
+  })
+
+  describe('POST /proof-set-rail-created', () => {
+    it('returns 400 if property is missing', async () => {
+      const req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+    it('inserts a proof set rail', async () => {
+      const proofSetId = randomId()
+      const railId = randomId()
+      const req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        body: JSON.stringify({
+          proof_set_id: proofSetId,
+          rail_id: railId,
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: true,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      )
+        .bind(proofSetId)
+        .all()
+      expect(proofSetRails.length).toBe(1)
+      expect(proofSetRails[0].proof_set_id).toBe(proofSetId)
+      expect(proofSetRails[0].rail_id).toBe(railId)
+      expect(proofSetRails[0].payer).toBe('0xPayerAddress')
+      expect(proofSetRails[0].payee).toBe('0xPayeeAddress')
+      expect(proofSetRails[0].with_cdn).toBe(1)
+    })
+    it('does not insert duplicate proof set rails', async () => {
+      const proofSetId = randomId()
+      const railId = randomId()
+      for (let i = 0; i < 2; i++) {
+        const req = new Request('https://host/proof-set-rail-created', {
+          method: 'POST',
+          body: JSON.stringify({
+            proof_set_id: proofSetId,
+            rail_id: railId,
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            with_cdn: true,
+          }),
+        })
+        const res = await workerImpl.fetch(req, env)
+        expect(res.status).toBe(200)
+        expect(await res.text()).toBe('OK')
+      }
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ? AND rail_id = ?',
+      )
+        .bind(proofSetId, railId)
+        .all()
+      expect(proofSetRails.length).toBe(1)
+    })
+    it('defaults to with_cdn = null if not provided', async () => {
+      const proofSetId = randomId()
+      const railId = randomId()
+      const req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        body: JSON.stringify({
+          proof_set_id: proofSetId,
+          rail_id: railId,
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ? AND rail_id = ?',
+      )
+        .bind(proofSetId, railId)
+        .all()
+      expect(proofSetRails.length).toBe(1)
+      expect(proofSetRails[0].with_cdn).toBeNull()
     })
   })
 })

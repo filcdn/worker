@@ -60,6 +60,37 @@ export default {
         )
         .run()
       return new Response('OK', { status: 200 })
+    } else if (pathname === '/proof-set-rail-created') {
+      if (
+        !payload.proof_set_id ||
+        !payload.rail_id ||
+        !payload.payer ||
+        !payload.payee
+      ) {
+        return new Response('Bad Request', { status: 400 })
+      }
+      await env.DB.prepare(
+        `
+          INSERT INTO indexer_proof_set_rails (
+            proof_set_id,
+            rail_id,
+            payer,
+            payee,
+            with_cdn
+          )
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT DO NOTHING
+        `,
+      )
+        .bind(
+          payload.proof_set_id,
+          payload.rail_id,
+          payload.payer,
+          payload.payee,
+          payload.with_cdn || null,
+        )
+        .run()
+      return new Response('OK', { status: 200 })
     } else {
       return new Response('Not Found', { status: 404 })
     }
