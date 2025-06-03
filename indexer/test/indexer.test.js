@@ -85,9 +85,11 @@ describe('retriever.indexer', () => {
         .prepare('SELECT * FROM indexer_roots WHERE set_id = ?')
         .bind(setId)
         .all()
-      expect(roots.length).toBe(1)
+      expect(roots.length).toBe(2)
       expect(roots[0].root_id).toBe(rootIds[0])
       expect(roots[0].set_id).toBe(setId)
+      expect(roots[1].root_id).toBe(rootIds[1])
+      expect(roots[1].set_id).toBe(setId)
     })
 
     it('does not insert duplicate roots for the same proof set', async () => {
@@ -107,7 +109,7 @@ describe('retriever.indexer', () => {
         .prepare('SELECT * FROM indexer_roots WHERE set_id = ?')
         .bind(setId)
         .all()
-      expect(roots.length).toBe(1)
+      expect(roots.length).toBe(2)
     })
   })
 })

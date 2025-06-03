@@ -53,7 +53,7 @@ export default {
         `,
       )
         .bind(
-          payload.root_ids.flatMap((/** @type {string} */ rootId) => [
+          ...payload.root_ids.flatMap((/** @type {string} */ rootId) => [
             String(rootId),
             String(payload.set_id),
           ]),
