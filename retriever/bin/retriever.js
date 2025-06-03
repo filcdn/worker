@@ -1,6 +1,9 @@
 import { isValidEthereumAddress } from '../lib/address.js'
 import { parseRequest } from '../lib/request.js'
-import { retrieveFile as defaultRetrieveFile } from '../lib/retrieval.js'
+import {
+  retrieveFile as defaultRetrieveFile,
+  measureStreamedEgress,
+} from '../lib/retrieval.js'
 import { logRetrievalResult } from '../lib/store.js'
 
 // Hardcoded base URL for the file retrieval
@@ -45,32 +48,70 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const { response, cacheMiss, contentLength } = await retrieveFile(
+    const { response, cacheMiss } = await retrieveFile(
       BASE_URL,
       pieceCid,
       env.CACHE_TTL,
     )
 
+    const retrievalResultEntry = {
+      ownerAddress: OWNER_ADDRESS_YABLU,
+      clientAddress: clientWalletAddress,
+      cacheMiss,
+      egressBytes: null, // Will be populated later
+      responseStatus: response.status,
+      timestamp: requestTimestamp,
+      performanceStats: {
+        fetchTtfb: null, // Will be populated later
+        workerTtfb: null, // Will be populated later
+      },
+      requestCountryCode,
+    }
+
+    if (!response.body) {
+      // The upstream response does not have any readable body
+      // There is no need to measure response body size, we can
+      // return the original response object.
+      const firstByteAt = performance.now()
+      ctx.waitUntil(
+        logRetrievalResult(env, {
+          ...retrievalResultEntry,
+          egressBytes: 0, // No body to measure
+          performanceStats: {
+            fetchTtfb: firstByteAt - fetchStartedAt,
+            workerTtfb: firstByteAt - workerStartedAt,
+          },
+        }),
+      )
+      return response
+    }
+
+    // Stream and count bytes
+    // We create two identical streams, one for the egress measurement and the other for returning the response as soon as possible
+    const [returnedStream, egressMeasurementStream] = response.body.tee()
+    const reader = egressMeasurementStream.getReader()
     const firstByteAt = performance.now()
-    const fetchTtfb = firstByteAt - fetchStartedAt
-    const workerTtfb = firstByteAt - workerStartedAt
 
     ctx.waitUntil(
-      logRetrievalResult(env, {
-        ownerAddress: OWNER_ADDRESS_YABLU,
-        clientAddress: clientWalletAddress,
-        cacheMiss,
-        contentLength,
-        responseStatus: response.status,
-        timestamp: requestTimestamp,
-        performanceStats: {
-          fetchTtfb,
-          workerTtfb,
-        },
-        requestCountryCode,
-      }),
+      (async () => {
+        const egressBytes = await measureStreamedEgress(reader)
+
+        await logRetrievalResult(env, {
+          ...retrievalResultEntry,
+          egressBytes,
+          performanceStats: {
+            fetchTtfb: firstByteAt - fetchStartedAt,
+            workerTtfb: firstByteAt - workerStartedAt,
+          },
+        })
+      })(),
     )
 
-    return response
+    // Return immediately, proxying the transformed response
+    return new Response(returnedStream, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    })
   },
 }

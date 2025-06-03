@@ -12,7 +12,7 @@ describe('logRetrievalResult', () => {
       ownerAddress: OWNER_ADDRESS,
       clientAddress: CLIENT_ADDRESS,
       cacheMiss: false,
-      contentLength: 1234,
+      egressBytes: 1234,
       responseStatus: 200,
       timestamp: new Date().toISOString(),
       requestCountryCode: 'US',

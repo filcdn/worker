@@ -8,8 +8,8 @@
  * @returns {Promise<{
  *   response: Response
  *   cacheMiss: null | boolean
- *   contentLength: null | string
  * }>}
+ *
  *   - The response from the fetch request, the cache miss and the content length.
  */
 export async function retrieveFile(baseUrl, pieceCid, cacheTtl = 86400) {
@@ -31,10 +31,24 @@ export async function retrieveFile(baseUrl, pieceCid, cacheTtl = 86400) {
 
   const cacheMiss = cacheStatus !== 'HIT'
 
-  const contentLength = response.headers.get('Content-Length')
-  if (!contentLength && contentLength !== '0') {
-    console.log(`Content-Length was not provided for ${url}`)
-  }
+  return { response, cacheMiss }
+}
 
-  return { response, cacheMiss, contentLength }
+/**
+ * Measures the egress of a request by reading from a readable stream and return
+ * the total number of bytes transferred.
+ *
+ * @param {ReadableStreamDefaultReader<Uint8Array>} reader - The reader for the
+ *   readable stream.
+ * @returns {Promise<number>} - A promise that resolves to the total number of
+ *   bytes transferred.
+ */
+export async function measureStreamedEgress(reader) {
+  let total = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.length
+  }
+  return total
 }
