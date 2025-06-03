@@ -146,6 +146,38 @@ describe('retriever.indexer', () => {
       expect(roots[0].root_cid).toBeNull()
       expect(roots[1].root_cid).toBeNull()
     })
+
+    it('allows multiple sets to have the same root id', async () => {
+      const setIds = [randomId(), randomId()]
+      setIds.sort()
+
+      for (const sid of setIds) {
+        const req = new Request('https://host/roots-added', {
+          method: 'POST',
+          body: JSON.stringify({ set_id: sid, root_ids: ['0'] }),
+        })
+        const res = await workerImpl.fetch(req, env)
+        const body = await res.text()
+        expect(`${res.status} ${body}`).toBe('200 OK')
+      }
+
+      const { results: roots } = await env.DB.prepare(
+        'SELECT set_id, root_id FROM indexer_roots WHERE set_id = ? OR set_id = ? ORDER BY set_id',
+      )
+        .bind(setIds[0], setIds[1])
+        .all()
+
+      expect(roots).toEqual([
+        {
+          set_id: setIds[0],
+          root_id: '0',
+        },
+        {
+          set_id: setIds[1],
+          root_id: '0',
+        },
+      ])
+    })
   })
 
   describe('POST /proof-set-rail-created', () => {
