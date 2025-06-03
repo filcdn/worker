@@ -2,7 +2,7 @@
 
 /** @param {Env} env */
 export async function applyMigrations(env) {
-  const modules = import.meta.glob('../migrations/*.sql', {
+  const modules = import.meta.glob('./migrations/*.sql', {
     query: '?raw',
     import: 'default',
     eager: true,
