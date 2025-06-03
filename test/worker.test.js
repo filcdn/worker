@@ -217,17 +217,27 @@ describe('worker.fetch', () => {
       },
     ])
   })
-  it('returns 502 when response body is null', async () => {
+  it('logs 0 egress bytes for empty body', async () => {
+    const fakeResponse = new Response(null, {
+      status: 200,
+      headers: {
+        'CF-Cache-Status': 'MISS',
+      },
+    })
     const mockRetrieveFile = vi.fn().mockResolvedValue({
-      response: new Response(null, { status: 200 }),
+      response: fakeResponse,
       cacheMiss: true,
     })
     const req = withRequest(defaultClientAddress, defaultPieceCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
-
-    expect(res.status).toBe(502)
-    const json = await res.json()
-    expect(json.error).toContain('no readable body')
+    assert.strictEqual(res.status, 200)
+    const readOutput = await env.DB.prepare(
+      'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ?',
+    )
+      .bind(defaultClientAddress)
+      .all()
+    assert.strictEqual(readOutput.results.length, 1)
+    assert.strictEqual(readOutput.results[0].egress_bytes, 0)
   })
   it('measures egress correctly from real storage provider', async () => {
     const req = withRequest(defaultClientAddress, defaultPieceCid)
