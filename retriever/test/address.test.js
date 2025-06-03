@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isValidEthereumAddress } from '../lib/address.js';
+import { describe, it, expect } from 'vitest'
+import { isValidEthereumAddress } from '../lib/address.js'
 
 describe('isValidEthereumAddress', () => {
   const cases = [
@@ -54,11 +54,11 @@ describe('isValidEthereumAddress', () => {
       input: undefined,
       expected: false,
     },
-  ];
+  ]
 
   cases.forEach(({ name, input, expected }) => {
     it(`returns ${expected} for ${name}`, () => {
-      expect(isValidEthereumAddress(input)).toBe(expected);
-    });
-  });
-});
+      expect(isValidEthereumAddress(input)).toBe(expected)
+    })
+  })
+})

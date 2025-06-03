@@ -1,6 +1,6 @@
 /**
- * Validates that address matches ethereum 0x format.
- * This function does not validate address checksum.
+ * Validates that address matches ethereum 0x format. This function does not
+ * validate address checksum.
  *
  * @param {string} address
  * @returns {boolean}
