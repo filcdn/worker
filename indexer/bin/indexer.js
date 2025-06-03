@@ -10,7 +10,8 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
     const payload = await request.json()
-    if (request.url === '/proof-set-created') {
+    const pathname = new URL(request.url).pathname
+    if (pathname === '/proof-set-created') {
       if (!payload.set_id || !payload.owner) {
         return new Response('Bad Request', { status: 400 })
       }
@@ -27,7 +28,7 @@ export default {
         .bind(payload.set_id, payload.owner)
         .run()
       return new Response('OK', { status: 200 })
-    } else if (request.url === 'roots-added') {
+    } else if (pathname === '/roots-added') {
       if (
         !payload.set_id ||
         !payload.root_ids ||
