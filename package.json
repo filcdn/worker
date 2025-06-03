@@ -1,31 +1,27 @@
 {
-  "name": "filcdn-worker",
+  "name": "@filcdn/monorepo",
   "version": "1.0.0",
-  "private": false,
-  "description": "FilCDN Cloudflare Worker",
-  "license": "MIT",
+  "private": true,
+  "description": "FilCDN Cloudflare Workers Monorepo",
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
-  "main": "bin/worker.js",
+  "workspaces": [
+    "indexer",
+    "retriever"
+  ],
   "scripts": {
-    "deploy": "wrangler deploy --env production",
-    "deploy:dev": "wrangler deploy --env dev",
-    "dev": "wrangler d1 migrations apply dev-db --local --env dev && wrangler dev --env dev",
+    "deploy:calibration": "npm run deploy:calibration --workspaces --if-present",
     "lint": "eslint && prettier --check . && tsc -p .",
     "lint:fix": "eslint --fix && prettier --write .",
-    "start": "wrangler dev",
-    "test": "vitest run"
+    "test": "npm test --workspaces --if-present"
   },
   "prettier": "@checkernetwork/prettier-config",
-  "dependencies": {
-    "debug": "^4.4.1",
-    "neostandard": "^0.12.1",
-    "prettier": "^3.5.3"
-  },
   "devDependencies": {
     "@checkernetwork/prettier-config": "^1.0.1",
     "@cloudflare/vitest-pool-workers": "^0.8.34",
     "@types/node": "^22.15.29",
+    "neostandard": "^0.12.1",
+    "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "vitest": "3.1.4",
     "wrangler": "^4.17.0"

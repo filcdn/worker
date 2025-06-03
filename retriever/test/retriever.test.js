@@ -1,17 +1,12 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
-import workerImpl from '../bin/worker.js'
+import { describe, it, expect, vi } from 'vitest'
+import workerImpl from '../bin/retriever.js'
 import { createHash } from 'node:crypto'
 import {
   retrieveFile,
   retrieveFile as defaultRetrieveFile,
 } from '../lib/retrieval.js'
-import { applyMigrations } from './setup-db.js'
 import { env } from 'cloudflare:test'
 import assert from 'node:assert/strict'
-
-beforeAll(() => {
-  applyMigrations(env)
-})
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -20,7 +15,7 @@ function sleep(ms) {
 const DNS_ROOT = '.filcdn.io'
 env.DNS_ROOT = DNS_ROOT
 
-describe('worker.fetch', () => {
+describe('retriever.fetch', () => {
   const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
   const defaultPieceCid =
     'baga6ea4seaqkzso6gijktpl22dxarxq25iynurceicxpst35yjrcp72uq3ziwpi'
@@ -77,7 +72,7 @@ describe('worker.fetch', () => {
     expect(res.headers.get('X-Test')).toBe('yes')
   })
 
-  it('fetches the file from calibnet storage provider', async () => {
+  it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
       '61214c558a8470634437a941420a258c43ef1e89364d7347f02789f5a898dcb1'
     const req = withRequest('0xDead', defaultPieceCid)
