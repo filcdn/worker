@@ -27,14 +27,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: npm ci
-      - name: Migrate Database
-        run: db/deploy-calibration.sh
-      - name: Deploy Retriever
+      - name: Deploy Retriever and Migrate Database
         uses: cloudflare/wrangler-action@v3
         with:
           workingDirectory: retriever
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          preCommands: ./db/deploy-calibration.sh
           environment: calibration
       - name: Deploy Indexer
         uses: cloudflare/wrangler-action@v3
