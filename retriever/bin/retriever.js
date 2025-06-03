@@ -1,3 +1,4 @@
+import { isValidEthereumAddress } from '../lib/address.js'
 import { parseRequest } from '../lib/request.js'
 import {
   retrieveFile as defaultRetrieveFile,
@@ -35,6 +36,13 @@ export default {
 
     if (!clientWalletAddress || !pieceCid) {
       return new Response('Missing required fields', { status: 400 })
+    }
+
+    if (!isValidEthereumAddress(clientWalletAddress)) {
+      return new Response(
+        `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
+        { status: 400 },
+      )
     }
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
