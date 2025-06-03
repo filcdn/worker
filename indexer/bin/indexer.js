@@ -39,6 +39,10 @@ export default {
       ) {
         return new Response('Bad Request', { status: 400 })
       }
+
+      /** @type {string[]} */
+      const rootIds = payload.root_ids
+
       await env.DB.prepare(
         `
           INSERT INTO indexer_roots (
@@ -54,7 +58,7 @@ export default {
         `,
       )
         .bind(
-          ...payload.root_ids.flatMap((/** @type {string} */ rootId, i) => [
+          ...rootIds.flatMap((rootId, i) => [
             String(rootId),
             String(payload.set_id),
             payload.root_cids ? String(payload.root_cids[i]) : null,
