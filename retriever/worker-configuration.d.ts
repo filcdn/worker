@@ -3804,11 +3804,7 @@ type AIGatewayHeaders = {
     [key: string]: string | number | boolean | object;
 };
 type AIGatewayUniversalRequest = {
-<<<<<<< HEAD
-    provider: AIGatewayProviders | string;  
-=======
     provider: AIGatewayProviders | string;
->>>>>>> main
     endpoint: string;
     headers: Partial<AIGatewayHeaders>;
     query: unknown;
@@ -3824,11 +3820,7 @@ declare abstract class AiGateway {
         gateway?: GatewayOptions;
         extraHeaders?: object;
     }): Promise<Response>;
-<<<<<<< HEAD
-    getUrl(provider?: AIGatewayProviders | string): Promise<string>;  
-=======
     getUrl(provider?: AIGatewayProviders | string): Promise<string>;
->>>>>>> main
 }
 interface AutoRAGInternalError extends Error {
 }
@@ -4592,11 +4584,7 @@ interface IncomingRequestCfPropertiesTLSClientAuthPlaceholder {
     certNotAfter: "";
 }
 /** Possible outcomes of TLS verification */
-<<<<<<< HEAD
-declare type CertVerificationStatus = 
-=======
 declare type CertVerificationStatus =
->>>>>>> main
 /** Authentication succeeded */
 "SUCCESS"
 /** No certificate was presented */
