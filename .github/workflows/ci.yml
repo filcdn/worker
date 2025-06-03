@@ -33,7 +33,7 @@ jobs:
           workingDirectory: retriever
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          preCommands: ./db/deploy-calibration.sh
+          preCommands: ../db/deploy-calibration.sh
           environment: calibration
       - name: Deploy Indexer
         uses: cloudflare/wrangler-action@v3
