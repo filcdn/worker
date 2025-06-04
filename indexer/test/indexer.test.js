@@ -4,6 +4,9 @@ import { env } from 'cloudflare:test'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
+env.SECRET_HEADER_KEY = 'secret-header-key'
+env.SECRET_HEADER_VALUE = 'secret-header-value'
+
 describe('retriever.indexer', () => {
   it('requires authentication', async () => {
     const req = new Request('https://host/', { method: 'POST' })
