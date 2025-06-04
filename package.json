@@ -23,7 +23,7 @@
     "neostandard": "^0.12.1",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
-    "vitest": "3.1.4",
+    "vitest": "3.2.1",
     "wrangler": "^4.17.0"
   }
 }
