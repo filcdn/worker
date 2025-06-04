@@ -6,8 +6,12 @@ export default {
    * @returns {Promise<Response>}
    */
   async fetch(request, env, ctx) {
-    const secretHeaderKey = env.SECRET_HEADER_KEY
-    const secretHeaderValue = env.SECRET_HEADER_VALUE
+    // TypeScript setup is broken in our monorepo
+    // There are multiple global Env interfaces defined (one per worker),
+    // TypeScript merges them in a way that breaks our code.
+    // We should eventually fix that.
+    // @ts-ignore
+    const { SECRET_HEADER_KEY, SECRET_HEADER_VALUE } = env
     if (request.headers.get(secretHeaderKey) !== secretHeaderValue) {
       return new Response('Unauthorized', { status: 401 })
     }
