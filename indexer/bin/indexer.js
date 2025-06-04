@@ -6,6 +6,12 @@ export default {
    * @returns {Promise<Response>}
    */
   async fetch(request, env, ctx) {
+    const secretHeaderKey = env.SECRET_HEADER_KEY
+    const secretHeaderValue = env.SECRET_HEADER_VALUE
+    if (request.headers.get(secretHeaderKey) !== secretHeaderValue) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 })
     }

@@ -5,8 +5,19 @@ import { env } from 'cloudflare:test'
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
 describe('retriever.indexer', () => {
+  it('requires authentication', async () => {
+    const req = new Request('https://host/', { method: 'POST' })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(401)
+    expect(await res.text()).toBe('Unauthorized')
+  })
   it('returns 405 for non-POST requests', async () => {
-    const req = new Request('https://host/', { method: 'GET' })
+    const req = new Request('https://host/', {
+      method: 'GET',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      }
+    })
     const res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
@@ -15,6 +26,9 @@ describe('retriever.indexer', () => {
     it('returns 400 if set_id or owner is missing', async () => {
       const req = new Request('https://host/proof-set-created', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({}),
       })
       const res = await workerImpl.fetch(req, env)
@@ -25,6 +39,9 @@ describe('retriever.indexer', () => {
       const setId = randomId()
       const req = new Request('https://host/proof-set-created', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({ set_id: setId, owner: '0xOwnerAddress' }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -45,6 +62,9 @@ describe('retriever.indexer', () => {
       for (let i = 0; i < 2; i++) {
         const req = new Request('https://host/proof-set-created', {
           method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
           body: JSON.stringify({ set_id: setId, owner: '0xOwnerAddress' }),
         })
         const res = await workerImpl.fetch(req, env)
@@ -65,6 +85,9 @@ describe('retriever.indexer', () => {
     it('returns 400 if set_id or root_ids is missing', async () => {
       const req = new Request('https://host/roots-added', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({}),
       })
       const res = await workerImpl.fetch(req, env)
@@ -78,6 +101,9 @@ describe('retriever.indexer', () => {
       const rootCids = [randomId(), randomId()]
       const req = new Request('https://host/roots-added', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({
           set_id: setId,
           root_ids: rootIds,
@@ -109,6 +135,9 @@ describe('retriever.indexer', () => {
       for (let i = 0; i < 2; i++) {
         const req = new Request('https://host/roots-added', {
           method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
           body: JSON.stringify({
             set_id: setId,
             root_ids: rootIds,
@@ -132,6 +161,9 @@ describe('retriever.indexer', () => {
       const rootIds = [randomId(), randomId()]
       const req = new Request('https://host/roots-added', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({ set_id: setId, root_ids: rootIds }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -154,6 +186,9 @@ describe('retriever.indexer', () => {
       for (const sid of setIds) {
         const req = new Request('https://host/roots-added', {
           method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
           body: JSON.stringify({ set_id: sid, root_ids: ['0'] }),
         })
         const res = await workerImpl.fetch(req, env)
@@ -184,6 +219,9 @@ describe('retriever.indexer', () => {
     it('returns 400 if property is missing', async () => {
       const req = new Request('https://host/proof-set-rail-created', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({}),
       })
       const res = await workerImpl.fetch(req, env)
@@ -195,6 +233,9 @@ describe('retriever.indexer', () => {
       const railId = randomId()
       const req = new Request('https://host/proof-set-rail-created', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({
           proof_set_id: proofSetId,
           rail_id: railId,
@@ -225,6 +266,9 @@ describe('retriever.indexer', () => {
       for (let i = 0; i < 2; i++) {
         const req = new Request('https://host/proof-set-rail-created', {
           method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
           body: JSON.stringify({
             proof_set_id: proofSetId,
             rail_id: railId,
@@ -250,6 +294,9 @@ describe('retriever.indexer', () => {
       const railId = randomId()
       const req = new Request('https://host/proof-set-rail-created', {
         method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
         body: JSON.stringify({
           proof_set_id: proofSetId,
           rail_id: railId,
