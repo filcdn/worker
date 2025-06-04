@@ -1,7 +1,4 @@
-import {
-  createPdpVerifierClient as defaultCreatePdpVerifierClient,
-  getRootCid,
-} from '../lib/pdp-verifier.js'
+import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 
 export default {
   /**
@@ -9,14 +6,14 @@ export default {
    * @param {Env} env
    * @param {ExecutionContext} ctx
    * @param {object} options
-   * @param {typeof defaultCreatePdpVerifierClient} options.createPdpVerifierClient
+   * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
    * @returns {Promise<Response>}
    */
   async fetch(
     request,
     env,
     ctx,
-    { createPdpVerifierClient = defaultCreatePdpVerifierClient },
+    { createPdpVerifierClient = defaultCreatePdpVerifierClient } = {},
   ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
@@ -70,11 +67,14 @@ export default {
         pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
       })
 
-      const rootCids = await Promise.all(
-        rootIds.map(async (rootId) =>
-          getRootCid(pdpVerifier, setId, BigInt(payload.rootId)),
-        ),
-      )
+      const rootCids =
+        payload.root_cids && Array.isArray(payload.root_cids)
+          ? payload.root_cids.map((/** @type {unknown} */ cid) => String(cid))
+          : await Promise.all(
+              rootIds.map((rootId) =>
+                pdpVerifier.getRootCid(setId, BigInt(rootId)),
+              ),
+            )
 
       await env.DB.prepare(
         `

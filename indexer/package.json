@@ -13,7 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "ethers": "^6.14.3",
+    "@ethersproject/abi": "^5.8.0",
+    "assert-ok-response": "^1.0.0",
     "multiformats": "^13.3.6"
   }
 }
