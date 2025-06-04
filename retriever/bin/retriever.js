@@ -89,14 +89,14 @@ export default {
     ctx.waitUntil(
       (async () => {
         const egressBytes = await measureStreamedEgress(reader)
-        const lastByteAt = performance.now()
+        const lastByteFetchedAt = performance.now()
 
         await logRetrievalResult(env, {
           ...retrievalResultEntry,
           egressBytes,
           performanceStats: {
             fetchTtfb: firstByteAt - fetchStartedAt,
-            fetchTtlb: lastByteAt - fetchStartedAt,
+            fetchTtlb: lastByteFetchedAt - fetchStartedAt,
             workerTtfb: firstByteAt - workerStartedAt,
           },
         })
