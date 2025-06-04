@@ -8,8 +8,13 @@ import { logRetrievalResult } from '../lib/store.js'
 // Hardcoded base URL for the file retrieval
 // In the future either user should supply the base URL
 // or worker should be retrieve database or chain
-const BASE_URL = 'yablu.net'
-const OWNER_ADDRESS_YABLU = '0x7469b47e006d0660ab92ae560b27a1075eecf97f'
+const OWNER_TO_URL = {
+  ['0x2A06D234246eD18b6C91de8349fF34C22C7268e8']: 'http://pdp.660688.xyz:8443/',
+  ['0x12191de399B9B3FfEB562861f9eD62ea8da18AE5']:'https://techx-pdp.filecoin.no/',
+  ['0x4A628ebAecc32B8779A934ebcEffF1646F517756']:'https://pdp.zapto.org/',
+  ['0x9f5087a1821eb3ed8a137be368e5e451166efaae']:'https://yablu.net'
+}
+
 export default {
   /**
    * @param {Request} request
@@ -39,9 +44,9 @@ export default {
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
-
+    const ownerAddress = //FETCH OWNER ADDRESS
     const { response, cacheMiss } = await retrieveFile(
-      BASE_URL,
+      OWNER_TO_URL[ownerAddress],
       pieceCid,
       env.CACHE_TTL,
     )
