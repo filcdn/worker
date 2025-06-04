@@ -13,7 +13,7 @@
     "deploy:calibration": "npm run deploy:calibration --workspaces --if-present",
     "lint": "eslint && prettier --check . && tsc -p .",
     "lint:fix": "eslint --fix && prettier --write .",
-    "test": "wrangler d1 migrations apply test-db --local --cwd db && vitest run"
+    "test": "npm run lint && wrangler d1 migrations apply test-db --local --cwd db && vitest run"
   },
   "prettier": "@checkernetwork/prettier-config",
   "devDependencies": {
