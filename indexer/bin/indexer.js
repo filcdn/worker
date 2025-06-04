@@ -107,8 +107,6 @@ export default {
           ...rootIds.flatMap((rootId, i) => [
             String(rootId),
             String(payload.set_id),
-            // TODO: use root_cids from the event
-            // payload.root_cids ? String(payload.root_cids[i]) : null,
             rootCids[i],
           ]),
         )
