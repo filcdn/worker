@@ -16,7 +16,7 @@ describe('retriever.indexer', () => {
       method: 'GET',
       headers: {
         [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-      }
+      },
     })
     const res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(405)
