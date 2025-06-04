@@ -6,6 +6,16 @@ export default {
    * @returns {Promise<Response>}
    */
   async fetch(request, env, ctx) {
+    // TypeScript setup is broken in our monorepo
+    // There are multiple global Env interfaces defined (one per worker),
+    // TypeScript merges them in a way that breaks our code.
+    // We should eventually fix that.
+    // @ts-ignore
+    const { SECRET_HEADER_KEY, SECRET_HEADER_VALUE } = env
+    if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 })
     }
