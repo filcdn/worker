@@ -1,11 +1,30 @@
+import {
+  createPdpVerifierClient as defaultCreatePdpVerifierClient,
+  getRootCid,
+} from '../lib/pdp-verifier.js'
+
 export default {
   /**
    * @param {Request} request
    * @param {Env} env
    * @param {ExecutionContext} ctx
+   * @param {object} options
+   * @param {typeof defaultCreatePdpVerifierClient} options.createPdpVerifierClient
    * @returns {Promise<Response>}
    */
-  async fetch(request, env, ctx) {
+  async fetch(
+    request,
+    env,
+    ctx,
+    { createPdpVerifierClient = defaultCreatePdpVerifierClient },
+  ) {
+    // TypeScript setup is broken in our monorepo
+    // There are multiple global Env interfaces defined (one per worker),
+    // TypeScript merges them in a way that breaks our code.
+    // We should eventually fix that.
+    // @ts-ignore
+    const { GLIF_TOKEN, RPC_URL, PDP_VERIFIER_ADDRESS } = env
+
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 })
     }
@@ -43,6 +62,20 @@ export default {
       /** @type {string[]} */
       const rootIds = payload.root_ids
 
+      const setId = BigInt(payload.set_id)
+
+      const pdpVerifier = createPdpVerifierClient({
+        rpcUrl: RPC_URL,
+        glifToken: GLIF_TOKEN,
+        pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
+      })
+
+      const rootCids = await Promise.all(
+        rootIds.map(async (rootId) =>
+          getRootCid(pdpVerifier, setId, BigInt(payload.rootId)),
+        ),
+      )
+
       await env.DB.prepare(
         `
           INSERT INTO indexer_roots (
@@ -61,7 +94,9 @@ export default {
           ...rootIds.flatMap((rootId, i) => [
             String(rootId),
             String(payload.set_id),
-            payload.root_cids ? String(payload.root_cids[i]) : null,
+            // TODO: use root_cids from the event
+            // payload.root_cids ? String(payload.root_cids[i]) : null,
+            rootCids[i],
           ]),
         )
         .run()

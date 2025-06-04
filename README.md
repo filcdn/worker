@@ -5,6 +5,16 @@ and cache from the Filecoin PDP Storage Providers.
 
 ## Development
 
+### Initial setup
+
+Get a GLIF_TOKEN at https://api.node.glif.io/rpc. Create `index/.dev.env` file with the following content:
+
+```
+GLIF_TOKEN=<your_glif_token>
+```
+
+### Workflow
+
 1. Install dependencies
 
    ```
@@ -22,6 +32,14 @@ and cache from the Filecoin PDP Storage Providers.
    ```
    npm run lint:fix
    ```
+
+### Update auto-generated TypeScript definitions
+
+After you make any change affecting the content of the `env` object, run the following command to update the auto-generated TypeScript definitions:
+
+```
+npm run build:types
+```
 
 ### Run the Retriever worker locally
 
