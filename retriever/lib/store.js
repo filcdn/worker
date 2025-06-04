@@ -5,7 +5,7 @@
  * @param {object} params - Parameters for the retrieval log.
  * @param {string} params.ownerAddress - The owner's address.
  * @param {string} params.clientAddress - The client's address.
- * @param {string | null} params.contentLength - The response object.
+ * @param {number | null} params.egressBytes - The egress bytes of the response.
  * @param {number} params.responseStatus - The HTTP response status code.
  * @param {boolean | null} params.cacheMiss - Whether the retrieval was a cache
  *   miss.
@@ -23,14 +23,12 @@ export async function logRetrievalResult(env, params) {
     ownerAddress,
     clientAddress,
     cacheMiss,
-    contentLength,
+    egressBytes,
     responseStatus,
     timestamp,
     performanceStats,
     requestCountryCode,
   } = params
-
-  const egressBytes = contentLength ? parseInt(contentLength, 10) : 0
 
   try {
     await env.DB.prepare(
