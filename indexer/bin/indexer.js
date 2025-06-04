@@ -19,8 +19,21 @@ export default {
     // There are multiple global Env interfaces defined (one per worker),
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
-    // @ts-ignore
-    const { GLIF_TOKEN, RPC_URL, PDP_VERIFIER_ADDRESS } = env
+    const {
+      // @ts-ignore
+      GLIF_TOKEN,
+      // @ts-ignore
+      RPC_URL,
+      // @ts-ignore
+      PDP_VERIFIER_ADDRESS,
+      // @ts-ignore
+      SECRET_HEADER_KEY,
+      // @ts-ignore
+      SECRET_HEADER_VALUE,
+    } = env
+    if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
+      return new Response('Unauthorized', { status: 401 })
+    }
 
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 })

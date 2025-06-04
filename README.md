@@ -13,6 +13,8 @@ Create `indexer/.dev.env` file with the following content:
 
 ```
 GLIF_TOKEN=<your_glif_token>
+SECRET_HEADER_KEY=X-SECRET-KEY
+SECRET_HEADER_VALUE=SecretToken
 ```
 
 ### Workflow
