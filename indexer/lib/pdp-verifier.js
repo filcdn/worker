@@ -52,7 +52,30 @@ export function createPdpVerifierClient({
     return rootCid.toString()
   }
 
-  return { getRootCid }
+  /**
+   * @param {BigInt} setId
+   * @returns {Promise<string>} The owner address in string format (`0x...`)
+   */
+  const getProofSetOwner = async (setId) => {
+    const result = await callEth({
+      rpcUrl,
+      authorization,
+      contractAddress: pdpVerifierAddress,
+      callData: pdpVerifierIface.encodeFunctionData('getProofSetOwner', [
+        setId,
+      ]),
+    })
+
+    const returnValues = pdpVerifierIface.decodeFunctionResult(
+      'getProofSetOwner',
+      result,
+    )
+
+    const [currentOwner /** , nextOwner */] = returnValues
+    return currentOwner
+  }
+
+  return { getRootCid, getProofSetOwner }
 }
 
 /**
