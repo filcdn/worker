@@ -12,7 +12,7 @@ export default {
     // We should eventually fix that.
     // @ts-ignore
     const { SECRET_HEADER_KEY, SECRET_HEADER_VALUE } = env
-    if (request.headers.get(secretHeaderKey) !== secretHeaderValue) {
+    if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
     }
 
