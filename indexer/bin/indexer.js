@@ -4,8 +4,7 @@ export default {
   /**
    * @param {Request} request
    * @param {Env} env
-   * @param {ExecutionContext} ctx
-   * @param {object} options
+   * @param {ExecutionContext} ctx T * @param {object} options
    * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
    * @returns {Promise<Response>}
    */
@@ -41,14 +40,7 @@ export default {
     const payload = await request.json()
     const pathname = new URL(request.url).pathname
     if (pathname === '/proof-set-created') {
-      if (
-        !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
-        ) ||
-        !payload.owner
-      ) {
-        console.error('Invalid payload', payload)
+      if (!payload.set_id || !payload.owner) {
         return new Response('Bad Request', { status: 400 })
       }
       await env.DB.prepare(
@@ -61,24 +53,23 @@ export default {
           ON CONFLICT DO NOTHING
         `,
       )
-        .bind(String(payload.set_id), payload.owner)
+        .bind(payload.set_id, payload.owner)
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/roots-added') {
       if (
-        !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
-        ) ||
+        !payload.set_id ||
         !payload.root_ids ||
-        typeof payload.root_ids !== 'string'
+        !Array.isArray(payload.root_ids) ||
+        !payload.root_ids.every(
+          (/** @type {any} */ item) => typeof item === 'string',
+        )
       ) {
-        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       /** @type {string[]} */
-      const rootIds = payload.root_ids.split(',')
+      const rootIds = payload.root_ids
 
       const setId = BigInt(payload.set_id)
 
@@ -88,13 +79,29 @@ export default {
         pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
       })
 
-      const rootCids = payload.root_cids
-        ? payload.root_cids.split(',')
-        : await Promise.all(
-            rootIds.map((rootId) =>
-              pdpVerifier.getRootCid(setId, BigInt(rootId)),
-            ),
+      /**
+       * @param {BigInt} setId
+       * @param {string} rootId
+       * @returns
+       */
+      const maybeGetRootCid = async (setId, rootId) => {
+        try {
+          const cid = await pdpVerifier.getRootCid(setId, BigInt(rootId))
+          return cid
+        } catch (/** @type {any} */ err) {
+          console.error(
+            `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
           )
+          return null
+        }
+      }
+
+      const rootCids =
+        payload.root_cids && Array.isArray(payload.root_cids)
+          ? payload.root_cids.map((/** @type {unknown} */ cid) => String(cid))
+          : await Promise.all(
+              rootIds.map((rootId) => maybeGetRootCid(setId, rootId)),
+            )
 
       await env.DB.prepare(
         `
@@ -103,7 +110,7 @@ export default {
             set_id,
             root_cid
           )
-          VALUES ${new Array(rootIds.length)
+          VALUES ${new Array(payload.root_ids.length)
             .fill(null)
             .map(() => '(?, ?, ?)')
             .join(', ')}
@@ -126,7 +133,6 @@ export default {
         !payload.payer ||
         !payload.payee
       ) {
-        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
       await env.DB.prepare(

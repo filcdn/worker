@@ -66,8 +66,14 @@ export function createPdpVerifierClient({
 
     const [[rootCidRaw]] = returnValues
     const cidBytes = Buffer.from(rootCidRaw.slice(2), 'hex')
-    const rootCid = CID.decode(cidBytes)
-    return rootCid.toString()
+    try {
+      const rootCid = CID.decode(cidBytes)
+      return rootCid.toString()
+    } catch (err) {
+      throw new Error(`Cannot decode getRootCid() response "${rootCidRaw}"`, {
+        cause: err,
+      })
+    }
   }
 
   return { getRootCid }
