@@ -6,7 +6,7 @@
  * @param {string} options.DNS_ROOT
  * @returns {{
  *   clientWalletAddress?: string
- *   pieceCid?: string
+ *   rootCid?: string
  *   error?: string
  * }}
  */
@@ -21,14 +21,14 @@ export function parseRequest(request, { DNS_ROOT }) {
   }
   const clientWalletAddress = url.hostname.slice(0, -DNS_ROOT.length)
 
-  const [pieceCid] = url.pathname.split('/').filter(Boolean)
-  if (!pieceCid) {
+  const [rootCid] = url.pathname.split('/').filter(Boolean)
+  if (!rootCid) {
     return { error: 'Missing required path element: `/{CID}`' }
   }
 
-  if (!pieceCid.startsWith('baga')) {
-    return { error: `Invalid CID: ${pieceCid}. It is not a valid CommP root.` }
+  if (!rootCid.startsWith('baga')) {
+    return { error: `Invalid CID: ${rootCid}. It is not a valid CommP root.` }
   }
 
-  return { clientWalletAddress, pieceCid }
+  return { clientWalletAddress, rootCid }
 }

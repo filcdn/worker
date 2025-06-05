@@ -13,7 +13,7 @@
  *   - The response from the fetch request, the cache miss and the content length.
  */
 export async function retrieveFile(baseUrl, pieceCid, cacheTtl = 86400) {
-  const url = `https://${baseUrl}/piece/${pieceCid}`
+  const url = `${baseUrl}/piece/${pieceCid}`
   const response = await fetch(url, {
     cf: {
       cacheTtlByStatus: {

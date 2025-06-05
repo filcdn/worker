@@ -13,17 +13,17 @@
     "deploy:calibration": "npm run deploy:calibration --workspaces --if-present",
     "lint": "eslint && prettier --check . && tsc -p .",
     "lint:fix": "eslint --fix && prettier --write .",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm run lint && wrangler d1 migrations apply test-db --local --cwd db && vitest run"
   },
   "prettier": "@checkernetwork/prettier-config",
   "devDependencies": {
     "@checkernetwork/prettier-config": "^1.0.1",
-    "@cloudflare/vitest-pool-workers": "^0.8.34",
+    "@cloudflare/vitest-pool-workers": "^0.8.36",
     "@types/node": "^22.15.29",
     "neostandard": "^0.12.1",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "vitest": "3.1.4",
-    "wrangler": "^4.17.0"
+    "wrangler": "^4.19.1"
   }
 }

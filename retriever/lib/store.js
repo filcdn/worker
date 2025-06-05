@@ -1,3 +1,5 @@
+import assert from 'node:assert'
+
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
  *
@@ -64,4 +66,62 @@ export async function logRetrievalResult(env, params) {
     // TODO: Handle specific SQL error codes if needed
     throw error
   }
+}
+
+/**
+ * Get the owner of a given root_cid. Throws an error if the root_cid is not
+ * found or mapping is incomplete. Returns default owner if mapping is absent.
+ *
+ * @param {Env} env - Worker environment (contains D1 binding).
+ * @param {string} rootCid - The root CID to look up.
+ * @returns {Promise<{
+ *   ownerAddress?: string
+ *   error?: string
+ * }>}
+ */
+export async function getOwnerByRootCid(env, rootCid) {
+  const findRootQuery = `
+    SELECT set_id FROM indexer_roots
+    WHERE root_cid = ?
+    LIMIT 1;
+  `
+
+  const rootResult = await env.DB.prepare(findRootQuery).bind(rootCid).first()
+
+  if (!rootResult) {
+    return {
+      error: `Root_cid '${rootCid}' does not exist or may not be indexed yet.`,
+    }
+  }
+  const { set_id: setId } = rootResult
+  assert.ok(setId, `Root_cid '${rootCid}' exists but has no set_id associated.`)
+  assert.ok(
+    typeof setId === 'string',
+    `Root_cid '${rootCid}' to set_id exists but set_id is not a string.`,
+  )
+
+  const findOwnerQuery = `
+    SELECT owner FROM indexer_proof_sets
+    WHERE set_id = ?
+    LIMIT 1;
+  `
+
+  const ownerResult = await env.DB.prepare(findOwnerQuery).bind(setId).first()
+
+  if (!ownerResult) {
+    return {
+      error: `Set_id '${setId}' is not associated with any owner, or may not be indexed yet.`,
+    }
+  }
+  const { owner } = ownerResult
+  assert.ok(
+    owner,
+    `Set_id '${setId}' to owner address exists but owner address is null.`,
+  )
+  assert.ok(
+    typeof owner === 'string',
+    `Set_id '${setId}' to owner address exists but owner address is not a string.`,
+  )
+
+  return { ownerAddress: owner }
 }
