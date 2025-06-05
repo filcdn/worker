@@ -6,13 +6,13 @@ import {
 import { logRetrievalResult } from '../lib/store.js'
 
 // Hardcoded base URL for the file retrieval
-// In the future either user should supply the base URL
-// or worker should be retrieve database or chain
 const OWNER_TO_URL = {
-  ['0x2A06D234246eD18b6C91de8349fF34C22C7268e8']: 'http://pdp.660688.xyz:8443/',
-  ['0x12191de399B9B3FfEB562861f9eD62ea8da18AE5']:'https://techx-pdp.filecoin.no/',
-  ['0x4A628ebAecc32B8779A934ebcEffF1646F517756']:'https://pdp.zapto.org/',
-  ['0x9f5087a1821eb3ed8a137be368e5e451166efaae']:'https://yablu.net'
+  ['0x2A06D234246eD18b6C91de8349fF34C22C7268e8']: 'http://pdp.660688.xyz:8443', // Works
+  ['0x12191de399B9B3FfEB562861f9eD62ea8da18AE5']:'https://techx-pdp.filecoin.no', // Not Pingable
+  ['0x4A628ebAecc32B8779A934ebcEffF1646F517756']:'https://pdp.zapto.org', // PIng but no proofset
+  ['0x9f5087a1821eb3ed8a137be368e5e451166efaae']:'https://yablu.net', // Works
+  ['0xCb9e86945cA31E6C3120725BF0385CBAD684040c ']:'https://caliberation-pdp.infrafolio.com', //Works
+
 }
 
 export default {
