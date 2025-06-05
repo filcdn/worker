@@ -84,6 +84,31 @@ describe('retriever.indexer', () => {
         .all()
       expect(proofSets.length).toBe(1)
     })
+    it('handles set_id as a number', async () => {
+      const setId = randomId()
+      const req = new Request('https://host/proof-set-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          set_id: Number(setId),
+          owner: '0xOwnerAddress',
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: proofSets } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_sets WHERE set_id = ?',
+      )
+        .bind(setId)
+        .all()
+      expect(proofSets.length).toBe(1)
+      expect(proofSets[0].set_id).toBe(setId)
+      expect(proofSets[0].owner).toBe('0xOwnerAddress')
+    })
   })
 
   describe('POST /roots-added', () => {

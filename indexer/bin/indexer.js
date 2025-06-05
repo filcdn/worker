@@ -55,7 +55,7 @@ export default {
           ON CONFLICT DO NOTHING
         `,
       )
-        .bind(payload.set_id, payload.owner)
+        .bind(String(payload.set_id), payload.owner)
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/roots-added') {
