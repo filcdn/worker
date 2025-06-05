@@ -24,7 +24,7 @@ export function createPdpVerifierClient({
   /**
    * @param {BigInt} setId
    * @param {BigInt} rootId
-   * @returns {Promise<string>} The CID in string format (`baga...`)
+   * @returns {Promise<string | undefined>} The CID in string format (`baga...`)
    */
   const getRootCid = async (setId, rootId) => {
     const requestParams = {
@@ -65,6 +65,10 @@ export function createPdpVerifierClient({
     )
 
     const [[rootCidRaw]] = returnValues
+
+    // When the root was deleted, getRootCid() returns '0x' (an empty byte array?)
+    if (rootCidRaw === '0x') return undefined
+
     try {
       const cidBytes = Buffer.from(rootCidRaw.slice(2), 'hex')
       const rootCid = CID.decode(cidBytes)
