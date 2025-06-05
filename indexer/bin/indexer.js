@@ -1,17 +1,36 @@
+import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
+
 export default {
   /**
    * @param {Request} request
    * @param {Env} env
    * @param {ExecutionContext} ctx
+   * @param {object} options
+   * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
    * @returns {Promise<Response>}
    */
-  async fetch(request, env, ctx) {
+  async fetch(
+    request,
+    env,
+    ctx,
+    { createPdpVerifierClient = defaultCreatePdpVerifierClient } = {},
+  ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
-    // @ts-ignore
-    const { SECRET_HEADER_KEY, SECRET_HEADER_VALUE } = env
+    const {
+      // @ts-ignore
+      GLIF_TOKEN,
+      // @ts-ignore
+      RPC_URL,
+      // @ts-ignore
+      PDP_VERIFIER_ADDRESS,
+      // @ts-ignore
+      SECRET_HEADER_KEY,
+      // @ts-ignore
+      SECRET_HEADER_VALUE,
+    } = env
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
     }
@@ -53,6 +72,23 @@ export default {
       /** @type {string[]} */
       const rootIds = payload.root_ids
 
+      const setId = BigInt(payload.set_id)
+
+      const pdpVerifier = createPdpVerifierClient({
+        rpcUrl: RPC_URL,
+        glifToken: GLIF_TOKEN,
+        pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
+      })
+
+      const rootCids =
+        payload.root_cids && Array.isArray(payload.root_cids)
+          ? payload.root_cids.map((/** @type {unknown} */ cid) => String(cid))
+          : await Promise.all(
+              rootIds.map((rootId) =>
+                pdpVerifier.getRootCid(setId, BigInt(rootId)),
+              ),
+            )
+
       await env.DB.prepare(
         `
           INSERT INTO indexer_roots (
@@ -71,7 +107,7 @@ export default {
           ...rootIds.flatMap((rootId, i) => [
             String(rootId),
             String(payload.set_id),
-            payload.root_cids ? String(payload.root_cids[i]) : null,
+            rootCids[i],
           ]),
         )
         .run()

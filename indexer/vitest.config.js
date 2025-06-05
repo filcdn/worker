@@ -5,7 +5,7 @@ export default defineWorkersConfig({
     setupFiles: ['./test/setup-worker-env.js'],
     poolOptions: {
       workers: {
-        wrangler: { configPath: './wrangler.toml' },
+        wrangler: { configPath: './wrangler.toml', environment: 'dev' },
       },
     },
   },
