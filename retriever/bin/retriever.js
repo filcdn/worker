@@ -63,6 +63,7 @@ export default {
       timestamp: requestTimestamp,
       performanceStats: {
         fetchTtfb: null, // Will be populated later
+        fetchTtlb: null, // Will be populated later
         workerTtfb: null, // Will be populated later
       },
       requestCountryCode,
@@ -79,6 +80,7 @@ export default {
           egressBytes: 0, // No body to measure
           performanceStats: {
             fetchTtfb: firstByteAt - fetchStartedAt,
+            fetchTtlb: firstByteAt - fetchStartedAt,
             workerTtfb: firstByteAt - workerStartedAt,
           },
         }),
@@ -95,12 +97,14 @@ export default {
     ctx.waitUntil(
       (async () => {
         const egressBytes = await measureStreamedEgress(reader)
+        const lastByteFetchedAt = performance.now()
 
         await logRetrievalResult(env, {
           ...retrievalResultEntry,
           egressBytes,
           performanceStats: {
             fetchTtfb: firstByteAt - fetchStartedAt,
+            fetchTtlb: lastByteFetchedAt - fetchStartedAt,
             workerTtfb: firstByteAt - workerStartedAt,
           },
         })
