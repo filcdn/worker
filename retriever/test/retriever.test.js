@@ -68,7 +68,6 @@ describe('retriever.fetch', () => {
   }
 
   beforeAll(async () => {
-    // Clear existing test data (optional)
     await env.DB.batch([
       env.DB.prepare('DELETE FROM indexer_roots'),
       env.DB.prepare('DELETE FROM indexer_proof_sets'),

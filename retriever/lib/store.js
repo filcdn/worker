@@ -72,7 +72,7 @@ export async function logRetrievalResult(env, params) {
 
 /**
  * Get the owner of a given root_cid. Throws an error if the root_cid is not
- * found or mapping is incomplete. Returns default owner if mapping is absent.
+ * found or mapping is incomplete.
  *
  * @param {Env} env - Worker environment (contains D1 binding).
  * @param {string} rootCid - The root CID to look up.
