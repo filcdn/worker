@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import workerImpl from '../bin/indexer.js'
 import { env } from 'cloudflare:test'
+import { LIVE_PDP_FILE } from './test-data.js'
+import { assertOkResponse } from 'assert-ok-response'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
@@ -82,9 +84,44 @@ describe('retriever.indexer', () => {
         .all()
       expect(proofSets.length).toBe(1)
     })
+    it('handles set_id as a number', async () => {
+      const setId = randomId()
+      const req = new Request('https://host/proof-set-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          set_id: Number(setId),
+          owner: '0xOwnerAddress',
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: proofSets } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_sets WHERE set_id = ?',
+      )
+        .bind(setId)
+        .all()
+      expect(proofSets.length).toBe(1)
+      expect(proofSets[0].set_id).toBe(setId)
+      expect(proofSets[0].owner).toBe('0xOwnerAddress')
+    })
   })
 
   describe('POST /roots-added', () => {
+    const CTX = {}
+
+    /** @type {typeof import('../lib/pdp-verifier.js').createPdpVerifierClient} */
+    const createDummyPdpVerifierClient = () => {
+      return {
+        getRootCid(setId, rootId) {
+          return 'baga123'
+        },
+      }
+    }
     it('returns 400 if set_id or root_ids is missing', async () => {
       const req = new Request('https://host/roots-added', {
         method: 'POST',
@@ -93,7 +130,9 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({}),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(req, env, {
+        createPdpVerifierClient: createDummyPdpVerifierClient,
+      })
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
@@ -109,11 +148,13 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: setId,
-          root_ids: rootIds,
-          root_cids: rootCids,
+          root_ids: rootIds.join(','),
+          root_cids: rootCids.join(','),
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(req, env, CTX, {
+        createPdpVerifierClient: createDummyPdpVerifierClient,
+      })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -143,11 +184,13 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({
             set_id: setId,
-            root_ids: rootIds,
-            root_cids: rootCids,
+            root_ids: rootIds.join(','),
+            root_cids: rootCids.join(','),
           }),
         })
-        const res = await workerImpl.fetch(req, env)
+        const res = await workerImpl.fetch(req, env, CTX, {
+          createPdpVerifierClient: createDummyPdpVerifierClient,
+        })
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
       }
@@ -158,28 +201,6 @@ describe('retriever.indexer', () => {
         .bind(setId)
         .all()
       expect(roots.length).toBe(2)
-    })
-    it('defaults to root_cid = null if not provided', async () => {
-      const setId = randomId()
-      const rootIds = [randomId(), randomId()]
-      const req = new Request('https://host/roots-added', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({ set_id: setId, root_ids: rootIds }),
-      })
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: roots } = await env.DB.prepare(
-        'SELECT * FROM indexer_roots WHERE set_id = ?',
-      )
-        .bind(setId)
-        .all()
-      expect(roots[0].root_cid).toBeNull()
-      expect(roots[1].root_cid).toBeNull()
     })
 
     it('allows multiple sets to have the same root id', async () => {
@@ -192,9 +213,11 @@ describe('retriever.indexer', () => {
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
-          body: JSON.stringify({ set_id: sid, root_ids: ['0'] }),
+          body: JSON.stringify({ set_id: sid, root_ids: '0' }),
         })
-        const res = await workerImpl.fetch(req, env)
+        const res = await workerImpl.fetch(req, env, CTX, {
+          createPdpVerifierClient: createDummyPdpVerifierClient,
+        })
         const body = await res.text()
         expect(`${res.status} ${body}`).toBe('200 OK')
       }
@@ -213,6 +236,35 @@ describe('retriever.indexer', () => {
         {
           set_id: setIds[1],
           root_id: '0',
+        },
+      ])
+    })
+
+    it('adds a real live root and fetches the root CID from on-chain state', async () => {
+      const req = new Request('https://host/roots-added', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          set_id: LIVE_PDP_FILE.setId.toString(),
+          root_ids: LIVE_PDP_FILE.rootId.toString(),
+          root_cids: undefined,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      await assertOkResponse(res)
+
+      const { results: roots } = await env.DB.prepare(
+        'SELECT root_id, root_cid FROM indexer_roots WHERE set_id = ?',
+      )
+        .bind(LIVE_PDP_FILE.setId.toString())
+        .all()
+
+      expect(roots).toEqual([
+        {
+          root_id: LIVE_PDP_FILE.rootId.toString(),
+          root_cid: LIVE_PDP_FILE.cid,
         },
       ])
     })

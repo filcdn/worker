@@ -241,7 +241,12 @@ describe('retriever.fetch', () => {
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT response_status, fetch_ttfb, worker_ttfb, client_address
+      `SELECT
+        response_status,
+        fetch_ttfb,
+        fetch_ttlb,
+        worker_ttfb,
+        client_address
        FROM retrieval_logs
        WHERE client_address = ?`,
     )
@@ -253,6 +258,7 @@ describe('retriever.fetch', () => {
     assert.deepStrictEqual(result.client_address, defaultClientAddress)
     assert.strictEqual(result.response_status, 200)
     assert.strictEqual(typeof result.fetch_ttfb, 'number')
+    assert.strictEqual(typeof result.fetch_ttlb, 'number')
     assert.strictEqual(typeof result.worker_ttfb, 'number')
   })
   it('stores request country code in D1', async () => {

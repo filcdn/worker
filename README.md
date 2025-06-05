@@ -5,6 +5,20 @@ and cache from the Filecoin PDP Storage Providers.
 
 ## Development
 
+### Initial setup
+
+Get a GLIF_TOKEN at https://api.node.glif.io/rpc.
+
+Create `indexer/.dev.env` file with the following content:
+
+```
+GLIF_TOKEN=<your_glif_token>
+SECRET_HEADER_KEY=X-SECRET-KEY
+SECRET_HEADER_VALUE=SecretToken
+```
+
+### Workflow
+
 1. Install dependencies
 
    ```
@@ -22,6 +36,14 @@ and cache from the Filecoin PDP Storage Providers.
    ```
    npm run lint:fix
    ```
+
+### Update auto-generated TypeScript definitions
+
+After you make any change affecting the content of the `env` object, run the following command to update the auto-generated TypeScript definitions:
+
+```
+npm run build:types
+```
 
 ### Run the Retriever worker locally
 
@@ -43,6 +65,14 @@ and cache from the Filecoin PDP Storage Providers.
 
 ```
 npm start -w indexer
+```
+
+### Reset the local database
+
+Run the following command to reset the wrangler local environment, including the local database:
+
+```sh
+rm -rf  db/.wrangler
 ```
 
 ## Deployment (Github Actions)

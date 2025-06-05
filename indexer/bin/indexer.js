@@ -1,17 +1,36 @@
+import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
+
 export default {
   /**
    * @param {Request} request
    * @param {Env} env
    * @param {ExecutionContext} ctx
+   * @param {object} options
+   * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
    * @returns {Promise<Response>}
    */
-  async fetch(request, env, ctx) {
+  async fetch(
+    request,
+    env,
+    ctx,
+    { createPdpVerifierClient = defaultCreatePdpVerifierClient } = {},
+  ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
-    // @ts-ignore
-    const { SECRET_HEADER_KEY, SECRET_HEADER_VALUE } = env
+    const {
+      // @ts-ignore
+      GLIF_TOKEN,
+      // @ts-ignore
+      RPC_URL,
+      // @ts-ignore
+      PDP_VERIFIER_ADDRESS,
+      // @ts-ignore
+      SECRET_HEADER_KEY,
+      // @ts-ignore
+      SECRET_HEADER_VALUE,
+    } = env
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
     }
@@ -22,7 +41,14 @@ export default {
     const payload = await request.json()
     const pathname = new URL(request.url).pathname
     if (pathname === '/proof-set-created') {
-      if (!payload.set_id || !payload.owner) {
+      if (
+        !(
+          typeof payload.set_id === 'number' ||
+          typeof payload.set_id === 'string'
+        ) ||
+        !payload.owner
+      ) {
+        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
       await env.DB.prepare(
@@ -35,23 +61,55 @@ export default {
           ON CONFLICT DO NOTHING
         `,
       )
-        .bind(payload.set_id, payload.owner)
+        .bind(String(payload.set_id), payload.owner)
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/roots-added') {
       if (
-        !payload.set_id ||
+        !(
+          typeof payload.set_id === 'number' ||
+          typeof payload.set_id === 'string'
+        ) ||
         !payload.root_ids ||
-        !Array.isArray(payload.root_ids) ||
-        !payload.root_ids.every(
-          (/** @type {any} */ item) => typeof item === 'string',
-        )
+        typeof payload.root_ids !== 'string'
       ) {
+        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       /** @type {string[]} */
-      const rootIds = payload.root_ids
+      const rootIds = payload.root_ids.split(',')
+
+      const setId = BigInt(payload.set_id)
+
+      const pdpVerifier = createPdpVerifierClient({
+        rpcUrl: RPC_URL,
+        glifToken: GLIF_TOKEN,
+        pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
+      })
+
+      /**
+       * @param {BigInt} setId
+       * @param {string} rootId
+       * @returns
+       */
+      const maybeGetRootCid = async (setId, rootId) => {
+        try {
+          const cid = await pdpVerifier.getRootCid(setId, BigInt(rootId))
+          return cid
+        } catch (/** @type {any} */ err) {
+          console.error(
+            `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
+          )
+          throw err
+        }
+      }
+
+      const rootCids = payload.root_cids
+        ? payload.root_cids.split(',')
+        : await Promise.all(
+            rootIds.map((rootId) => maybeGetRootCid(setId, rootId)),
+          )
 
       await env.DB.prepare(
         `
@@ -60,7 +118,7 @@ export default {
             set_id,
             root_cid
           )
-          VALUES ${new Array(payload.root_ids.length)
+          VALUES ${new Array(rootIds.length)
             .fill(null)
             .map(() => '(?, ?, ?)')
             .join(', ')}
@@ -71,7 +129,7 @@ export default {
           ...rootIds.flatMap((rootId, i) => [
             String(rootId),
             String(payload.set_id),
-            payload.root_cids ? String(payload.root_cids[i]) : null,
+            rootCids[i],
           ]),
         )
         .run()
@@ -83,6 +141,7 @@ export default {
         !payload.payer ||
         !payload.payee
       ) {
+        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
       await env.DB.prepare(

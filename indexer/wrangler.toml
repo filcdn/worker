@@ -3,6 +3,10 @@ main = "bin/indexer.js"
 compatibility_date = "2024-12-05"
 compatibility_flags = ["nodejs_compat"]
 
+[observability]
+enabled = true
+head_sampling_rate = 1
+
 [[d1_databases]]
 binding = "DB"
 database_name = "test-db"
@@ -10,6 +14,8 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf100"
 
 [env.dev.vars]
 ENVIRONMENT = "dev"
+RPC_URL = "https://api.calibration.node.glif.io/"
+PDP_VERIFIER_ADDRESS = "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC"
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -18,6 +24,8 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 
 [env.calibration.vars]
 ENVIRONMENT = "calibration"
+RPC_URL = "https://api.calibration.node.glif.io/"
+PDP_VERIFIER_ADDRESS = "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC"
 
 [[env.calibration.d1_databases]]
 binding = "DB"
