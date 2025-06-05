@@ -72,7 +72,7 @@ export default {
       !Object.prototype.hasOwnProperty.call(OWNER_TO_URL, ownerAddress)
     ) {
       return new Response(
-        `No PDP URL configured for owner address: ${ownerAddress}`,
+        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
         { status: 404 },
       )
     }
