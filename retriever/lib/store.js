@@ -1,5 +1,3 @@
-import assert from 'node:assert'
-
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
  *
@@ -95,12 +93,7 @@ export async function getOwnerByRootCid(env, rootCid) {
       error: `Root_cid '${rootCid}' does not exist or may not be indexed yet.`,
     }
   }
-  const { set_id: setId } = rootResult
-  assert.ok(setId, `Root_cid '${rootCid}' exists but has no set_id associated.`)
-  assert.ok(
-    typeof setId === 'string',
-    `Root_cid '${rootCid}' to set_id exists but set_id is not a string.`,
-  )
+  const { set_id: setId } = /** @type {{ owner: string }} */ rootResult
 
   const findOwnerQuery = `
     SELECT owner FROM indexer_proof_sets
@@ -115,15 +108,8 @@ export async function getOwnerByRootCid(env, rootCid) {
       error: `Set_id '${setId}' is not associated with any owner, or may not be indexed yet.`,
     }
   }
-  const { owner } = ownerResult
-  assert.ok(
-    owner,
-    `Set_id '${setId}' to owner address exists but owner address is null.`,
-  )
-  assert.ok(
-    typeof owner === 'string',
-    `Set_id '${setId}' to owner address exists but owner address is not a string.`,
-  )
+
+  const { owner } = /** @type {{ owner: string }} */ (ownerResult)
 
   return { ownerAddress: owner }
 }

@@ -1,4 +1,3 @@
-import assert from 'node:assert'
 import { isValidEthereumAddress } from '../lib/address.js'
 import { parseRequest } from '../lib/request.js'
 import {
@@ -58,16 +57,20 @@ export default {
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
-    const { ownerAddress, error: ownerLookupError } = await getOwnerByRootCid(
-      env,
-      rootCid,
-    )
+    const { ownerAddress, error: ownerLookupError } =
+      /** @type {{ ownerAddress: string; error: string }} */ await getOwnerByRootCid(
+        env,
+        rootCid,
+      )
     if (ownerLookupError) {
       console.error(ownerLookupError)
       return new Response(ownerLookupError, { status: 404 })
     }
-    assert.ok(ownerAddress, 'Owner address must be defined')
-    if (!Object.prototype.hasOwnProperty.call(OWNER_TO_URL, ownerAddress)) {
+
+    if (
+      !ownerAddress ||
+      !Object.prototype.hasOwnProperty.call(OWNER_TO_URL, ownerAddress)
+    ) {
       return new Response(
         `No PDP URL configured for owner address: ${ownerAddress}`,
         { status: 404 },
