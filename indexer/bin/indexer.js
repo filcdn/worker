@@ -42,6 +42,7 @@ export default {
     const pathname = new URL(request.url).pathname
     if (pathname === '/proof-set-created') {
       if (!payload.set_id || !payload.owner) {
+        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
       await env.DB.prepare(
@@ -66,6 +67,7 @@ export default {
           (/** @type {any} */ item) => typeof item === 'string',
         )
       ) {
+        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
@@ -119,6 +121,7 @@ export default {
         !payload.payer ||
         !payload.payee
       ) {
+        console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
       await env.DB.prepare(
