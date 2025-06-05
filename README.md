@@ -67,6 +67,14 @@ npm run build:types
 npm start -w indexer
 ```
 
+### Reset the local database
+
+Run the following command to reset the wrangler local environment, including the local database:
+
+```sh
+rm -rf  db/.wrangler
+```
+
 ## Deployment (Github Actions)
 
 In order to deploy your worker via Github Actions, you need to have a
