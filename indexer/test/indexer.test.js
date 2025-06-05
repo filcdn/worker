@@ -123,8 +123,8 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: setId,
-          root_ids: rootIds,
-          root_cids: rootCids,
+          root_ids: rootIds.join(','),
+          root_cids: rootCids.join(','),
         }),
       })
       const res = await workerImpl.fetch(req, env, CTX, {
@@ -159,8 +159,8 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({
             set_id: setId,
-            root_ids: rootIds,
-            root_cids: rootCids,
+            root_ids: rootIds.join(','),
+            root_cids: rootCids.join(','),
           }),
         })
         const res = await workerImpl.fetch(req, env, CTX, {
@@ -188,7 +188,7 @@ describe('retriever.indexer', () => {
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
-          body: JSON.stringify({ set_id: sid, root_ids: ['0'] }),
+          body: JSON.stringify({ set_id: sid, root_ids: '0' }),
         })
         const res = await workerImpl.fetch(req, env, CTX, {
           createPdpVerifierClient: createDummyPdpVerifierClient,
@@ -223,7 +223,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: LIVE_PDP_FILE.setId.toString(),
-          root_ids: [LIVE_PDP_FILE.rootId.toString()],
+          root_ids: LIVE_PDP_FILE.rootId.toString(),
           root_cids: undefined,
         }),
       })

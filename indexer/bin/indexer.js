@@ -62,17 +62,14 @@ export default {
       if (
         !payload.set_id ||
         !payload.root_ids ||
-        !Array.isArray(payload.root_ids) ||
-        !payload.root_ids.every(
-          (/** @type {any} */ item) => typeof item === 'string',
-        )
+        typeof payload.root_ids !== 'string'
       ) {
         console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       /** @type {string[]} */
-      const rootIds = payload.root_ids
+      const rootIds = payload.root_ids.split(',')
 
       const setId = BigInt(payload.set_id)
 
@@ -82,14 +79,13 @@ export default {
         pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
       })
 
-      const rootCids =
-        payload.root_cids && Array.isArray(payload.root_cids)
-          ? payload.root_cids.map((/** @type {unknown} */ cid) => String(cid))
-          : await Promise.all(
-              rootIds.map((rootId) =>
-                pdpVerifier.getRootCid(setId, BigInt(rootId)),
-              ),
-            )
+      const rootCids = payload.root_cids
+        ? payload.root_cids.split(',')
+        : await Promise.all(
+            rootIds.map((rootId) =>
+              pdpVerifier.getRootCid(setId, BigInt(rootId)),
+            ),
+          )
 
       await env.DB.prepare(
         `
@@ -98,7 +94,7 @@ export default {
             set_id,
             root_cid
           )
-          VALUES ${new Array(payload.root_ids.length)
+          VALUES ${new Array(rootIds.length)
             .fill(null)
             .map(() => '(?, ?, ?)')
             .join(', ')}
