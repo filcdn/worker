@@ -101,7 +101,7 @@ export default {
           console.error(
             `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
           )
-          return null
+          throw err
         }
       }
 
