@@ -41,7 +41,13 @@ export default {
     const payload = await request.json()
     const pathname = new URL(request.url).pathname
     if (pathname === '/proof-set-created') {
-      if (!payload.set_id || !payload.owner) {
+      if (
+        !(
+          typeof payload.set_id === 'number' ||
+          typeof payload.set_id === 'string'
+        ) ||
+        !payload.owner
+      ) {
         console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
@@ -60,7 +66,10 @@ export default {
       return new Response('OK', { status: 200 })
     } else if (pathname === '/roots-added') {
       if (
-        !payload.set_id ||
+        !(
+          typeof payload.set_id === 'number' ||
+          typeof payload.set_id === 'string'
+        ) ||
         !payload.root_ids ||
         typeof payload.root_ids !== 'string'
       ) {
