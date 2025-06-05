@@ -57,11 +57,10 @@ export default {
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
-    const { ownerAddress, error: ownerLookupError } =
-      /** @type {{ ownerAddress: string; error: string }} */ await getOwnerByRootCid(
-        env,
-        rootCid,
-      )
+    const { ownerAddress, error: ownerLookupError } = await getOwnerByRootCid(
+      env,
+      rootCid,
+    )
     if (ownerLookupError) {
       console.error(ownerLookupError)
       return new Response(ownerLookupError, { status: 404 })

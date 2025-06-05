@@ -69,47 +69,57 @@ export async function logRetrievalResult(env, params) {
 }
 
 /**
- * Get the owner of a given root_cid. Throws an error if the root_cid is not
- * found or mapping is incomplete.
+ * Retrieves the approved owner address for a given root CID using a LEFT OUTER
+ * JOIN.
  *
- * @param {Env} env - Worker environment (contains D1 binding).
- * @param {string} rootCid - The root CID to look up.
+ * @param {Env} env - Cloudflare Worker environment with D1 DB binding
+ * @param {string} rootCid - The root CID to look up
  * @returns {Promise<{
  *   ownerAddress?: string
  *   error?: string
- * }>}
+ * }>} - The result
+ *   containing either the approved owner address or a descriptive error
  */
 export async function getOwnerByRootCid(env, rootCid) {
-  const findRootQuery = `
-    SELECT set_id FROM indexer_roots
-    WHERE root_cid = ?
-    LIMIT 1;
-  `
+  const approvedOwners = [
+    '0x2A06D234246eD18b6C91de8349fF34C22C7268e8',
+    '0x12191de399B9B3FfEB562861f9eD62ea8da18AE5',
+    '0x4A628ebAecc32B8779A934ebcEffF1646F517756',
+    '0x9f5087a1821eb3ed8a137be368e5e451166efaae',
+    '0xCb9e86945cA31E6C3120725BF0385CBAD684040c',
+  ]
 
-  const rootResult = await env.DB.prepare(findRootQuery).bind(rootCid).first()
+  const query = `
+   SELECT ir.set_id, ips.owner
+   FROM indexer_roots ir
+   LEFT OUTER JOIN indexer_proof_sets ips
+     ON ir.set_id = ips.set_id
+   WHERE ir.root_cid = ?
+   LIMIT 1;
+ `
 
-  if (!rootResult) {
+  /** @type {{ set_id: string; owner: string | null } | null} */
+  const result = await env.DB.prepare(query).bind(rootCid).first()
+
+  if (!result) {
     return {
       error: `Root_cid '${rootCid}' does not exist or may not be indexed yet.`,
     }
   }
-  const { set_id: setId } = /** @type {{ owner: string }} */ rootResult
 
-  const findOwnerQuery = `
-    SELECT owner FROM indexer_proof_sets
-    WHERE set_id = ?
-    LIMIT 1;
-  `
+  const { set_id: setId, owner } = result
 
-  const ownerResult = await env.DB.prepare(findOwnerQuery).bind(setId).first()
-
-  if (!ownerResult) {
+  if (owner === null) {
     return {
-      error: `Set_id '${setId}' is not associated with any owner, or may not be indexed yet.`,
+      error: `Set_id '${setId}' exists but has no associated owner.`,
     }
   }
 
-  const { owner } = /** @type {{ owner: string }} */ (ownerResult)
+  if (!approvedOwners.includes(owner)) {
+    return {
+      error: `Set_id '${setId}' is associated with owner '${owner}', which is not approved.`,
+    }
+  }
 
   return { ownerAddress: owner }
 }

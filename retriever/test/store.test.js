@@ -38,7 +38,7 @@ describe('getOwnerByRootCid', () => {
   it('returns owner for valid rootCid', async () => {
     const setId = 'test-set-1'
     const rootCid = 'test-cid-1'
-    const owner = '0xTestOwner1'
+    const owner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     await env.DB.prepare(
       'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
     )
@@ -62,18 +62,65 @@ describe('getOwnerByRootCid', () => {
     )
   })
 
-  it('returns error if set_id has no matching owner', async () => {
-    const orphanCid = 'test-cid-orphan'
+  it('returns error if set_id exists but has no associated owner', async () => {
+    const cid = 'cid-no-owner'
+    const setId = 'set-no-owner'
+
     await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      `
+      INSERT INTO indexer_roots (root_id, set_id, root_cid)
+      VALUES (?, ?, ?)
+    `,
     )
-      .bind('root-orphan', 'nonexistent-set', orphanCid)
+      .bind('root-1', setId, cid)
       .run()
 
-    const result = await getOwnerByRootCid(env, orphanCid)
+    const result = await getOwnerByRootCid(env, cid)
+
     assert.ok(
-      result.error.includes('is not associated with any owner'),
-      'Expected error for missing owner mapping',
+      result.error.includes('no associated owner'),
+      'Expected error for set_id without an owner',
     )
+  })
+
+  it('returns error if owner exists but is not approved', async () => {
+    const cid = 'cid-unapproved'
+    const setId = 'set-unapproved'
+    const owner = '0x0000000000000000000000000000000000000000' // not in approved list
+
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      ).bind(setId, owner),
+      env.DB.prepare(
+        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      ).bind('root-2', setId, cid),
+    ])
+
+    const result = await getOwnerByRootCid(env, cid)
+
+    assert.ok(
+      result.error.includes('which is not approved'),
+      'Expected error for unapproved owner',
+    )
+  })
+
+  it('returns ownerAddress for approved owner', async () => {
+    const cid = 'cid-approved'
+    const setId = 'set-approved'
+    const owner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8' // approved
+
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      ).bind(setId, owner),
+      env.DB.prepare(
+        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      ).bind('root-3', setId, cid),
+    ])
+
+    const result = await getOwnerByRootCid(env, cid)
+
+    assert.deepEqual(result, { ownerAddress: owner })
   })
 })

@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx_root_cid ON indexer_roots(root_cid);
