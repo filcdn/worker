@@ -47,9 +47,12 @@ describe('retriever.fetch', () => {
     ])
 
     let i = 1
-    for (const [owner, { rootCid, proofSetId }] of Object.entries(
-      OWNER_TO_RETRIEVAL_URL_MAPPING,
-    )) {
+    for (const [
+      owner,
+      {
+        sample: { rootCid, proofSetId },
+      },
+    ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
       const rootId = `root-${i}`
 
       await env.DB.batch([
@@ -287,9 +290,12 @@ describe('retriever.fetch', () => {
     'measures egress correctly from real storage provider',
     { timeout: 10000 },
     async () => {
-      for (const [owner, { rootCid }] of Object.entries(
-        OWNER_TO_RETRIEVAL_URL_MAPPING,
-      )) {
+      for (const [
+        owner,
+        {
+          sample: { rootCid },
+        },
+      ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
         const req = withRequest(defaultClientAddress, rootCid)
 
         const res = await worker.fetch(req, env, { retrieveFile })
