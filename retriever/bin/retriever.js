@@ -1,21 +1,11 @@
 import { isValidEthereumAddress } from '../lib/address.js'
+import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
 import { parseRequest } from '../lib/request.js'
 import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
 import { getOwnerByRootCid, logRetrievalResult } from '../lib/store.js'
-
-// Hardcoded base URL for the file retrieval
-/** @type {Record<string, string>} */
-const OWNER_TO_URL = {
-  '0x2A06D234246eD18b6C91de8349fF34C22C7268e8': 'http://pdp.660688.xyz:8443',
-  '0x12191de399B9B3FfEB562861f9eD62ea8da18AE5': 'https://techx-pdp.filecoin.no',
-  '0x4A628ebAecc32B8779A934ebcEffF1646F517756': 'https://pdp.zapto.org',
-  '0x9f5087a1821eb3ed8a137be368e5e451166efaae': 'https://yablu.net',
-  '0xCb9e86945cA31E6C3120725BF0385CBAD684040c':
-    'https://caliberation-pdp.infrafolio.com',
-}
 
 export default {
   /**
@@ -68,14 +58,20 @@ export default {
 
     if (
       !ownerAddress ||
-      !Object.prototype.hasOwnProperty.call(OWNER_TO_URL, ownerAddress)
+      !Object.prototype.hasOwnProperty.call(
+        OWNER_TO_RETRIEVAL_URL_MAPPING,
+        ownerAddress,
+      )
     ) {
+      console.error(
+        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
+      )
       return new Response(
         `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
         { status: 404 },
       )
     }
-    const spURL = OWNER_TO_URL[ownerAddress]
+    const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
     const { response, cacheMiss } = await retrieveFile(
       spURL,
       rootCid,

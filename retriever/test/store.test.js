@@ -100,7 +100,7 @@ describe('getOwnerByRootCid', () => {
     const result = await getOwnerByRootCid(env, cid)
 
     assert.ok(
-      result.error.includes('which is not approved'),
+      result.error.includes('none of the currently supported SPs'),
       'Expected error for unapproved owner',
     )
   })

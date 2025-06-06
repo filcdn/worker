@@ -1,3 +1,5 @@
+import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
+
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
  *
@@ -80,13 +82,7 @@ export async function logRetrievalResult(env, params) {
  *   containing either the approved owner address or a descriptive error
  */
 export async function getOwnerByRootCid(env, rootCid) {
-  const approvedOwners = [
-    '0x2A06D234246eD18b6C91de8349fF34C22C7268e8',
-    '0x12191de399B9B3FfEB562861f9eD62ea8da18AE5',
-    '0x4A628ebAecc32B8779A934ebcEffF1646F517756',
-    '0x9f5087a1821eb3ed8a137be368e5e451166efaae',
-    '0xCb9e86945cA31E6C3120725BF0385CBAD684040c',
-  ]
+  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)
 
   const query = `
    SELECT ir.set_id, ips.owner
