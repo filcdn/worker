@@ -116,7 +116,7 @@ export async function getOwnerByRootCid(env, rootCid) {
 
   if (!approvedOwners.includes(owner)) {
     return {
-      error: `Set_id '${setId}' is associated with owner '${owner}', which is not approved.`,
+      error: `Set_id '${setId}' is associated with owner '${owner}', which is none of the currently supported SPs.`,
     }
   }
 
