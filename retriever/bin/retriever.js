@@ -1,16 +1,12 @@
 import { isValidEthereumAddress } from '../lib/address.js'
+import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
 import { parseRequest } from '../lib/request.js'
 import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
-import { logRetrievalResult } from '../lib/store.js'
+import { getOwnerByRootCid, logRetrievalResult } from '../lib/store.js'
 
-// Hardcoded base URL for the file retrieval
-// In the future either user should supply the base URL
-// or worker should be retrieve database or chain
-const BASE_URL = 'yablu.net'
-const OWNER_ADDRESS_YABLU = '0x7469b47e006d0660ab92ae560b27a1075eecf97f'
 export default {
   /**
    * @param {Request} request
@@ -28,13 +24,17 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
-    const { clientWalletAddress, pieceCid, error } = parseRequest(request, env)
-    if (error) {
-      console.error(error)
-      return new Response(error, { status: 400 })
+    const {
+      clientWalletAddress,
+      rootCid,
+      error: parsingError,
+    } = parseRequest(request, env)
+    if (parsingError) {
+      console.error(parsingError)
+      return new Response(parsingError, { status: 400 })
     }
 
-    if (!clientWalletAddress || !pieceCid) {
+    if (!clientWalletAddress || !rootCid) {
       return new Response('Missing required fields', { status: 400 })
     }
 
@@ -47,15 +47,35 @@ export default {
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
+    const { ownerAddress, error: ownerLookupError } = await getOwnerByRootCid(
+      env,
+      rootCid,
+    )
+    if (ownerLookupError) {
+      console.error(ownerLookupError)
+      return new Response(ownerLookupError, { status: 404 })
+    }
 
+    if (
+      !ownerAddress ||
+      !Object.prototype.hasOwnProperty.call(
+        OWNER_TO_RETRIEVAL_URL_MAPPING,
+        ownerAddress,
+      )
+    ) {
+      const errorMessage = `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`
+      console.error(errorMessage)
+      return new Response(errorMessage, { status: 404 })
+    }
+    const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
     const { response, cacheMiss } = await retrieveFile(
-      BASE_URL,
-      pieceCid,
+      spURL,
+      rootCid,
       env.CACHE_TTL,
     )
 
     const retrievalResultEntry = {
-      ownerAddress: OWNER_ADDRESS_YABLU,
+      ownerAddress,
       clientAddress: clientWalletAddress,
       cacheMiss,
       egressBytes: null, // Will be populated later

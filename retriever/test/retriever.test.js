@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
 import workerImpl from '../bin/retriever.js'
 import { createHash } from 'node:crypto'
 import {
@@ -7,6 +7,7 @@ import {
 } from '../lib/retrieval.js'
 import { env } from 'cloudflare:test'
 import assert from 'node:assert/strict'
+import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -17,8 +18,8 @@ env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
   const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-  const defaultPieceCid =
-    'baga6ea4seaqkzso6gijktpl22dxarxq25iynurceicxpst35yjrcp72uq3ziwpi'
+  const realRootCid =
+    'baga6ea4seaqntcagzjqzor3qxjba2mybegc6d2jxiewxinkd72ecll6xqicqcfa'
   const worker = {
     fetch: async (
       request,
@@ -39,6 +40,41 @@ describe('retriever.fetch', () => {
     },
   }
 
+  beforeAll(async () => {
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM indexer_roots'),
+      env.DB.prepare('DELETE FROM indexer_proof_sets'),
+    ])
+
+    let i = 1
+    for (const [
+      owner,
+      {
+        sample: { rootCid, proofSetId },
+      },
+    ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
+      const rootId = `root-${i}`
+
+      await env.DB.batch([
+        env.DB.prepare(
+          `
+          INSERT INTO indexer_proof_sets (set_id, owner)
+          VALUES (?, ?)
+        `,
+        ).bind(proofSetId, owner),
+
+        env.DB.prepare(
+          `
+          INSERT INTO indexer_roots (root_id, set_id, root_cid)
+          VALUES (?, ?, ?)
+        `,
+        ).bind(rootId, proofSetId, rootCid),
+      ])
+
+      i++
+    }
+  })
+
   it('returns 405 for non-GET requests', async () => {
     const req = withRequest(1, 'foo', 'POST')
     const res = await worker.fetch(req, env)
@@ -58,7 +94,7 @@ describe('retriever.fetch', () => {
 
   it('returns 400 if provided client address is invalid', async () => {
     const mockRetrieveFile = vi.fn()
-    const req = withRequest('bar', defaultPieceCid)
+    const req = withRequest('bar', realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(400)
     expect(await res.text()).toBe(
@@ -75,7 +111,7 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: true,
     })
-    const req = withRequest(defaultClientAddress, 'baga1234')
+    const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(201)
     expect(await res.text()).toBe('hello')
@@ -84,8 +120,8 @@ describe('retriever.fetch', () => {
 
   it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
-      '61214c558a8470634437a941420a258c43ef1e89364d7347f02789f5a898dcb1'
-    const req = withRequest(defaultClientAddress, defaultPieceCid)
+      '358f5611998981d5c5584ca2457f5b87afdf7b69650e1919f6e28f0f76943491'
+    const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile })
     expect(res.status).toBe(200)
     // get the sha256 hash of the content
@@ -106,7 +142,7 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: true,
     })
-    const req = withRequest(defaultClientAddress, defaultPieceCid)
+    const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
@@ -140,7 +176,7 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: false,
     })
-    const req = withRequest(defaultClientAddress, defaultPieceCid)
+    const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
@@ -176,7 +212,7 @@ describe('retriever.fetch', () => {
         cacheMiss: true,
       }
     }
-    const req = withRequest(defaultClientAddress, defaultPieceCid)
+    const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
@@ -210,7 +246,7 @@ describe('retriever.fetch', () => {
         cacheMiss: true,
       }
     }
-    const req = withRequest(defaultClientAddress, defaultPieceCid, 'GET', {
+    const req = withRequest(defaultClientAddress, realRootCid, 'GET', {
       'CF-IPCountry': 'US',
     })
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
@@ -239,7 +275,7 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: true,
     })
-    const req = withRequest(defaultClientAddress, defaultPieceCid)
+    const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
@@ -250,44 +286,55 @@ describe('retriever.fetch', () => {
     assert.strictEqual(readOutput.results.length, 1)
     assert.strictEqual(readOutput.results[0].egress_bytes, 0)
   })
-  it('measures egress correctly from real storage provider', async () => {
-    const req = withRequest(defaultClientAddress, defaultPieceCid)
+  it(
+    'measures egress correctly from real storage provider',
+    { timeout: 10000 },
+    async () => {
+      for (const [
+        owner,
+        {
+          sample: { rootCid },
+        },
+      ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
+        const req = withRequest(defaultClientAddress, rootCid)
 
-    const res = await worker.fetch(req, env, { retrieveFile })
+        const res = await worker.fetch(req, env, { retrieveFile })
 
-    assert.strictEqual(res.status, 200)
+        assert.strictEqual(res.status, 200)
 
-    const content = await res.arrayBuffer()
-    const actualBytes = content.byteLength
+        const content = await res.arrayBuffer()
+        const actualBytes = content.byteLength
 
-    const { results } = await env.DB.prepare(
-      'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ?',
-    )
-      .bind(defaultClientAddress)
-      .all()
+        const { results } = await env.DB.prepare(
+          'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND owner_address = ?',
+        )
+          .bind(defaultClientAddress, owner)
+          .all()
 
-    assert.strictEqual(results.length, 1)
-    assert.strictEqual(results[0].egress_bytes, actualBytes)
-  })
+        assert.strictEqual(results.length, 1)
+        assert.strictEqual(results[0].egress_bytes, actualBytes)
+      }
+    },
+  )
 })
 
 /**
  * @param {string} clientWalletAddress
- * @param {string} pieceCid
+ * @param {string} rootCid
  * @param {string} method
  * @param {Object} headers
  * @returns {Request}
  */
 function withRequest(
   clientWalletAddress,
-  pieceCid,
+  rootCid,
   method = 'GET',
   headers = {},
 ) {
   let url = 'http://'
   if (clientWalletAddress) url += `${clientWalletAddress}.`
   url += DNS_ROOT.slice(1) // remove the trailing '.'
-  if (pieceCid) url += `/${pieceCid}`
+  if (rootCid) url += `/${rootCid}`
 
   return new Request(url, { method, headers })
 }
