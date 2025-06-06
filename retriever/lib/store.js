@@ -69,8 +69,7 @@ export async function logRetrievalResult(env, params) {
 }
 
 /**
- * Retrieves the approved owner address for a given root CID using a LEFT OUTER
- * JOIN.
+ * Retrieves the approved owner address for a given root CID.
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} rootCid - The root CID to look up
