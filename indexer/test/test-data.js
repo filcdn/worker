@@ -6,3 +6,14 @@ export const LIVE_PDP_FILE = {
   rootId: 0n,
   cid: 'baga6ea4seaqdmmx3vq7bf3oq3cxkwwh5ns5tk7cfhxuisa2qkmtdlpkpi3op2pq',
 }
+
+export const DELETED_PDP_FILE = {
+  setId: 48n,
+  rootId: 0n,
+  cid: null,
+}
+
+export const PDP_FILES_BY_SET_ID = {
+  [LIVE_PDP_FILE.setId]: LIVE_PDP_FILE,
+  [DELETED_PDP_FILE.setId]: DELETED_PDP_FILE,
+}

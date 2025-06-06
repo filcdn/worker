@@ -88,27 +88,19 @@ export default {
         pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
       })
 
-      /**
-       * @param {BigInt} setId
-       * @param {string} rootId
-       * @returns
-       */
-      const maybeGetRootCid = async (setId, rootId) => {
-        try {
-          const cid = await pdpVerifier.getRootCid(setId, BigInt(rootId))
-          return cid
-        } catch (/** @type {any} */ err) {
-          console.error(
-            `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
-          )
-          throw err
-        }
-      }
-
       const rootCids = payload.root_cids
         ? payload.root_cids.split(',')
         : await Promise.all(
-            rootIds.map((rootId) => maybeGetRootCid(setId, rootId)),
+            rootIds.map(async (rootId) => {
+              try {
+                return await pdpVerifier.getRootCid(setId, BigInt(rootId))
+              } catch (/** @type {any} */ err) {
+                console.error(
+                  `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
+                )
+                throw err
+              }
+            }),
           )
 
       await env.DB.prepare(
