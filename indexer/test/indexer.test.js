@@ -119,7 +119,7 @@ describe('retriever.indexer', () => {
     const CTX = {}
 
     /** @type {typeof import('../lib/pdp-verifier.js').createPdpVerifierClient} */
-    const createDummyPdpVerifierClient = () => {
+    const createMockPdpVerifierClient = () => {
       return {
         getRootCid(setId, rootId) {
           return PDP_FILES_BY_SET_ID[setId]?.cid || null
@@ -135,7 +135,7 @@ describe('retriever.indexer', () => {
         body: JSON.stringify({}),
       })
       const res = await workerImpl.fetch(req, env, {
-        createPdpVerifierClient: createDummyPdpVerifierClient,
+        createPdpVerifierClient: createMockPdpVerifierClient,
       })
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
@@ -157,7 +157,7 @@ describe('retriever.indexer', () => {
         }),
       })
       const res = await workerImpl.fetch(req, env, CTX, {
-        createPdpVerifierClient: createDummyPdpVerifierClient,
+        createPdpVerifierClient: createMockPdpVerifierClient,
       })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
@@ -193,7 +193,7 @@ describe('retriever.indexer', () => {
           }),
         })
         const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createDummyPdpVerifierClient,
+          createPdpVerifierClient: createMockPdpVerifierClient,
         })
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
@@ -220,7 +220,7 @@ describe('retriever.indexer', () => {
           body: JSON.stringify({ set_id: sid, root_ids: '0' }),
         })
         const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createDummyPdpVerifierClient,
+          createPdpVerifierClient: createMockPdpVerifierClient,
         })
         const body = await res.text()
         expect(`${res.status} ${body}`).toBe('200 OK')
@@ -286,7 +286,7 @@ describe('retriever.indexer', () => {
         }),
       })
       const res = await workerImpl.fetch(req, env, {
-        createPdpVerifierClient: createDummyPdpVerifierClient,
+        createPdpVerifierClient: createMockPdpVerifierClient,
       })
       await assertOkResponse(res)
 
