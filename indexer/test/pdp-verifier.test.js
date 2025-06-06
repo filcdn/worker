@@ -31,6 +31,6 @@ describe('PDPVerifier client', () => {
       DELETED_PDP_FILE.setId,
       DELETED_PDP_FILE.rootId,
     )
-    expect(cid).toBe(undefined)
+    expect(cid).toBe(null)
   })
 })

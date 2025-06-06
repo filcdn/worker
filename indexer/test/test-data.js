@@ -10,4 +10,10 @@ export const LIVE_PDP_FILE = {
 export const DELETED_PDP_FILE = {
   setId: 48n,
   rootId: 0n,
+  cid: null,
+}
+
+export const PDP_FILES_BY_SET_ID = {
+  [LIVE_PDP_FILE.setId]: LIVE_PDP_FILE,
+  [DELETED_PDP_FILE.setId]: DELETED_PDP_FILE,
 }
