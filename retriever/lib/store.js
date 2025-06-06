@@ -98,7 +98,7 @@ export async function getOwnerByRootCid(env, rootCid) {
 
   if (!result) {
     return {
-      error: `Root_cid '${rootCid}' does not exist or may not be indexed yet.`,
+      error: `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
     }
   }
 
