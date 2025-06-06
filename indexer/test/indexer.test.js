@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import workerImpl from '../bin/indexer.js'
 import { env } from 'cloudflare:test'
-import { LIVE_PDP_FILE } from './test-data.js'
+import {
+  LIVE_PDP_FILE,
+  DELETED_PDP_FILE,
+  PDP_FILES_BY_SET_ID,
+} from './test-data.js'
 import { assertOkResponse } from 'assert-ok-response'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
@@ -118,7 +122,7 @@ describe('retriever.indexer', () => {
     const createDummyPdpVerifierClient = () => {
       return {
         getRootCid(setId, rootId) {
-          return 'baga123'
+          return PDP_FILES_BY_SET_ID[setId]?.cid || null
         },
       }
     }
@@ -265,6 +269,37 @@ describe('retriever.indexer', () => {
         {
           root_id: LIVE_PDP_FILE.rootId.toString(),
           root_cid: LIVE_PDP_FILE.cid,
+        },
+      ])
+    })
+
+    it('ignores when on-chain state does not have a live root', async () => {
+      const req = new Request('https://host/roots-added', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          set_id: DELETED_PDP_FILE.setId.toString(),
+          root_ids: DELETED_PDP_FILE.rootId.toString(),
+          root_cids: undefined,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env, {
+        createPdpVerifierClient: createDummyPdpVerifierClient,
+      })
+      await assertOkResponse(res)
+
+      const { results: roots } = await env.DB.prepare(
+        'SELECT root_id, root_cid FROM indexer_roots WHERE set_id = ?',
+      )
+        .bind(DELETED_PDP_FILE.setId.toString())
+        .all()
+
+      expect(roots).toEqual([
+        {
+          root_id: DELETED_PDP_FILE.rootId.toString(),
+          root_cid: DELETED_PDP_FILE.cid,
         },
       ])
     })
