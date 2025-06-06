@@ -283,29 +283,33 @@ describe('retriever.fetch', () => {
     assert.strictEqual(readOutput.results.length, 1)
     assert.strictEqual(readOutput.results[0].egress_bytes, 0)
   })
-  it('measures egress correctly from real storage provider', async () => {
-    for (const [owner, { rootCid }] of Object.entries(
-      OWNER_TO_RETRIEVAL_URL_MAPPING,
-    )) {
-      const req = withRequest(defaultClientAddress, rootCid)
+  it(
+    'measures egress correctly from real storage provider',
+    { timeout: 10000 },
+    async () => {
+      for (const [owner, { rootCid }] of Object.entries(
+        OWNER_TO_RETRIEVAL_URL_MAPPING,
+      )) {
+        const req = withRequest(defaultClientAddress, rootCid)
 
-      const res = await worker.fetch(req, env, { retrieveFile })
+        const res = await worker.fetch(req, env, { retrieveFile })
 
-      assert.strictEqual(res.status, 200)
+        assert.strictEqual(res.status, 200)
 
-      const content = await res.arrayBuffer()
-      const actualBytes = content.byteLength
+        const content = await res.arrayBuffer()
+        const actualBytes = content.byteLength
 
-      const { results } = await env.DB.prepare(
-        'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND owner_address = ?',
-      )
-        .bind(defaultClientAddress, owner)
-        .all()
+        const { results } = await env.DB.prepare(
+          'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND owner_address = ?',
+        )
+          .bind(defaultClientAddress, owner)
+          .all()
 
-      assert.strictEqual(results.length, 1)
-      assert.strictEqual(results[0].egress_bytes, actualBytes)
-    }
-  })
+        assert.strictEqual(results.length, 1)
+        assert.strictEqual(results[0].egress_bytes, actualBytes)
+      }
+    },
+  )
 })
 
 /**
