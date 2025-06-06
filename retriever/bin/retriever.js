@@ -63,13 +63,9 @@ export default {
         ownerAddress,
       )
     ) {
-      console.error(
-        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
-      )
-      return new Response(
-        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
-        { status: 404 },
-      )
+      const errorMessage = `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`
+      console.error(errorMessage)
+      return new Response(errorMessage, { status: 404 })
     }
     const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
     const { response, cacheMiss } = await retrieveFile(
