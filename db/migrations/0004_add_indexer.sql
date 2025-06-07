@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS indexer_proof_sets (
 CREATE TABLE IF NOT EXISTS indexer_roots (
   root_id TEXT NOT NULL,
   set_id TEXT NOT NULL,
+  root_cid TEXT,
   PRIMARY KEY (root_id, set_id)
 );
 
