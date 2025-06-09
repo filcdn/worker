@@ -58,8 +58,9 @@ export default {
 
     if (
       !ownerAddress ||
-      !Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).some(
-        (key) => key.toLowerCase() === ownerAddress.toLowerCase(),
+      !Object.prototype.hasOwnProperty.call(
+        OWNER_TO_RETRIEVAL_URL_MAPPING,
+        ownerAddress,
       )
     ) {
       const errorMessage = `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`
