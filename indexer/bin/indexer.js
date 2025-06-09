@@ -54,18 +54,34 @@ export default {
       console.log(
         `New proof set (set_id=${payload.set_id}, owner=${payload.owner})`,
       )
-      await env.DB.prepare(
-        `
+      try {
+        await env.DB.prepare(
+          `
           INSERT INTO indexer_proof_sets (
             set_id,
             owner
           )
           VALUES (?, ?)
-          ON CONFLICT DO NOTHING
         `,
-      )
-        .bind(String(payload.set_id), payload.owner)
-        .run()
+        )
+          .bind(String(payload.set_id), payload.owner)
+          .run()
+      } catch (err) {
+        console.error('Insert into indexer_proof_sets failed:', err)
+        return new Response(
+          JSON.stringify({
+            error: 'Internal Server Error',
+            detail:
+              err instanceof Error ? err.message : `Unknown error: ${err}`,
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+      }
       return new Response('OK', { status: 200 })
     } else if (pathname === '/roots-added') {
       if (
@@ -105,32 +121,47 @@ export default {
               }
             }),
           )
-
       console.log(
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
       )
-      await env.DB.prepare(
-        `
-          INSERT INTO indexer_roots (
-            root_id,
-            set_id,
-            root_cid
-          )
-          VALUES ${new Array(rootIds.length)
-            .fill(null)
-            .map(() => '(?, ?, ?)')
-            .join(', ')}
-          ON CONFLICT DO NOTHING
-        `,
-      )
-        .bind(
-          ...rootIds.flatMap((rootId, i) => [
-            String(rootId),
-            String(payload.set_id),
-            rootCids[i],
-          ]),
+      try {
+        await env.DB.prepare(
+          `
+                INSERT INTO indexer_roots (
+                  root_id,
+                  set_id,
+                  root_cid
+                )
+                VALUES ${new Array(rootIds.length)
+                  .fill(null)
+                  .map(() => '(?, ?, ?)')
+                  .join(', ')}
+              `,
         )
-        .run()
+          .bind(
+            ...rootIds.flatMap((rootId, i) => [
+              String(rootId),
+              String(payload.set_id),
+              rootCids[i],
+            ]),
+          )
+          .run()
+      } catch (err) {
+        console.error('Insert into indexer_roots failed:', err)
+        return new Response(
+          JSON.stringify({
+            error: 'Internal Server Error',
+            detail:
+              err instanceof Error ? err.message : `Unknown error: ${err}`,
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+      }
       return new Response('OK', { status: 200 })
     } else if (pathname === '/proof-set-rail-created') {
       if (
@@ -145,8 +176,9 @@ export default {
       console.log(
         `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
-      await env.DB.prepare(
-        `
+      try {
+        await env.DB.prepare(
+          `
           INSERT INTO indexer_proof_set_rails (
             proof_set_id,
             rail_id,
@@ -155,17 +187,32 @@ export default {
             with_cdn
           )
           VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT DO NOTHING
         `,
-      )
-        .bind(
-          payload.proof_set_id,
-          payload.rail_id,
-          payload.payer,
-          payload.payee,
-          payload.with_cdn || null,
         )
-        .run()
+          .bind(
+            payload.proof_set_id,
+            payload.rail_id,
+            payload.payer,
+            payload.payee,
+            payload.with_cdn || null,
+          )
+          .run()
+      } catch (err) {
+        console.error('Insert into indexer_proof_set_rails failed:', err)
+        return new Response(
+          JSON.stringify({
+            error: 'Internal Server Error',
+            detail:
+              err instanceof Error ? err.message : `Unknown error: ${err}`,
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+      }
       return new Response('OK', { status: 200 })
     } else {
       return new Response('Not Found', { status: 404 })
