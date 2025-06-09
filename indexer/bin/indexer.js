@@ -65,6 +65,18 @@ export default {
           .run()
       } catch (err) {
         console.error('Insert into indexer_proof_sets failed:', err)
+        return new Response(
+          JSON.stringify({
+            error: 'Internal Server Error',
+            detail: err instanceof Error ? err.message : 'Unknown error',
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
       }
       return new Response('OK', { status: 200 })
     } else if (pathname === '/roots-added') {
@@ -130,6 +142,18 @@ export default {
           .run()
       } catch (err) {
         console.error('Insert into indexer_roots failed:', err)
+        return new Response(
+          JSON.stringify({
+            error: 'Internal Server Error',
+            detail: err instanceof Error ? err.message : 'Unknown error',
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
       }
       return new Response('OK', { status: 200 })
     } else if (pathname === '/proof-set-rail-created') {
@@ -165,6 +189,18 @@ export default {
           .run()
       } catch (err) {
         console.error('Insert into indexer_proof_set_rails failed:', err)
+        return new Response(
+          JSON.stringify({
+            error: 'Internal Server Error',
+            detail: err instanceof Error ? err.message : 'Unknown error',
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
       }
       return new Response('OK', { status: 200 })
     } else {
