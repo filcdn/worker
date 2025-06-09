@@ -82,7 +82,9 @@ export async function logRetrievalResult(env, params) {
  *   containing either the approved owner address or a descriptive error
  */
 export async function getOwnerByRootCid(env, rootCid) {
-  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)
+  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
+    (owner) => owner.toLowerCase(),
+  )
 
   const query = `
    SELECT ir.set_id, ips.owner
@@ -103,18 +105,18 @@ export async function getOwnerByRootCid(env, rootCid) {
   }
 
   const { set_id: setId, owner } = result
-
-  if (owner === null) {
+  const ownerCaseInsensitive = owner?.toLowerCase()
+  if (ownerCaseInsensitive === null || ownerCaseInsensitive === undefined) {
     return {
       error: `Set_id '${setId}' exists but has no associated owner.`,
     }
   }
 
-  if (!approvedOwners.includes(owner)) {
+  if (!approvedOwners.includes(ownerCaseInsensitive)) {
     return {
-      error: `Set_id '${setId}' is associated with owner '${owner}', which is none of the currently supported SPs.`,
+      error: `Set_id '${setId}' is associated with owner '${ownerCaseInsensitive}', which is none of the currently supported SPs.`,
     }
   }
 
-  return { ownerAddress: owner }
+  return { ownerAddress: ownerCaseInsensitive }
 }
