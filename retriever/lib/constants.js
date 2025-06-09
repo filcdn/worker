@@ -1,3 +1,4 @@
+// Hardcoded base URL for the file retrieval with sample root CIDs
 /**
  * @type {Record<
  *   string,
