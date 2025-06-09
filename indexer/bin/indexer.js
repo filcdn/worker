@@ -71,7 +71,8 @@ export default {
         return new Response(
           JSON.stringify({
             error: 'Internal Server Error',
-            detail: err instanceof Error ? err.message : 'Unknown error',
+            detail:
+              err instanceof Error ? err.message : `Unknown error: ${err}`,
           }),
           {
             status: 500,
@@ -150,7 +151,8 @@ export default {
         return new Response(
           JSON.stringify({
             error: 'Internal Server Error',
-            detail: err instanceof Error ? err.message : 'Unknown error',
+            detail:
+              err instanceof Error ? err.message : `Unknown error: ${err}`,
           }),
           {
             status: 500,
@@ -200,7 +202,8 @@ export default {
         return new Response(
           JSON.stringify({
             error: 'Internal Server Error',
-            detail: err instanceof Error ? err.message : 'Unknown error',
+            detail:
+              err instanceof Error ? err.message : `Unknown error: ${err}`,
           }),
           {
             status: 500,
