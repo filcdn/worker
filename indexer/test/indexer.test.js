@@ -68,7 +68,7 @@ describe('retriever.indexer', () => {
     })
     it('does not insert duplicate proof sets', async () => {
       const setId = randomId()
-      for (let i = 0; i < 2; i++) {
+      const insertProofSet = async () => {
         const req = new Request('https://host/proof-set-created', {
           method: 'POST',
           headers: {
@@ -76,9 +76,14 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({ set_id: setId, owner: '0xOwnerAddress' }),
         })
-        const res = await workerImpl.fetch(req, env)
-        expect(res.status).toBe(200)
-        expect(await res.text()).toBe('OK')
+        return await workerImpl.fetch(req, env)
+      }
+      const res = await insertProofSet()
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+      for (let i = 0; i < 2; i++) {
+        const res = await insertProofSet()
+        expect(res.status).toBe(500)
       }
 
       const { results: proofSets } = await env.DB.prepare(
@@ -180,7 +185,7 @@ describe('retriever.indexer', () => {
       const setId = randomId()
       const rootIds = [randomId(), randomId()]
       const rootCids = [randomId(), randomId()]
-      for (let i = 0; i < 2; i++) {
+      const insertRoots = async () => {
         const req = new Request('https://host/roots-added', {
           method: 'POST',
           headers: {
@@ -192,11 +197,16 @@ describe('retriever.indexer', () => {
             root_cids: rootCids.join(','),
           }),
         })
-        const res = await workerImpl.fetch(req, env, CTX, {
+        return await workerImpl.fetch(req, env, CTX, {
           createPdpVerifierClient: createMockPdpVerifierClient,
         })
-        expect(res.status).toBe(200)
-        expect(await res.text()).toBe('OK')
+      }
+      const res = await insertRoots()
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+      for (let i = 0; i < 2; i++) {
+        const res = await insertRoots()
+        expect(res.status).toBe(500)
       }
 
       const { results: roots } = await env.DB.prepare(
@@ -353,7 +363,7 @@ describe('retriever.indexer', () => {
     it('does not insert duplicate proof set rails', async () => {
       const proofSetId = randomId()
       const railId = randomId()
-      for (let i = 0; i < 2; i++) {
+      const insertProofSetRails = async () => {
         const req = new Request('https://host/proof-set-rail-created', {
           method: 'POST',
           headers: {
@@ -367,9 +377,14 @@ describe('retriever.indexer', () => {
             with_cdn: true,
           }),
         })
-        const res = await workerImpl.fetch(req, env)
-        expect(res.status).toBe(200)
-        expect(await res.text()).toBe('OK')
+        return await workerImpl.fetch(req, env)
+      }
+      const res = await insertProofSetRails()
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+      for (let i = 0; i < 2; i++) {
+        const res = await insertProofSetRails()
+        expect(res.status).toBe(500)
       }
 
       const { results: proofSetRails } = await env.DB.prepare(
