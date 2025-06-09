@@ -64,7 +64,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(proofSets.length).toBe(1)
       expect(proofSets[0].set_id).toBe(setId)
-      expect(proofSets[0].owner).toBe('0xOwnerAddress')
+      expect(proofSets[0].owner).toBe('0xOwnerAddress'.toLowerCase())
     })
     it('does not insert duplicate proof sets', async () => {
       const setId = randomId()
@@ -111,7 +111,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(proofSets.length).toBe(1)
       expect(proofSets[0].set_id).toBe(setId)
-      expect(proofSets[0].owner).toBe('0xOwnerAddress')
+      expect(proofSets[0].owner).toBe('0xOwnerAddress'.toLowerCase())
     })
   })
 
