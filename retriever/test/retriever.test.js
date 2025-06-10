@@ -316,6 +316,61 @@ describe('retriever.fetch', () => {
       }
     },
   )
+  it('matches retrieval URL for owner address case-insensitively', async () => {
+    const body = 'file content'
+    const rootCid =
+      'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipi'
+    const mixedCaseOwner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8' // mixed case
+    const expectedNormalizedOwner = mixedCaseOwner.toLowerCase()
+
+    // Insert proof set and root into DB
+    const proofSetId = 'test-proof-set-case'
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+    )
+      .bind(proofSetId, mixedCaseOwner)
+      .run()
+
+    await env.DB.prepare(
+      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+    )
+      .bind('root-case-test', proofSetId, rootCid)
+      .run()
+
+    // Simulate file retrieval
+    const mockRetrieveFile = async () => {
+      return {
+        response: new Response(body, {
+          status: 200,
+        }),
+        cacheMiss: true,
+      }
+    }
+
+    const req = withRequest(defaultClientAddress, rootCid, 'GET')
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+
+    assert.strictEqual(res.status, 200)
+
+    // Verify that request logged with correct (normalized) owner
+    const { results } = await env.DB.prepare(
+      'SELECT owner FROM indexer_proof_sets WHERE set_id = ?',
+    )
+      .bind(proofSetId)
+      .all()
+
+    assert.deepStrictEqual(results, [
+      {
+        owner: mixedCaseOwner, // Stored as mixed case
+      },
+    ])
+
+    // Now verify that retrieval still worked based on case-insensitive matching
+    const lookupKey = expectedNormalizedOwner
+    const mappingEntry = OWNER_TO_RETRIEVAL_URL_MAPPING[lookupKey]
+    assert.ok(mappingEntry)
+    assert.strictEqual(mappingEntry.sample.rootCid, rootCid)
+  })
 })
 
 /**

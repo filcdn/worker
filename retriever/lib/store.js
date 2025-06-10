@@ -82,10 +82,12 @@ export async function logRetrievalResult(env, params) {
  *   containing either the approved owner address or a descriptive error
  */
 export async function getOwnerByRootCid(env, rootCid) {
-  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)
+  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
+    (owner) => owner.toLowerCase(),
+  )
 
   const query = `
-   SELECT ir.set_id, ips.owner
+   SELECT ir.set_id, lower(ips.owner) as owner
    FROM indexer_roots ir
    LEFT OUTER JOIN indexer_proof_sets ips
      ON ir.set_id = ips.set_id
@@ -103,8 +105,10 @@ export async function getOwnerByRootCid(env, rootCid) {
   }
 
   const { set_id: setId, owner } = result
-
-  if (owner === null) {
+  console.log(
+    `Retrieved set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
+  )
+  if (owner === null || owner === undefined) {
     return {
       error: `Set_id '${setId}' exists but has no associated owner.`,
     }
