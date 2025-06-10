@@ -1,3 +1,5 @@
+import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
+
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
  *
@@ -66,4 +68,53 @@ export async function logRetrievalResult(env, params) {
     // TODO: Handle specific SQL error codes if needed
     throw error
   }
+}
+
+/**
+ * Retrieves the approved owner address for a given root CID.
+ *
+ * @param {Env} env - Cloudflare Worker environment with D1 DB binding
+ * @param {string} rootCid - The root CID to look up
+ * @returns {Promise<{
+ *   ownerAddress?: string
+ *   error?: string
+ * }>} - The result
+ *   containing either the approved owner address or a descriptive error
+ */
+export async function getOwnerByRootCid(env, rootCid) {
+  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)
+
+  const query = `
+   SELECT ir.set_id, ips.owner
+   FROM indexer_roots ir
+   LEFT OUTER JOIN indexer_proof_sets ips
+     ON ir.set_id = ips.set_id
+   WHERE ir.root_cid = ?
+   LIMIT 1;
+ `
+
+  /** @type {{ set_id: string; owner: string | null } | null} */
+  const result = await env.DB.prepare(query).bind(rootCid).first()
+
+  if (!result) {
+    return {
+      error: `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
+    }
+  }
+
+  const { set_id: setId, owner } = result
+
+  if (owner === null) {
+    return {
+      error: `Set_id '${setId}' exists but has no associated owner.`,
+    }
+  }
+
+  if (!approvedOwners.includes(owner)) {
+    return {
+      error: `Set_id '${setId}' is associated with owner '${owner}', which is none of the currently supported SPs.`,
+    }
+  }
+
+  return { ownerAddress: owner }
 }

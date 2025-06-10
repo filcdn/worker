@@ -51,6 +51,9 @@ export default {
         console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
+      console.log(
+        `New proof set (set_id=${payload.set_id}, owner=${payload.owner})`,
+      )
       await env.DB.prepare(
         `
           INSERT INTO indexer_proof_sets (
@@ -103,6 +106,9 @@ export default {
             }),
           )
 
+      console.log(
+        `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
+      )
       await env.DB.prepare(
         `
           INSERT INTO indexer_roots (
@@ -136,6 +142,9 @@ export default {
         console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
+      console.log(
+        `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
+      )
       await env.DB.prepare(
         `
           INSERT INTO indexer_proof_set_rails (

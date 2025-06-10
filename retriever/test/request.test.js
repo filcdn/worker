@@ -6,25 +6,25 @@ const TEST_WALLET = 'abc123'
 const TEST_CID = 'baga123'
 
 describe('parseRequest', () => {
-  it('should parse clientWalletAddress and pieceCid from a URL with both params', () => {
+  it('should parse clientWalletAddress and rootCid from a URL with both params', () => {
     const request = { url: `https://${TEST_WALLET}${DNS_ROOT}/${TEST_CID}` }
     const result = parseRequest(request, { DNS_ROOT })
     expect(result).toEqual({
       clientWalletAddress: TEST_WALLET,
-      pieceCid: TEST_CID,
+      rootCid: TEST_CID,
     })
   })
 
-  it('should parse clientWalletAddress and pieceCid from a URL with leading slash', () => {
+  it('should parse clientWalletAddress and rootCid from a URL with leading slash', () => {
     const request = { url: `https://${TEST_WALLET}${DNS_ROOT}//${TEST_CID}` }
     const result = parseRequest(request, { DNS_ROOT })
     expect(result).toEqual({
       clientWalletAddress: TEST_WALLET,
-      pieceCid: TEST_CID,
+      rootCid: TEST_CID,
     })
   })
 
-  it('should return descriptive error for missing pieceCid', () => {
+  it('should return descriptive error for missing rootCid', () => {
     const request = { url: `https://${TEST_WALLET}${DNS_ROOT}/` }
     const result = parseRequest(request, { DNS_ROOT })
     expect(result).toEqual({ error: 'Missing required path element: `/{CID}`' })
@@ -45,7 +45,7 @@ describe('parseRequest', () => {
     const result = parseRequest(request, { DNS_ROOT })
     expect(result).toEqual({
       clientWalletAddress: TEST_WALLET,
-      pieceCid: TEST_CID,
+      rootCid: TEST_CID,
     })
   })
 })
