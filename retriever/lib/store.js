@@ -87,7 +87,7 @@ export async function getOwnerByRootCid(env, rootCid) {
   )
 
   const query = `
-   SELECT ir.set_id, ips.owner
+   SELECT ir.set_id, lower(ips.owner) as owner
    FROM indexer_roots ir
    LEFT OUTER JOIN indexer_proof_sets ips
      ON ir.set_id = ips.set_id
@@ -105,18 +105,20 @@ export async function getOwnerByRootCid(env, rootCid) {
   }
 
   const { set_id: setId, owner } = result
-  const ownerCaseInsensitive = owner?.toLowerCase()
-  if (ownerCaseInsensitive === null || ownerCaseInsensitive === undefined) {
+  console.log(
+    `Retrieved set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
+  )
+  if (owner === null || owner === undefined) {
     return {
       error: `Set_id '${setId}' exists but has no associated owner.`,
     }
   }
 
-  if (!approvedOwners.includes(ownerCaseInsensitive)) {
+  if (!approvedOwners.includes(owner)) {
     return {
-      error: `Set_id '${setId}' is associated with owner '${ownerCaseInsensitive}', which is none of the currently supported SPs.`,
+      error: `Set_id '${setId}' is associated with owner '${owner}', which is none of the currently supported SPs.`,
     }
   }
 
-  return { ownerAddress: ownerCaseInsensitive }
+  return { ownerAddress: owner }
 }
