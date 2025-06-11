@@ -94,15 +94,15 @@ export async function getOwnerByRootCid(env, rootCid) {
    WHERE ir.root_cid = ?
  `
 
-  const result = await (await env.DB.prepare(query).bind(rootCid).all()).results
+  const { results } = await await env.DB.prepare(query).bind(rootCid).all()
 
-  if (!result || result.length === 0) {
+  if (!results || results.length === 0) {
     return {
       error: `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
     }
   }
 
-  const withOwner = result.filter((row) => row && row.owner != null)
+  const withOwner = results.filter((row) => row && row.owner != null)
   if (withOwner.length === 0) {
     return {
       error: `Root_cid '${rootCid}' exists but has no associated owner.`,
@@ -110,13 +110,17 @@ export async function getOwnerByRootCid(env, rootCid) {
   }
   const approved = withOwner.find(
     (row) =>
-      typeof row.owner === 'string' &&
-      approvedOwners.includes(String(row.owner)),
+      typeof row.owner === 'string' && approvedOwners.includes(row.owner),
   )
   if (!approved || approved.length === 0) {
     return {
-      error: `Root_cid '${rootCid}' exists but has no associated owner from the approved list.`,
+      error: `Root_cid '${rootCid}' exists but has no approved owner`,
     }
+  }
+
+  if (!approved || typeof approved.owner !== 'string') {
+    // Should never be called
+    return { error: `Record has unexpected format ${JSON.stringify(approved)}` }
   }
   const { set_id: setId, owner } = approved
 
@@ -124,11 +128,11 @@ export async function getOwnerByRootCid(env, rootCid) {
     `Retrieved set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
   )
 
-  if (!approvedOwners.includes(String(owner))) {
+  if (!approvedOwners.includes(owner)) {
     return {
       error: `Set_id '${setId}' is associated with owner '${owner}', which is none of the currently supported SPs.`,
     }
   }
 
-  return { ownerAddress: String(owner) }
+  return { ownerAddress: owner }
 }

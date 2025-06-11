@@ -99,9 +99,7 @@ describe('getOwnerByRootCid', () => {
 
     const result = await getOwnerByRootCid(env, cid)
     assert.ok(
-      result.error.includes(
-        'exists but has no associated owner from the approved list.',
-      ),
+      result.error.includes('exists but has no approved owner'),
       `Expected error for unapproved owner, received: ${JSON.stringify(result)}`,
     )
   })
@@ -147,32 +145,7 @@ describe('getOwnerByRootCid', () => {
     const result = await getOwnerByRootCid(env, rootCid)
     assert.deepEqual(result, { ownerAddress: expectedOwner })
   })
-  it('returns error if owner is not in the allowed list', async () => {
-    const setId = 'test-set-2'
-    const rootCid = 'test-cid-2'
-    const unapprovedOwner = '0xABCdef1234567890aBcDeF1234567890ABcdef12'
 
-    // Insert data
-    await env.DB.prepare(
-      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-    )
-      .bind(setId, unapprovedOwner)
-      .run()
-
-    await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-    )
-      .bind('root-2', setId, rootCid)
-      .run()
-
-    // Function should return null since owner is not in allowlist
-    const result = await getOwnerByRootCid(env, rootCid)
-    assert.ok(
-      result.error ===
-        `Root_cid '${rootCid}' exists but has no associated owner from the approved list.`,
-      `Expected error for unapproved owner, received: ${JSON.stringify(result)}`,
-    )
-  })
   it('returns only the approved owner when multiple owners share the same rootCid', async () => {
     const setId1 = 'set-a'
     const setId2 = 'set-b'
