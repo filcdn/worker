@@ -35,14 +35,14 @@ describe('logRetrievalResult', () => {
 })
 
 describe('getOwnerByRootCid', () => {
+  const APPROVED_OWNER_ADDRESS = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   it('returns owner for valid rootCid', async () => {
     const setId = 'test-set-1'
     const rootCid = 'test-cid-1'
-    const owner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     await env.DB.prepare(
       'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
     )
-      .bind(setId, owner)
+      .bind(setId, APPROVED_OWNER_ADDRESS)
       .run()
     await env.DB.prepare(
       'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
@@ -51,7 +51,7 @@ describe('getOwnerByRootCid', () => {
       .run()
 
     const result = await getOwnerByRootCid(env, rootCid)
-    assert.deepEqual(result, { ownerAddress: owner.toLowerCase() })
+    assert.deepEqual(result, { ownerAddress: APPROVED_OWNER_ADDRESS })
   })
 
   it('returns error if rootCid not found', async () => {
@@ -99,20 +99,21 @@ describe('getOwnerByRootCid', () => {
 
     const result = await getOwnerByRootCid(env, cid)
     assert.ok(
-      result.error.includes('none of the currently supported SPs'),
-      'Expected error for unapproved owner',
+      result.error.includes(
+        'exists but has no associated owner from the approved list.',
+      ),
+      `Expected error for unapproved owner, received: ${JSON.stringify(result)}`,
     )
   })
 
   it('returns ownerAddress for approved owner', async () => {
     const cid = 'cid-approved'
     const setId = 'set-approved'
-    const owner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8' // approved
 
     await env.DB.batch([
       env.DB.prepare(
         'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-      ).bind(setId, owner),
+      ).bind(setId, APPROVED_OWNER_ADDRESS),
       env.DB.prepare(
         'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
       ).bind('root-3', setId, cid),
@@ -120,7 +121,7 @@ describe('getOwnerByRootCid', () => {
 
     const result = await getOwnerByRootCid(env, cid)
 
-    assert.deepEqual(result, { ownerAddress: owner.toLowerCase() })
+    assert.deepEqual(result, { ownerAddress: APPROVED_OWNER_ADDRESS })
   })
   it('returns owner for valid rootCid with mixed-case owner (case insensitive)', async () => {
     const setId = 'test-set-1'
@@ -144,6 +145,76 @@ describe('getOwnerByRootCid', () => {
 
     // Lookup by rootCid and assert returned owner is normalized to lowercase
     const result = await getOwnerByRootCid(env, rootCid)
+    assert.deepEqual(result, { ownerAddress: expectedOwner })
+  })
+  it('returns error if owner is not in the allowed list', async () => {
+    const setId = 'test-set-2'
+    const rootCid = 'test-cid-2'
+    const unapprovedOwner = '0xABCdef1234567890aBcDeF1234567890ABcdef12'
+    const allowedOwners = [
+      APPROVED_OWNER_ADDRESS,
+      '0xe9bc394383b67abcebe86fd9843f53d8b4a2e981',
+    ]
+
+    // Insert data
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+    )
+      .bind(setId, unapprovedOwner)
+      .run()
+
+    await env.DB.prepare(
+      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+    )
+      .bind('root-2', setId, rootCid)
+      .run()
+
+    // Function should return null since owner is not in allowlist
+    const result = await getOwnerByRootCid(env, rootCid, allowedOwners)
+    assert.ok(
+      result.error ===
+        `Root_cid '${rootCid}' exists but has no associated owner from the approved list.`,
+      `Expected error for unapproved owner, received: ${JSON.stringify(result)}`,
+    )
+  })
+  it('returns only the approved owner when multiple owners share the same rootCid', async () => {
+    const setId1 = 'set-a'
+    const setId2 = 'set-b'
+    const rootCid = 'shared-root-cid'
+
+    const unapprovedOwner = '0xUnapprovedabcdef1234567890abcdef1234567899'
+
+    const expectedOwner = APPROVED_OWNER_ADDRESS.toLowerCase()
+    const allowedOwners = [expectedOwner]
+
+    // Insert both owners into separate sets with the same rootCid
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+    )
+      .bind(setId1, APPROVED_OWNER_ADDRESS)
+      .run()
+
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+    )
+      .bind(setId2, unapprovedOwner)
+      .run()
+
+    // Insert same rootCid for both sets
+    await env.DB.prepare(
+      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+    )
+      .bind('root-a', setId1, rootCid)
+      .run()
+
+    await env.DB.prepare(
+      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+    )
+      .bind('root-b', setId2, rootCid)
+      .run()
+
+    // Should return only the approved owner
+    const result = await getOwnerByRootCid(env, rootCid, allowedOwners)
     assert.deepEqual(result, { ownerAddress: expectedOwner })
   })
 })
