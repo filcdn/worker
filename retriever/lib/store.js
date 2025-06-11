@@ -94,7 +94,11 @@ export async function getOwnerByRootCid(env, rootCid) {
    WHERE ir.root_cid = ?
  `
 
-  const { results } = await await env.DB.prepare(query).bind(rootCid).all()
+  const results = /** @type {{ owner: string; set_id: string }[]} */ (
+    /** @type {any[]} */ (
+      (await env.DB.prepare(query).bind(rootCid).all()).results
+    )
+  )
 
   if (!results || results.length === 0) {
     return {
@@ -108,20 +112,13 @@ export async function getOwnerByRootCid(env, rootCid) {
       error: `Root_cid '${rootCid}' exists but has no associated owner.`,
     }
   }
-  const approved = withOwner.find(
-    (row) =>
-      typeof row.owner === 'string' && approvedOwners.includes(row.owner),
-  )
-  if (!approved || approved.length === 0) {
+  const approved = withOwner.find((row) => approvedOwners.includes(row.owner))
+  if (!approved) {
     return {
       error: `Root_cid '${rootCid}' exists but has no approved owner`,
     }
   }
 
-  if (!approved || typeof approved.owner !== 'string') {
-    // Should never be called
-    return { error: `Record has unexpected format ${JSON.stringify(approved)}` }
-  }
   const { set_id: setId, owner } = approved
 
   console.log(
