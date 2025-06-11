@@ -184,9 +184,6 @@ describe('getOwnerByRootCid', () => {
 
     const unapprovedOwner = '0xUnapprovedabcdef1234567890abcdef1234567899'
 
-    const expectedOwner = APPROVED_OWNER_ADDRESS.toLowerCase()
-    const allowedOwners = [expectedOwner]
-
     // Insert both owners into separate sets with the same rootCid
     await env.DB.prepare(
       'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
@@ -214,7 +211,9 @@ describe('getOwnerByRootCid', () => {
       .run()
 
     // Should return only the approved owner
-    const result = await getOwnerByRootCid(env, rootCid, allowedOwners)
-    assert.deepEqual(result, { ownerAddress: expectedOwner })
+    const result = await getOwnerByRootCid(env, rootCid, APPROVED_OWNER_ADDRESS)
+    assert.deepEqual(result, {
+      ownerAddress: APPROVED_OWNER_ADDRESS.toLowerCase(),
+    })
   })
 })
