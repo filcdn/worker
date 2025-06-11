@@ -151,10 +151,6 @@ describe('getOwnerByRootCid', () => {
     const setId = 'test-set-2'
     const rootCid = 'test-cid-2'
     const unapprovedOwner = '0xABCdef1234567890aBcDeF1234567890ABcdef12'
-    const allowedOwners = [
-      APPROVED_OWNER_ADDRESS,
-      '0xe9bc394383b67abcebe86fd9843f53d8b4a2e981',
-    ]
 
     // Insert data
     await env.DB.prepare(
@@ -170,7 +166,7 @@ describe('getOwnerByRootCid', () => {
       .run()
 
     // Function should return null since owner is not in allowlist
-    const result = await getOwnerByRootCid(env, rootCid, allowedOwners)
+    const result = await getOwnerByRootCid(env, rootCid)
     assert.ok(
       result.error ===
         `Root_cid '${rootCid}' exists but has no associated owner from the approved list.`,
