@@ -125,11 +125,5 @@ export async function getOwnerByRootCid(env, rootCid) {
     `Retrieved set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
   )
 
-  if (!approvedOwners.includes(owner)) {
-    return {
-      error: `Set_id '${setId}' is associated with owner '${owner}', which is none of the currently supported SPs.`,
-    }
-  }
-
   return { ownerAddress: owner }
 }
