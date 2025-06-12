@@ -92,33 +92,38 @@ export async function getOwnerByRootCid(env, rootCid) {
    LEFT OUTER JOIN indexer_proof_sets ips
      ON ir.set_id = ips.set_id
    WHERE ir.root_cid = ?
-   LIMIT 1;
  `
 
-  /** @type {{ set_id: string; owner: string | null } | null} */
-  const result = await env.DB.prepare(query).bind(rootCid).first()
+  const results = /** @type {{ owner: string; set_id: string }[]} */ (
+    /** @type {any[]} */ (
+      (await env.DB.prepare(query).bind(rootCid).all()).results
+    )
+  )
 
-  if (!result) {
+  if (!results || results.length === 0) {
     return {
       error: `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
     }
   }
 
-  const { set_id: setId, owner } = result
-  console.log(
-    `Retrieved set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
-  )
-  if (owner === null || owner === undefined) {
+  const withOwner = results.filter((row) => row && row.owner != null)
+  if (withOwner.length === 0) {
     return {
-      error: `Set_id '${setId}' exists but has no associated owner.`,
+      error: `Root_cid '${rootCid}' exists but has no associated owner.`,
+    }
+  }
+  const approved = withOwner.find((row) => approvedOwners.includes(row.owner))
+  if (!approved) {
+    return {
+      error: `Root_cid '${rootCid}' exists but has no approved owner`,
     }
   }
 
-  if (!approvedOwners.includes(owner)) {
-    return {
-      error: `Set_id '${setId}' is associated with owner '${owner}', which is none of the currently supported SPs.`,
-    }
-  }
+  const { set_id: setId, owner } = approved
+
+  console.log(
+    `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
+  )
 
   return { ownerAddress: owner }
 }
