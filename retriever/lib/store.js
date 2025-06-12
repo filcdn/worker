@@ -122,7 +122,7 @@ export async function getOwnerByRootCid(env, rootCid) {
   const { set_id: setId, owner } = approved
 
   console.log(
-    `Retrieved set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
+    `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
   )
 
   return { ownerAddress: owner }
