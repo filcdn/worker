@@ -26,16 +26,16 @@ describe('parseRequest', () => {
 
   it('should return descriptive error for missing rootCid', () => {
     const request = { url: `https://${TEST_WALLET}${DNS_ROOT}/` }
-    const result = parseRequest(request, { DNS_ROOT })
-    expect(result).toEqual({ error: 'Missing required path element: `/{CID}`' })
+    expect(() => parseRequest(request, { DNS_ROOT })).toThrowError(
+      'Missing required path element: `/{CID}`',
+    )
   })
 
   it('should return undefined for both if no params in path', () => {
     const request = { url: 'https://filcdn.io' }
-    const result = parseRequest(request, { DNS_ROOT })
-    expect(result).toEqual({
-      error: 'Invalid hostname: filcdn.io. It must end with .filcdn.io.',
-    })
+    expect(() => parseRequest(request, { DNS_ROOT })).toThrowError(
+      'Invalid hostname: filcdn.io. It must end with .filcdn.io.',
+    )
   })
 
   it('should ignore query parameters', () => {

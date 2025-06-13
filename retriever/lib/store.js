@@ -1,4 +1,5 @@
 import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
+import { httpAssert } from './http-assert.js'
 
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
@@ -20,7 +21,7 @@ import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
 export async function logRetrievalResult(env, params) {
-  console.log({ msg: 'retrieval log', ...params })
+  console.log('retrieval log', params)
   const {
     ownerAddress,
     clientAddress,
@@ -75,11 +76,8 @@ export async function logRetrievalResult(env, params) {
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} rootCid - The root CID to look up
- * @returns {Promise<{
- *   ownerAddress?: string
- *   error?: string
- * }>} - The result
- *   containing either the approved owner address or a descriptive error
+ * @returns {Promise<string>} - The result containing either the approved owner
+ *   address or a descriptive error
  */
 export async function getOwnerByRootCid(env, rootCid) {
   const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
@@ -99,25 +97,24 @@ export async function getOwnerByRootCid(env, rootCid) {
       (await env.DB.prepare(query).bind(rootCid).all()).results
     )
   )
-
-  if (!results || results.length === 0) {
-    return {
-      error: `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
-    }
-  }
+  httpAssert(
+    results && results.length > 0,
+    404,
+    `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
+  )
 
   const withOwner = results.filter((row) => row && row.owner != null)
-  if (withOwner.length === 0) {
-    return {
-      error: `Root_cid '${rootCid}' exists but has no associated owner.`,
-    }
-  }
+  httpAssert(
+    withOwner.length > 0,
+    404,
+    `Root_cid '${rootCid}' exists but has no associated owner.`,
+  )
   const approved = withOwner.find((row) => approvedOwners.includes(row.owner))
-  if (!approved) {
-    return {
-      error: `Root_cid '${rootCid}' exists but has no approved owner`,
-    }
-  }
+  httpAssert(
+    approved,
+    404,
+    `Root_cid '${rootCid}' exists but has no approved owner.`,
+  )
 
   const { set_id: setId, owner } = approved
 
@@ -125,5 +122,5 @@ export async function getOwnerByRootCid(env, rootCid) {
     `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
   )
 
-  return { ownerAddress: owner }
+  return owner
 }
