@@ -27,7 +27,7 @@ export function parseRequest(request, { DNS_ROOT }) {
   httpAssert(rootCid, 404, 'Missing required path element: `/{CID}`')
   httpAssert(
     rootCid.startsWith('baga'),
-    400,
+    404,
     `Invalid CID: ${rootCid}. It is not a valid CommP root.`,
   )
 
