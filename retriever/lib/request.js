@@ -24,7 +24,7 @@ export function parseRequest(request, { DNS_ROOT }) {
   const clientWalletAddress = url.hostname.slice(0, -DNS_ROOT.length)
   const [rootCid] = url.pathname.split('/').filter(Boolean)
 
-  httpAssert(rootCid, 400, 'Missing required path element: `/{CID}`')
+  httpAssert(rootCid, 404, 'Missing required path element: `/{CID}`')
   httpAssert(
     rootCid.startsWith('baga'),
     400,
