@@ -22,20 +22,16 @@ export default {
       return await this._fetch(request, env, ctx, retrieveFile)
     } catch (error) {
       console.error(error)
-      const message =
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-          ? error.message
-          : String(error)
-      const status =
+      const errHasStatus =
         typeof error === 'object' &&
         error !== null &&
         'status' in error &&
         typeof error.status === 'number'
-          ? error.status
-          : 500
+      const message =
+        errHasStatus && 'message' in error && typeof error.message === 'string'
+          ? error.message
+          : 'Internal Server Error'
+      const status = errHasStatus ? /** @type {number} */ (error.status) : 500
       return new Response(message, { status })
     }
   },
