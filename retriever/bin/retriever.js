@@ -21,7 +21,6 @@ export default {
     try {
       return await this._fetch(request, env, ctx, retrieveFile)
     } catch (error) {
-      console.error(error)
       const errHasStatus =
         typeof error === 'object' &&
         error !== null &&
@@ -32,6 +31,9 @@ export default {
           ? error.message
           : 'Internal Server Error'
       const status = errHasStatus ? /** @type {number} */ (error.status) : 500
+      if (status >= 500) {
+        console.error(error)
+      }
       return new Response(message, { status })
     }
   },
