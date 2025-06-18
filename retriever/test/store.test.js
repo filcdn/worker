@@ -138,7 +138,7 @@ describe('getOwnerAndValidateClient', () => {
 
     await assert.rejects(
       async () => await getOwnerAndValidateClient(env, clientAddress, cid),
-      /There is no payment rail for client/,
+      /There is no Filecoin Services deal for client/,
     )
   })
 

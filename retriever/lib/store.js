@@ -133,7 +133,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   httpAssert(
     withPaymentRail.length > 0,
     402,
-    `There is no payment rail for client '${clientAddress}' and root_cid '${rootCid}'.`,
+    `There is no Filecoin Services deal for client '${clientAddress}' and root_cid '${rootCid}'.`,
   )
 
   const withCDN = withPaymentRail.filter(
@@ -142,7 +142,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   httpAssert(
     withCDN.length > 0,
     402,
-    `The payment rail for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
+    `The Filecoin Services deal for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
   )
 
   const { set_id: setId, owner } = withCDN[0]
