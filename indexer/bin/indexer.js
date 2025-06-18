@@ -163,7 +163,7 @@ export default {
           payload.rail_id,
           payload.payer,
           payload.payee,
-          payload.with_cdn || null,
+          payload.with_cdn ?? null,
         )
         .run()
       return new Response('OK', { status: 200 })
