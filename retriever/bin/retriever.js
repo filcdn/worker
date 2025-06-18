@@ -21,23 +21,7 @@ export default {
     try {
       return await this._fetch(request, env, ctx, retrieveFile)
     } catch (error) {
-      const errHasStatus =
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        typeof error.status === 'number'
-      const message =
-        errHasStatus &&
-        error.status < 500 &&
-        'message' in error &&
-        typeof error.message === 'string'
-          ? error.message
-          : 'Internal Server Error'
-      const status = errHasStatus ? /** @type {number} */ (error.status) : 500
-      if (status >= 500) {
-        console.error(error)
-      }
-      return new Response(message, { status })
+      return this._handleError(error)
     }
   },
 
@@ -146,5 +130,31 @@ export default {
       statusText: response.statusText,
       headers: response.headers,
     })
+  },
+
+  /**
+   * @param {unknown} error
+   * @returns
+   */
+  _handleError(error) {
+    const errHasStatus =
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      typeof error.status === 'number'
+
+    const status = errHasStatus ? /** @type {number} */ (error.status) : 500
+
+    const message =
+      errHasStatus &&
+      status < 500 &&
+      'message' in error &&
+      typeof error.message === 'string'
+        ? error.message
+        : 'Internal Server Error'
+    if (status >= 500) {
+      console.error(error)
+    }
+    return new Response(message, { status })
   },
 }
