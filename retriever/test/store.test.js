@@ -51,18 +51,17 @@ describe('getOwnerByRootCid', () => {
       .run()
 
     const result = await getOwnerByRootCid(env, rootCid)
-    assert.deepEqual(result, { ownerAddress: APPROVED_OWNER_ADDRESS })
+    assert.strictEqual(result, APPROVED_OWNER_ADDRESS)
   })
 
-  it('returns error if rootCid not found', async () => {
-    const result = await getOwnerByRootCid(env, 'nonexistent-cid')
-    assert.ok(
-      result.error.includes('does not exist'),
-      'Expected an error for missing root_cid',
+  it('throws error if rootCid not found', async () => {
+    await assert.rejects(
+      async () => await getOwnerByRootCid(env, 'nonexistent-cid'),
+      /does not exist/,
     )
   })
 
-  it('returns error if set_id exists but has no associated owner', async () => {
+  it('throws error if set_id exists but has no associated owner', async () => {
     const cid = 'cid-no-owner'
     const setId = 'set-no-owner'
 
@@ -75,15 +74,13 @@ describe('getOwnerByRootCid', () => {
       .bind('root-1', setId, cid)
       .run()
 
-    const result = await getOwnerByRootCid(env, cid)
-
-    assert.ok(
-      result.error.includes('no associated owner'),
-      'Expected error for set_id without an owner',
+    await assert.rejects(
+      async () => await getOwnerByRootCid(env, cid),
+      /no associated owner/,
     )
   })
 
-  it('returns error if owner exists but is not approved', async () => {
+  it('throws error if owner exists but is not approved', async () => {
     const cid = 'cid-unapproved'
     const setId = 'set-unapproved'
     const owner = '0x0000000000000000000000000000000000000000' // not in approved list
@@ -97,10 +94,9 @@ describe('getOwnerByRootCid', () => {
       ).bind('root-2', setId, cid),
     ])
 
-    const result = await getOwnerByRootCid(env, cid)
-    assert.ok(
-      result.error.includes('exists but has no approved owner'),
-      `Expected error for unapproved owner, received: ${JSON.stringify(result)}`,
+    await assert.rejects(
+      async () => await getOwnerByRootCid(env, cid),
+      /exists but has no approved owner/,
     )
   })
 
@@ -119,7 +115,7 @@ describe('getOwnerByRootCid', () => {
 
     const result = await getOwnerByRootCid(env, cid)
 
-    assert.deepEqual(result, { ownerAddress: APPROVED_OWNER_ADDRESS })
+    assert.strictEqual(result, APPROVED_OWNER_ADDRESS)
   })
   it('returns owner for valid rootCid with mixed-case owner (case insensitive)', async () => {
     const setId = 'test-set-1'
@@ -143,7 +139,7 @@ describe('getOwnerByRootCid', () => {
 
     // Lookup by rootCid and assert returned owner is normalized to lowercase
     const result = await getOwnerByRootCid(env, rootCid)
-    assert.deepEqual(result, { ownerAddress: expectedOwner })
+    assert.strictEqual(result, expectedOwner)
   })
 
   it('returns only the approved owner when multiple owners share the same rootCid', async () => {
@@ -181,8 +177,6 @@ describe('getOwnerByRootCid', () => {
 
     // Should return only the approved owner
     const result = await getOwnerByRootCid(env, rootCid, APPROVED_OWNER_ADDRESS)
-    assert.deepEqual(result, {
-      ownerAddress: APPROVED_OWNER_ADDRESS.toLowerCase(),
-    })
+    assert.strictEqual(result, APPROVED_OWNER_ADDRESS.toLowerCase())
   })
 })

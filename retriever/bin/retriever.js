@@ -6,6 +6,7 @@ import {
   measureStreamedEgress,
 } from '../lib/retrieval.js'
 import { getOwnerByRootCid, logRetrievalResult } from '../lib/store.js'
+import { httpAssert } from '../lib/http-assert.js'
 
 export default {
   /**
@@ -17,56 +18,48 @@ export default {
    * @returns
    */
   async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
+    try {
+      return await this._fetch(request, env, ctx, retrieveFile)
+    } catch (error) {
+      return this._handleError(error)
+    }
+  },
+
+  /**
+   * @param {Request} request
+   * @param {Env} env
+   * @param {ExecutionContext} ctx
+   * @param {typeof defaultRetrieveFile} retrieveFile
+   * @returns
+   */
+  async _fetch(request, env, ctx, retrieveFile) {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
-    if (request.method !== 'GET') {
-      return new Response('Method Not Allowed', { status: 405 })
-    }
+    httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
 
-    const {
-      clientWalletAddress,
-      rootCid,
-      error: parsingError,
-    } = parseRequest(request, env)
-    if (parsingError) {
-      console.error(parsingError)
-      return new Response(parsingError, { status: 400 })
-    }
+    const { clientWalletAddress, rootCid } = parseRequest(request, env)
 
-    if (!clientWalletAddress || !rootCid) {
-      return new Response('Missing required fields', { status: 400 })
-    }
-
-    if (!isValidEthereumAddress(clientWalletAddress)) {
-      return new Response(
-        `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
-        { status: 400 },
-      )
-    }
+    httpAssert(clientWalletAddress && rootCid, 400, 'Missing required fields')
+    httpAssert(
+      isValidEthereumAddress(clientWalletAddress),
+      400,
+      `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
+    )
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
-    const { ownerAddress, error: ownerLookupError } = await getOwnerByRootCid(
-      env,
-      rootCid,
-    )
-    if (ownerLookupError) {
-      console.error(ownerLookupError)
-      return new Response(ownerLookupError, { status: 404 })
-    }
+    const ownerAddress = await getOwnerByRootCid(env, rootCid)
 
-    if (
-      !ownerAddress ||
-      !Object.prototype.hasOwnProperty.call(
-        OWNER_TO_RETRIEVAL_URL_MAPPING,
-        ownerAddress,
-      )
-    ) {
-      const errorMessage = `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`
-      console.error(errorMessage)
-      return new Response(errorMessage, { status: 404 })
-    }
+    httpAssert(
+      ownerAddress &&
+        Object.prototype.hasOwnProperty.call(
+          OWNER_TO_RETRIEVAL_URL_MAPPING,
+          ownerAddress,
+        ),
+      404,
+      `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
+    )
     const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
     const { response, cacheMiss } = await retrieveFile(
       spURL,
@@ -137,5 +130,31 @@ export default {
       statusText: response.statusText,
       headers: response.headers,
     })
+  },
+
+  /**
+   * @param {unknown} error
+   * @returns
+   */
+  _handleError(error) {
+    const errHasStatus =
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      typeof error.status === 'number'
+
+    const status = errHasStatus ? /** @type {number} */ (error.status) : 500
+
+    const message =
+      errHasStatus &&
+      status < 500 &&
+      'message' in error &&
+      typeof error.message === 'string'
+        ? error.message
+        : 'Internal Server Error'
+    if (status >= 500) {
+      console.error(error)
+    }
+    return new Response(message, { status })
   },
 }
