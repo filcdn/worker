@@ -722,27 +722,26 @@ declare class Event {
    */
   get eventPhase(): number
   /**
-   * Returns true or false depending on how event was initialized. True if
-   * event invokes listeners past a ShadowRoot node that is the root of its
-   * target, and false otherwise.
+   * Returns true or false depending on how event was initialized. True if event
+   * invokes listeners past a ShadowRoot node that is the root of its target,
+   * and false otherwise.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/Event/composed)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/composed)
    */
   get composed(): boolean
   /**
-   * Returns true or false depending on how event was initialized. True if
-   * event goes through its target's ancestors in reverse tree order, and
-   * false otherwise.
+   * Returns true or false depending on how event was initialized. True if event
+   * goes through its target's ancestors in reverse tree order, and false
+   * otherwise.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/bubbles)
    */
   get bubbles(): boolean
   /**
    * Returns true or false depending on how event was initialized. Its return
-   * value does not always carry meaning, but true can indicate that part of
-   * the operation during which event was dispatched, can be canceled by
-   * invoking the preventDefault() method.
+   * value does not always carry meaning, but true can indicate that part of the
+   * operation during which event was dispatched, can be canceled by invoking
+   * the preventDefault() method.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/Event/cancelable)
@@ -788,16 +787,14 @@ declare class Event {
    * Returns the event's timestamp as the number of milliseconds measured
    * relative to the time origin.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/Event/timeStamp)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/timeStamp)
    */
   get timeStamp(): number
   /**
    * Returns true if event was dispatched by the user agent, and false
    * otherwise.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/Event/isTrusted)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/isTrusted)
    */
   get isTrusted(): boolean
   /**
@@ -816,18 +813,17 @@ declare class Event {
   set cancelBubble(value: boolean)
   /**
    * Invoking this method prevents event from reaching any registered event
-   * listeners after the current one finishes running and, when dispatched in
-   * a tree, also prevents event from reaching any other objects.
+   * listeners after the current one finishes running and, when dispatched in a
+   * tree, also prevents event from reaching any other objects.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/Event/stopImmediatePropagation)
    */
   stopImmediatePropagation(): void
   /**
-   * If invoked when the cancelable attribute value is true, and while
-   * executing a listener for the event with passive set to false, signals to
-   * the operation that caused event to be dispatched that it needs to be
-   * canceled.
+   * If invoked when the cancelable attribute value is true, and while executing
+   * a listener for the event with passive set to false, signals to the
+   * operation that caused event to be dispatched that it needs to be canceled.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/Event/preventDefault)
@@ -880,18 +876,18 @@ declare class EventTarget<
   constructor()
   /**
    * Appends an event listener for events whose type attribute value is type.
-   * The callback argument sets the callback that will be invoked when the
-   * event is dispatched.
+   * The callback argument sets the callback that will be invoked when the event
+   * is dispatched.
    *
-   * The options argument sets listener-specific options. For compatibility
-   * this can be a boolean, in which case the method behaves exactly as if the
-   * value was specified as options's capture.
+   * The options argument sets listener-specific options. For compatibility this
+   * can be a boolean, in which case the method behaves exactly as if the value
+   * was specified as options's capture.
    *
    * When set to true, options's capture prevents callback from being invoked
    * when the event's eventPhase attribute value is BUBBLING_PHASE. When false
    * (or not present), callback will not be invoked when event's eventPhase
-   * attribute value is CAPTURING_PHASE. Either way, callback will be invoked
-   * if event's eventPhase attribute value is AT_TARGET.
+   * attribute value is CAPTURING_PHASE. Either way, callback will be invoked if
+   * event's eventPhase attribute value is AT_TARGET.
    *
    * When set to true, options's passive indicates that the callback will not
    * cancel the event by invoking preventDefault(). This is used to enable
@@ -928,8 +924,8 @@ declare class EventTarget<
   ): void
   /**
    * Dispatches a synthetic event event to target and returns true if either
-   * event's cancelable attribute value is false or its preventDefault()
-   * method was not invoked, and false otherwise.
+   * event's cancelable attribute value is false or its preventDefault() method
+   * was not invoked, and false otherwise.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent)
@@ -964,9 +960,8 @@ declare class AbortController {
    */
   get signal(): AbortSignal
   /**
-   * Invoking this method will set this object's AbortSignal's aborted flag
-   * and signal to any observers that the associated activity is to be
-   * aborted.
+   * Invoking this method will set this object's AbortSignal's aborted flag and
+   * signal to any observers that the associated activity is to be aborted.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/AbortController/abort)
@@ -1394,11 +1389,11 @@ declare class DigestStream extends WritableStream<
 declare class TextDecoder {
   constructor(label?: string, options?: TextDecoderConstructorOptions)
   /**
-   * Returns the result of running encoding's decoder. The method can be
-   * invoked zero or more times with options's stream set to true, and then
-   * once without options's stream (or set to false), to process a fragmented
-   * input. If the invocation without options's stream (or set to false) has
-   * no input, it's clearest to omit both arguments.
+   * Returns the result of running encoding's decoder. The method can be invoked
+   * zero or more times with options's stream set to true, and then once without
+   * options's stream (or set to false), to process a fragmented input. If the
+   * invocation without options's stream (or set to false) has no input, it's
+   * clearest to omit both arguments.
    *
    *     var string = '',
    *       decoder = new TextDecoder(encoding),
@@ -1408,8 +1403,8 @@ declare class TextDecoder {
    *     }
    *     string += decoder.decode() // end-of-queue
    *
-   * If the error mode is "fatal" and encoding's decoder returns error, throws
-   * a TypeError.
+   * If the error mode is "fatal" and encoding's decoder returns error, throws a
+   * TypeError.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/decode)
@@ -1439,10 +1434,10 @@ declare class TextEncoder {
    */
   encode(input?: string): Uint8Array
   /**
-   * Runs the UTF-8 encoder on source, stores the result of that operation
-   * into destination, and returns the progress made as an object wherein read
-   * is the number of converted code units of source and written is the number
-   * of bytes modified in destination.
+   * Runs the UTF-8 encoder on source, stores the result of that operation into
+   * destination, and returns the progress made as an object wherein read is the
+   * number of converted code units of source and written is the number of bytes
+   * modified in destination.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encodeInto)
@@ -1791,8 +1786,7 @@ interface Request<CfHostMetadata = unknown, Cf = CfProperties<CfHostMetadata>>
   /**
    * Returns request's HTTP method, which is "GET" by default.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/Request/method)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)
    */
   method: string
   /**
@@ -1802,18 +1796,17 @@ interface Request<CfHostMetadata = unknown, Cf = CfProperties<CfHostMetadata>>
    */
   url: string
   /**
-   * Returns a Headers object consisting of the headers associated with
-   * request. Note that headers added in the network layer by the user agent
-   * will not be accounted for in this object, e.g., the "Host" header.
+   * Returns a Headers object consisting of the headers associated with request.
+   * Note that headers added in the network layer by the user agent will not be
+   * accounted for in this object, e.g., the "Host" header.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/Request/headers)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/headers)
    */
   headers: Headers
   /**
    * Returns the redirect mode associated with request, which is a string
-   * indicating how redirects for the request will be handled during fetching.
-   * A request will follow redirects by default.
+   * indicating how redirects for the request will be handled during fetching. A
+   * request will follow redirects by default.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/Request/redirect)
@@ -1821,27 +1814,26 @@ interface Request<CfHostMetadata = unknown, Cf = CfProperties<CfHostMetadata>>
   redirect: string
   fetcher: Fetcher | null
   /**
-   * Returns the signal associated with request, which is an AbortSignal
-   * object indicating whether or not request has been aborted, and its abort
-   * event handler.
+   * Returns the signal associated with request, which is an AbortSignal object
+   * indicating whether or not request has been aborted, and its abort event
+   * handler.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/Request/signal)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/signal)
    */
   signal: AbortSignal
   cf: Cf | undefined
   /**
-   * Returns request's subresource integrity metadata, which is a
-   * cryptographic hash of the resource being fetched. Its value consists of
-   * multiple hashes separated by whitespace. [SRI]
+   * Returns request's subresource integrity metadata, which is a cryptographic
+   * hash of the resource being fetched. Its value consists of multiple hashes
+   * separated by whitespace. [SRI]
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/Request/integrity)
    */
   integrity: string
   /**
-   * Returns a boolean indicating whether or not request can outlive the
-   * global in which it was created.
+   * Returns a boolean indicating whether or not request can outlive the global
+   * in which it was created.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/Request/keepalive)
@@ -2312,11 +2304,11 @@ interface Transformer<I = any, O = any> {
 }
 interface StreamPipeOptions {
   /**
-   * Pipes this readable stream to a given writable stream destination. The
-   * way in which the piping process behaves under various error conditions
-   * can be customized with a number of passed options. It returns a promise
-   * that fulfills when the piping process completes successfully, or rejects
-   * if any errors were encountered.
+   * Pipes this readable stream to a given writable stream destination. The way
+   * in which the piping process behaves under various error conditions can be
+   * customized with a number of passed options. It returns a promise that
+   * fulfills when the piping process completes successfully, or rejects if any
+   * errors were encountered.
    *
    * Piping a stream will lock it for the duration of the pipe, preventing any
    * other consumer from acquiring a reader.
@@ -2334,21 +2326,20 @@ interface StreamPipeOptions {
    * destination's error, or with any error that occurs during canceling the
    * source.
    *
-   * When this source readable stream closes, destination will be closed,
-   * unless preventClose is truthy. The returned promise will be fulfilled
-   * once this process completes, unless an error is encountered while closing
-   * the destination, in which case it will be rejected with that error.
+   * When this source readable stream closes, destination will be closed, unless
+   * preventClose is truthy. The returned promise will be fulfilled once this
+   * process completes, unless an error is encountered while closing the
+   * destination, in which case it will be rejected with that error.
    *
    * If destination starts out closed or closing, this source readable stream
    * will be canceled, unless preventCancel is true. The returned promise will
    * be rejected with an error indicating piping to a closed stream failed, or
    * with any error that occurs during canceling the source.
    *
-   * The signal option can be set to an AbortSignal to allow aborting an
-   * ongoing pipe operation via the corresponding AbortController. In this
-   * case, this source readable stream will be canceled, and destination
-   * aborted, unless the respective options preventCancel or preventAbort are
-   * set.
+   * The signal option can be set to an AbortSignal to allow aborting an ongoing
+   * pipe operation via the corresponding AbortController. In this case, this
+   * source readable stream will be canceled, and destination aborted, unless
+   * the respective options preventCancel or preventAbort are set.
    */
   preventClose?: boolean
   preventAbort?: boolean
@@ -2444,8 +2435,7 @@ interface ReadableStreamBYOBReaderReadableStreamBYOBReaderReadOptions {
 }
 interface ReadableStreamGetReaderOptions {
   /**
-   * Creates a ReadableStreamBYOBReader and locks the stream to the new
-   * reader.
+   * Creates a ReadableStreamBYOBReader and locks the stream to the new reader.
    *
    * This call behaves the same way as the no-argument variant, except that it
    * only works on readable byte streams, i.e. streams which were constructed
@@ -2518,10 +2508,10 @@ declare abstract class TransformStreamDefaultController<O = any> {
 }
 interface ReadableWritablePair<R = any, W = any> {
   /**
-   * Provides a convenient, chainable way of piping this readable stream
-   * through a transform stream (or any other { writable, readable } pair). It
-   * simply pipes the stream into the writable side of the supplied pair, and
-   * returns the readable side for further use.
+   * Provides a convenient, chainable way of piping this readable stream through
+   * a transform stream (or any other { writable, readable } pair). It simply
+   * pipes the stream into the writable side of the supplied pair, and returns
+   * the readable side for further use.
    *
    * Piping a stream will lock it for the duration of the pipe, preventing any
    * other consumer from acquiring a reader.
@@ -2671,11 +2661,10 @@ declare class CountQueuingStrategy implements QueuingStrategy {
 }
 interface QueuingStrategyInit {
   /**
-   * Creates a new ByteLengthQueuingStrategy with the provided high water
-   * mark.
+   * Creates a new ByteLengthQueuingStrategy with the provided high water mark.
    *
-   * Note that the provided high water mark will not be validated ahead of
-   * time. Instead, if it is negative, NaN, or not a number, the resulting
+   * Note that the provided high water mark will not be validated ahead of time.
+   * Instead, if it is negative, NaN, or not a number, the resulting
    * ByteLengthQueuingStrategy will cause the corresponding stream constructor
    * to throw.
    */
@@ -2879,8 +2868,8 @@ declare class URLSearchParams {
    */
   append(name: string, value: string): void
   /**
-   * Deletes the given search parameter, and its associated value, from the
-   * list of all search parameters.
+   * Deletes the given search parameter, and its associated value, from the list
+   * of all search parameters.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/delete)
@@ -2997,8 +2986,7 @@ declare class CloseEvent extends Event {
   /**
    * Returns the WebSocket connection close code provided by the server.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/code)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/code)
    */
   readonly code: number
   /**
@@ -3075,17 +3063,15 @@ interface WebSocket extends EventTarget<WebSocketEventMap> {
    * Transmits data using the WebSocket connection. data can be a string, a
    * Blob, an ArrayBuffer, or an ArrayBufferView.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/send)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/send)
    */
   send(message: (ArrayBuffer | ArrayBufferView) | string): void
   /**
-   * Closes the WebSocket connection, optionally using code as the the
-   * WebSocket connection close code and reason as the the WebSocket
-   * connection close reason.
+   * Closes the WebSocket connection, optionally using code as the the WebSocket
+   * connection close code and reason as the the WebSocket connection close
+   * reason.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)
    */
   close(code?: number, reason?: string): void
   serializeAttachment(attachment: any): void
@@ -3198,8 +3184,7 @@ declare class EventSource extends EventTarget {
   /**
    * Returns the URL providing the event stream.
    *
-   * [MDN
-   * Reference](https://developer.mozilla.org/docs/Web/API/EventSource/url)
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventSource/url)
    */
   get url(): string
   /**
@@ -3211,8 +3196,8 @@ declare class EventSource extends EventTarget {
    */
   get withCredentials(): boolean
   /**
-   * Returns the state of this EventSource object's connection. It can have
-   * the values described below.
+   * Returns the state of this EventSource object's connection. It can have the
+   * values described below.
    *
    * [MDN
    * Reference](https://developer.mozilla.org/docs/Web/API/EventSource/readyState)
@@ -3538,21 +3523,25 @@ type Ai_Cf_Unum_Uform_Gen2_Qwen_500M_Input =
       raw?: boolean
       /**
        * Controls the creativity of the AI's responses by adjusting how many
-       * possible words it considers. Lower values make outputs more predictable;
-       * higher values allow for more varied and creative responses.
+       * possible words it considers. Lower values make outputs more
+       * predictable; higher values allow for more varied and creative
+       * responses.
        */
       top_p?: number
       /**
        * Limits the AI to choose from the top 'k' most probable words. Lower
-       * values make responses more focused; higher values introduce more variety
-       * and potential surprises.
+       * values make responses more focused; higher values introduce more
+       * variety and potential surprises.
        */
       top_k?: number
       /** Random seed for reproducibility of the generation. */
       seed?: number
       /** Penalty for repeated tokens; higher values discourage repetition. */
       repetition_penalty?: number
-      /** Decreases the likelihood of the model repeating the same lines verbatim. */
+      /**
+       * Decreases the likelihood of the model repeating the same lines
+       * verbatim.
+       */
       frequency_penalty?: number
       /** Increases the likelihood of the model introducing new topics. */
       presence_penalty?: number
@@ -3608,8 +3597,8 @@ interface Ai_Cf_Openai_Whisper_Large_V3_Turbo_Input {
    */
   initial_prompt?: string
   /**
-   * The prefix it appended the the beginning of the output of the
-   * transcription and can guide the transcription result.
+   * The prefix it appended the the beginning of the output of the transcription
+   * and can guide the transcription result.
    */
   prefix?: string
 }
@@ -3625,8 +3614,8 @@ interface Ai_Cf_Openai_Whisper_Large_V3_Turbo_Output {
     /** The total duration of the original audio file, in seconds. */
     duration?: number
     /**
-     * The duration of the audio after applying Voice Activity Detection
-     * (VAD) to remove silent or irrelevant sections, in seconds.
+     * The duration of the audio after applying Voice Activity Detection (VAD)
+     * to remove silent or irrelevant sections, in seconds.
      */
     duration_after_vad?: number
   }
@@ -3642,8 +3631,8 @@ interface Ai_Cf_Openai_Whisper_Large_V3_Turbo_Output {
     /** The transcription of the segment. */
     text?: string
     /**
-     * The temperature used in the decoding process, controlling randomness
-     * in predictions. Lower values result in more deterministic outputs.
+     * The temperature used in the decoding process, controlling randomness in
+     * predictions. Lower values result in more deterministic outputs.
      */
     temperature?: number
     /**
@@ -3652,8 +3641,8 @@ interface Ai_Cf_Openai_Whisper_Large_V3_Turbo_Output {
      */
     avg_logprob?: number
     /**
-     * The compression ratio of the input to the output, measuring how much
-     * the text was compressed during the transcription process.
+     * The compression ratio of the input to the output, measuring how much the
+     * text was compressed during the transcription process.
      */
     compression_ratio?: number
     /**
@@ -3688,24 +3677,24 @@ interface BGEM3InputQueryAndContexts {
    */
   query?: string
   /**
-   * List of provided contexts. Note that the index in this array is
-   * important, as the response will refer to it.
+   * List of provided contexts. Note that the index in this array is important,
+   * as the response will refer to it.
    */
   contexts: {
     /** One of the provided context content */
     text?: string
   }[]
   /**
-   * When provided with too long context should the model error out or
-   * truncate the context to fit?
+   * When provided with too long context should the model error out or truncate
+   * the context to fit?
    */
   truncate_inputs?: boolean
 }
 interface BGEM3InputEmbedding {
   text: string | string[]
   /**
-   * When provided with too long context should the model error out or
-   * truncate the context to fit?
+   * When provided with too long context should the model error out or truncate
+   * the context to fit?
    */
   truncate_inputs?: boolean
 }
@@ -3761,13 +3750,13 @@ interface Prompt {
   prompt: string
   image?: number[] | (string & NonNullable<unknown>)
   /**
-   * If true, a chat template is not applied and you must adhere to the
-   * specific model's expected formatting.
+   * If true, a chat template is not applied and you must adhere to the specific
+   * model's expected formatting.
    */
   raw?: boolean
   /**
-   * If true, the response will be streamed back incrementally using SSE,
-   * Server Sent Events.
+   * If true, the response will be streamed back incrementally using SSE, Server
+   * Sent Events.
    */
   stream?: boolean
   /** The maximum number of tokens to generate in the response. */
@@ -3784,9 +3773,9 @@ interface Prompt {
    */
   top_p?: number
   /**
-   * Limits the AI to choose from the top 'k' most probable words. Lower
-   * values make responses more focused; higher values introduce more variety
-   * and potential surprises.
+   * Limits the AI to choose from the top 'k' most probable words. Lower values
+   * make responses more focused; higher values introduce more variety and
+   * potential surprises.
    */
   top_k?: number
   /** Random seed for reproducibility of the generation. */
@@ -3884,9 +3873,9 @@ interface Messages {
    */
   top_p?: number
   /**
-   * Limits the AI to choose from the top 'k' most probable words. Lower
-   * values make responses more focused; higher values introduce more variety
-   * and potential surprises.
+   * Limits the AI to choose from the top 'k' most probable words. Lower values
+   * make responses more focused; higher values introduce more variety and
+   * potential surprises.
    */
   top_k?: number
   /** Random seed for reproducibility of the generation. */
@@ -3970,8 +3959,8 @@ interface Ai_Cf_Baai_Bge_Reranker_Base_Input {
   /** Number of returned results starting with the best score. */
   top_k?: number
   /**
-   * List of provided contexts. Note that the index in this array is
-   * important, as the response will refer to it.
+   * List of provided contexts. Note that the index in this array is important,
+   * as the response will refer to it.
    */
   contexts: {
     /** One of the provided context content */
@@ -3999,13 +3988,13 @@ interface Ai_Cf_Meta_Llama_4_Prompt {
   /** JSON schema that should be fulfilled for the response. */
   guided_json?: object
   /**
-   * If true, a chat template is not applied and you must adhere to the
-   * specific model's expected formatting.
+   * If true, a chat template is not applied and you must adhere to the specific
+   * model's expected formatting.
    */
   raw?: boolean
   /**
-   * If true, the response will be streamed back incrementally using SSE,
-   * Server Sent Events.
+   * If true, the response will be streamed back incrementally using SSE, Server
+   * Sent Events.
    */
   stream?: boolean
   /** The maximum number of tokens to generate in the response. */
@@ -4022,9 +4011,9 @@ interface Ai_Cf_Meta_Llama_4_Prompt {
    */
   top_p?: number
   /**
-   * Limits the AI to choose from the top 'k' most probable words. Lower
-   * values make responses more focused; higher values introduce more variety
-   * and potential surprises.
+   * Limits the AI to choose from the top 'k' most probable words. Lower values
+   * make responses more focused; higher values introduce more variety and
+   * potential surprises.
    */
   top_k?: number
   /** Random seed for reproducibility of the generation. */
@@ -4045,8 +4034,8 @@ interface Ai_Cf_Meta_Llama_4_Messages {
      */
     role?: string
     /**
-     * The tool call id. Must be supplied for tool calls for Mistral-3. If
-     * you don't know what to put here you can fall back to 000000001
+     * The tool call id. Must be supplied for tool calls for Mistral-3. If you
+     * don't know what to put here you can fall back to 000000001
      */
     tool_call_id?: string
     content?:
@@ -4057,8 +4046,8 @@ interface Ai_Cf_Meta_Llama_4_Messages {
           text?: string
           image_url?: {
             /**
-             * Image uri with data (e.g. data:image/jpeg;base64,/9j/...).
-             * HTTP URL will not be accepted
+             * Image uri with data (e.g. data:image/jpeg;base64,/9j/...). HTTP
+             * URL will not be accepted
              */
             url?: string
           }
@@ -4069,8 +4058,8 @@ interface Ai_Cf_Meta_Llama_4_Messages {
           text?: string
           image_url?: {
             /**
-             * Image uri with data (e.g. data:image/jpeg;base64,/9j/...).
-             * HTTP URL will not be accepted
+             * Image uri with data (e.g. data:image/jpeg;base64,/9j/...). HTTP
+             * URL will not be accepted
              */
             url?: string
           }
@@ -4135,13 +4124,13 @@ interface Ai_Cf_Meta_Llama_4_Messages {
   /** JSON schema that should be fufilled for the response. */
   guided_json?: object
   /**
-   * If true, a chat template is not applied and you must adhere to the
-   * specific model's expected formatting.
+   * If true, a chat template is not applied and you must adhere to the specific
+   * model's expected formatting.
    */
   raw?: boolean
   /**
-   * If true, the response will be streamed back incrementally using SSE,
-   * Server Sent Events.
+   * If true, the response will be streamed back incrementally using SSE, Server
+   * Sent Events.
    */
   stream?: boolean
   /** The maximum number of tokens to generate in the response. */
@@ -4158,9 +4147,9 @@ interface Ai_Cf_Meta_Llama_4_Messages {
    */
   top_p?: number
   /**
-   * Limits the AI to choose from the top 'k' most probable words. Lower
-   * values make responses more focused; higher values introduce more variety
-   * and potential surprises.
+   * Limits the AI to choose from the top 'k' most probable words. Lower values
+   * make responses more focused; higher values introduce more variety and
+   * potential surprises.
    */
   top_k?: number
   /** Random seed for reproducibility of the generation. */
@@ -4527,39 +4516,38 @@ interface BasicImageTransformations {
    * options:
    *
    * - Scale-down: Similar to contain, but the image is never enlarged. If the
-   *   image is larger than given width or height, it will be resized.
-   *   Otherwise its original size will be kept.
+   *   image is larger than given width or height, it will be resized. Otherwise
+   *   its original size will be kept.
    * - Contain: Resizes to maximum size that fits within the given width and
-   *   height. If only a single dimension is given (e.g. only width), the
-   *   image will be shrunk or enlarged to exactly match that dimension.
-   *   Aspect ratio is always preserved.
+   *   height. If only a single dimension is given (e.g. only width), the image
+   *   will be shrunk or enlarged to exactly match that dimension. Aspect ratio
+   *   is always preserved.
    * - Cover: Resizes (shrinks or enlarges) to fill the entire area of width and
    *   height. If the image has an aspect ratio different from the ratio of
    *   width and height, it will be cropped to fit.
-   * - Crop: The image will be shrunk and cropped to fit within the area
-   *   specified by width and height. The image will not be enlarged. For
-   *   images smaller than the given dimensions it's the same as scale-down.
-   *   For images larger than the given dimensions, it's the same as cover.
-   *   See also trim.
+   * - Crop: The image will be shrunk and cropped to fit within the area specified
+   *   by width and height. The image will not be enlarged. For images smaller
+   *   than the given dimensions it's the same as scale-down. For images larger
+   *   than the given dimensions, it's the same as cover. See also trim.
    * - Pad: Resizes to the maximum size that fits within the given width and
-   *   height, and then fills the remaining area with a background color
-   *   (white by default). Use of this mode is not recommended, as the same
-   *   effect can be more efficiently achieved with the contain mode and the
-   *   CSS object-fit: contain property.
+   *   height, and then fills the remaining area with a background color (white
+   *   by default). Use of this mode is not recommended, as the same effect can
+   *   be more efficiently achieved with the contain mode and the CSS
+   *   object-fit: contain property.
    * - Squeeze: Stretches and deforms to the width and height given, even if it
    *   breaks aspect ratio
    */
   fit?: 'scale-down' | 'contain' | 'cover' | 'crop' | 'pad' | 'squeeze'
   /**
-   * When cropping with fit: "cover", this defines the side or point that
-   * should be left uncropped. The value is either a string "left", "right",
-   * "top", "bottom", "auto", or "center" (the default), or an object {x, y}
-   * containing focal point coordinates in the original image expressed as
-   * fractions ranging from 0.0 (top or left) to 1.0 (bottom or right), 0.5
-   * being the center. {fit: "cover", gravity: "top"} will crop bottom or left
-   * and right sides as necessary, but won’t crop anything from the top. {fit:
-   * "cover", gravity: {x:0.5, y:0.2}} will crop each side to preserve as much
-   * as possible around a point at 20% of the height of the source image.
+   * When cropping with fit: "cover", this defines the side or point that should
+   * be left uncropped. The value is either a string "left", "right", "top",
+   * "bottom", "auto", or "center" (the default), or an object {x, y} containing
+   * focal point coordinates in the original image expressed as fractions
+   * ranging from 0.0 (top or left) to 1.0 (bottom or right), 0.5 being the
+   * center. {fit: "cover", gravity: "top"} will crop bottom or left and right
+   * sides as necessary, but won’t crop anything from the top. {fit: "cover",
+   * gravity: {x:0.5, y:0.2}} will crop each side to preserve as much as
+   * possible around a point at 20% of the height of the source image.
    */
   gravity?:
     | 'left'
@@ -4598,19 +4586,19 @@ interface BasicImageTransformationsGravityCoordinates {
 interface RequestInitCfProperties extends Record<string, unknown> {
   cacheEverything?: boolean
   /**
-   * A request's cache key is what determines if two requests are "the same"
-   * for caching purposes. If a request has the same cache key as some
-   * previous request, then we can serve the same cached response for both.
-   * (e.g. 'some-key')
+   * A request's cache key is what determines if two requests are "the same" for
+   * caching purposes. If a request has the same cache key as some previous
+   * request, then we can serve the same cached response for both. (e.g.
+   * 'some-key')
    *
    * Only available for Enterprise customers.
    */
   cacheKey?: string
   /**
    * This allows you to append additional Cache-Tag response headers to the
-   * origin response without modifications to the origin server. This will
-   * allow for greater control over the Purge by Cache Tag feature utilizing
-   * changes only in the Workers process.
+   * origin response without modifications to the origin server. This will allow
+   * for greater control over the Purge by Cache Tag feature utilizing changes
+   * only in the Workers process.
    *
    * Only available for Enterprise customers.
    */
@@ -4630,30 +4618,29 @@ interface RequestInitCfProperties extends Record<string, unknown> {
   polish?: 'lossy' | 'lossless' | 'off'
   r2?: RequestInitCfPropertiesR2
   /**
-   * Redirects the request to an alternate origin server. You can use this,
-   * for example, to implement load balancing across several origins.
+   * Redirects the request to an alternate origin server. You can use this, for
+   * example, to implement load balancing across several origins.
    * (e.g.us-east.example.com)
    *
    * Note - For security reasons, the hostname set in resolveOverride must be
-   * proxied on the same Cloudflare zone of the incoming request. Otherwise,
-   * the setting is ignored. CNAME hosts are allowed, so to resolve to a host
-   * under a different domain or a DNS only domain first declare a CNAME
-   * record within your own zone’s DNS mapping to the external hostname, set
-   * proxy on Cloudflare, then set resolveOverride to point to that CNAME
-   * record.
+   * proxied on the same Cloudflare zone of the incoming request. Otherwise, the
+   * setting is ignored. CNAME hosts are allowed, so to resolve to a host under
+   * a different domain or a DNS only domain first declare a CNAME record within
+   * your own zone’s DNS mapping to the external hostname, set proxy on
+   * Cloudflare, then set resolveOverride to point to that CNAME record.
    */
   resolveOverride?: string
 }
 interface RequestInitCfPropertiesImageDraw extends BasicImageTransformations {
   /**
-   * Absolute URL of the image file to use for the drawing. It can be any of
-   * the supported file formats. For drawing of watermarks or non-rectangular
+   * Absolute URL of the image file to use for the drawing. It can be any of the
+   * supported file formats. For drawing of watermarks or non-rectangular
    * overlays we recommend using PNG or WebP images.
    */
   url: string
   /**
-   * Floating-point number between 0 (transparent) and 1 (opaque). For
-   * example, opacity: 0.5 makes overlay semitransparent.
+   * Floating-point number between 0 (transparent) and 1 (opaque). For example,
+   * opacity: 0.5 makes overlay semitransparent.
    */
   opacity?: number
   /**
@@ -4666,8 +4653,8 @@ interface RequestInitCfPropertiesImageDraw extends BasicImageTransformations {
    */
   repeat?: true | 'x' | 'y'
   /**
-   * Position of the overlay image relative to a given edge. Each property is
-   * an offset in pixels. 0 aligns exactly to the edge. For example, left: 10
+   * Position of the overlay image relative to a given edge. Each property is an
+   * offset in pixels. 0 aligns exactly to the edge. For example, left: 10
    * positions left side of the overlay 10 pixels from the left edge of the
    * image it's drawn over. bottom: 0 aligns bottom of the overlay with bottom
    * of the background image.
@@ -4693,12 +4680,12 @@ interface RequestInitCfPropertiesImage extends BasicImageTransformations {
    *
    * It can be used as:
    *
-   * - Left, top, right, bottom - it will specify the number of pixels to cut
-   *   off each side
-   * - Width, height - the width/height you'd like to end up with - can be used
-   *   in combination with the properties above
-   * - Border - this will automatically trim the surroundings of an image based
-   *   on it's color. It consists of three properties:
+   * - Left, top, right, bottom - it will specify the number of pixels to cut off
+   *   each side
+   * - Width, height - the width/height you'd like to end up with - can be used in
+   *   combination with the properties above
+   * - Border - this will automatically trim the surroundings of an image based on
+   *   it's color. It consists of three properties:
    *
    *   - Color: rgb or hex representation of the color you wish to trim (todo:
    *       verify the rgba bit)
@@ -4723,20 +4710,20 @@ interface RequestInitCfPropertiesImage extends BasicImageTransformations {
             }
       }
   /**
-   * Quality setting from 1-100 (useful values are in 60-90 range). Lower
-   * values make images look worse, but load faster. The default is 85. It
-   * applies only to JPEG and WebP images. It doesn’t have any effect on PNG.
+   * Quality setting from 1-100 (useful values are in 60-90 range). Lower values
+   * make images look worse, but load faster. The default is 85. It applies only
+   * to JPEG and WebP images. It doesn’t have any effect on PNG.
    */
   quality?: number | 'low' | 'medium-low' | 'medium-high' | 'high'
   /**
    * Output format to generate. It can be:
    *
    * - Avif: generate images in AVIF format.
-   * - Webp: generate images in Google WebP format. Set quality to 100 to get
-   *   the WebP-lossless format.
-   * - Json: instead of generating an image, outputs information about the
-   *   image, in JSON format. The JSON object will contain image size (before
-   *   and after resizing), source image’s MIME type, file size, etc.
+   * - Webp: generate images in Google WebP format. Set quality to 100 to get the
+   *   WebP-lossless format.
+   * - Json: instead of generating an image, outputs information about the image,
+   *   in JSON format. The JSON object will contain image size (before and after
+   *   resizing), source image’s MIME type, file size, etc.
    * - Jpeg: generate images in JPEG format.
    * - Png: generate images in PNG format.
    */
@@ -4753,9 +4740,9 @@ interface RequestInitCfPropertiesImage extends BasicImageTransformations {
    * Whether to preserve animation frames from input files. Default is true.
    * Setting it to false reduces animations to still images. This setting is
    * recommended when enlarging images or processing arbitrary user content,
-   * because large GIF animations can weigh tens or even hundreds of
-   * megabytes. It is also useful to set anim:false when using format:"json"
-   * to get the response quicker without the number of frames.
+   * because large GIF animations can weigh tens or even hundreds of megabytes.
+   * It is also useful to set anim:false when using format:"json" to get the
+   * response quicker without the number of frames.
    */
   anim?: boolean
   /**
@@ -4774,19 +4761,19 @@ interface RequestInitCfPropertiesImage extends BasicImageTransformations {
    */
   metadata?: 'keep' | 'copyright' | 'none'
   /**
-   * Strength of sharpening filter to apply to the image. Floating-point
-   * number between 0 (no sharpening, default) and 10 (maximum). 1.0 is a
-   * recommended value for downscaled images.
+   * Strength of sharpening filter to apply to the image. Floating-point number
+   * between 0 (no sharpening, default) and 10 (maximum). 1.0 is a recommended
+   * value for downscaled images.
    */
   sharpen?: number
   /**
-   * Radius of a blur filter (approximate gaussian). Maximum supported radius
-   * is 250.
+   * Radius of a blur filter (approximate gaussian). Maximum supported radius is
+   * 250.
    */
   blur?: number
   /**
-   * Overlays are drawn in the order they appear in the array (last array
-   * entry is the topmost layer).
+   * Overlays are drawn in the order they appear in the array (last array entry
+   * is the topmost layer).
    */
   draw?: RequestInitCfPropertiesImageDraw[]
   /**
@@ -4796,9 +4783,9 @@ interface RequestInitCfPropertiesImage extends BasicImageTransformations {
    */
   'origin-auth'?: 'share-publicly'
   /**
-   * Adds a border around the image. The border is added after resizing.
-   * Border width takes dpr into account, and can be specified either using a
-   * single width property, or individually for each side.
+   * Adds a border around the image. The border is added after resizing. Border
+   * width takes dpr into account, and can be specified either using a single
+   * width property, or individually for each side.
    */
   border?:
     | {
@@ -4814,25 +4801,25 @@ interface RequestInitCfPropertiesImage extends BasicImageTransformations {
       }
   /**
    * Increase brightness by a factor. A value of 1.0 equals no change, a value
-   * of 0.5 equals half brightness, and a value of 2.0 equals twice as bright.
-   * 0 is ignored.
+   * of 0.5 equals half brightness, and a value of 2.0 equals twice as bright. 0
+   * is ignored.
    */
   brightness?: number
   /**
-   * Increase contrast by a factor. A value of 1.0 equals no change, a value
-   * of 0.5 equals low contrast, and a value of 2.0 equals high contrast. 0 is
+   * Increase contrast by a factor. A value of 1.0 equals no change, a value of
+   * 0.5 equals low contrast, and a value of 2.0 equals high contrast. 0 is
    * ignored.
    */
   contrast?: number
   /**
-   * Increase exposure by a factor. A value of 1.0 equals no change, a value
-   * of 0.5 darkens the image, and a value of 2.0 lightens the image. 0 is
+   * Increase exposure by a factor. A value of 1.0 equals no change, a value of
+   * 0.5 darkens the image, and a value of 2.0 lightens the image. 0 is
    * ignored.
    */
   gamma?: number
   /**
-   * Increase contrast by a factor. A value of 1.0 equals no change, a value
-   * of 0.5 equals low contrast, and a value of 2.0 equals high contrast. 0 is
+   * Increase contrast by a factor. A value of 1.0 equals no change, a value of
+   * 0.5 equals low contrast, and a value of 2.0 equals high contrast. 0 is
    * ignored.
    */
   saturation?: number
@@ -4845,10 +4832,10 @@ interface RequestInitCfPropertiesImage extends BasicImageTransformations {
   /**
    * Slightly reduces latency on a cache miss by selecting a
    * quickest-to-compress file format, at a cost of increased file size and
-   * lower image quality. It will usually override the format option and
-   * choose JPEG over WebP or AVIF. We do not recommend using this option,
-   * except in unusual circumstances like resizing uncacheable
-   * dynamically-generated images.
+   * lower image quality. It will usually override the format option and choose
+   * JPEG over WebP or AVIF. We do not recommend using this option, except in
+   * unusual circumstances like resizing uncacheable dynamically-generated
+   * images.
    */
   compression?: 'fast'
 }
@@ -4870,8 +4857,8 @@ type IncomingRequestCfProperties<HostMetadata = unknown> =
     IncomingRequestCfPropertiesCloudflareAccessOrApiShield
 interface IncomingRequestCfPropertiesBase extends Record<string, unknown> {
   /**
-   * [ASN](https://www.iana.org/assignments/as-numbers/as-numbers.xhtml) of
-   * the incoming request.
+   * [ASN](https://www.iana.org/assignments/as-numbers/as-numbers.xhtml) of the
+   * incoming request.
    *
    * @example 395747
    */
@@ -4945,20 +4932,20 @@ interface IncomingRequestCfPropertiesBase extends Record<string, unknown> {
   /**
    * Metadata containing the
    * [`HELLO`](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.2) and
-   * [`FINISHED`](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9)
-   * messages from this request's TLS handshake.
+   * [`FINISHED`](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9) messages
+   * from this request's TLS handshake.
    *
-   * If the incoming request was served over plaintext (without TLS) this
-   * field is undefined.
+   * If the incoming request was served over plaintext (without TLS) this field
+   * is undefined.
    */
   tlsExportedAuthenticator?: IncomingRequestCfPropertiesExportedAuthenticatorMetadata
 }
 interface IncomingRequestCfPropertiesBotManagementBase {
   /**
    * Cloudflare’s [level of
-   * certainty](https://developers.cloudflare.com/bots/concepts/bot-score/)
-   * that a request comes from a bot, represented as an integer percentage
-   * between `1` (almost certainly a bot) and `99` (almost certainly human).
+   * certainty](https://developers.cloudflare.com/bots/concepts/bot-score/) that
+   * a request comes from a bot, represented as an integer percentage between
+   * `1` (almost certainly a bot) and `99` (almost certainly human).
    *
    * @example 54
    */
@@ -4982,8 +4969,8 @@ interface IncomingRequestCfPropertiesBotManagementBase {
    */
   staticResource: boolean
   /**
-   * List of IDs that correlate to the Bot Management heuristic detections
-   * made on a request (you can have multiple heuristic detections on the same
+   * List of IDs that correlate to the Bot Management heuristic detections made
+   * on a request (you can have multiple heuristic detections on the same
    * request).
    */
   detectionIds: number[]
@@ -5016,8 +5003,8 @@ interface IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata> {
    * Custom metadata set per-host in [Cloudflare for
    * SaaS](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/).
    *
-   * This field is only present if you have Cloudflare for SaaS enabled on
-   * your account and you have followed the [required steps to enable
+   * This field is only present if you have Cloudflare for SaaS enabled on your
+   * account and you have followed the [required steps to enable
    * it]((https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/domain-support/custom-metadata/)).
    */
   hostMetadata: HostMetadata
@@ -5026,11 +5013,11 @@ interface IncomingRequestCfPropertiesCloudflareAccessOrApiShield {
   /**
    * Information about the client certificate presented to Cloudflare.
    *
-   * This is populated when the incoming request is served over TLS using
-   * either Cloudflare Access or API Shield (mTLS) and the presented SSL
-   * certificate has a valid [Certificate Serial
-   * Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number) (i.e.,
-   * not `null` or `""`).
+   * This is populated when the incoming request is served over TLS using either
+   * Cloudflare Access or API Shield (mTLS) and the presented SSL certificate
+   * has a valid [Certificate Serial
+   * Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number) (i.e., not
+   * `null` or `""`).
    *
    * Otherwise, a set of placeholder values are used.
    *
@@ -5048,8 +5035,7 @@ interface IncomingRequestCfPropertiesExportedAuthenticatorMetadata {
    * message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.2), encoded
    * in hexadecimal
    *
-   * @example
-   * 44372ba35fa1270921d318f34c12f155dc87b682cf36a790cfaa3ba8737a1b5d
+   * @example 44372ba35fa1270921d318f34c12f155dc87b682cf36a790cfaa3ba8737a1b5d
    */
   clientHandshake: string
   /**
@@ -5057,26 +5043,23 @@ interface IncomingRequestCfPropertiesExportedAuthenticatorMetadata {
    * message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.2), encoded
    * in hexadecimal
    *
-   * @example
-   * 44372ba35fa1270921d318f34c12f155dc87b682cf36a790cfaa3ba8737a1b5d
+   * @example 44372ba35fa1270921d318f34c12f155dc87b682cf36a790cfaa3ba8737a1b5d
    */
   serverHandshake: string
   /**
    * The client's [`FINISHED`
-   * message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9), encoded
-   * in hexadecimal
+   * message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9), encoded in
+   * hexadecimal
    *
-   * @example
-   * 084ee802fe1348f688220e2a6040a05b2199a761f33cf753abb1b006792d3f8b
+   * @example 084ee802fe1348f688220e2a6040a05b2199a761f33cf753abb1b006792d3f8b
    */
   clientFinished: string
   /**
    * The server's [`FINISHED`
-   * message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9), encoded
-   * in hexadecimal
+   * message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9), encoded in
+   * hexadecimal
    *
-   * @example
-   * 084ee802fe1348f688220e2a6040a05b2199a761f33cf753abb1b006792d3f8b
+   * @example 084ee802fe1348f688220e2a6040a05b2199a761f33cf753abb1b006792d3f8b
    */
   serverFinished: string
 }
@@ -5189,8 +5172,7 @@ interface IncomingRequestCfPropertiesTLSClientAuth {
    * The certificate subject's [distinguished
    * name](https://knowledge.digicert.com/generalinformation/INFO1745.html)
    *
-   * @example CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin,
-   * O=Cloudflare
+   * @example CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare
    */
   certSubjectDN: string
   /**
@@ -5206,8 +5188,7 @@ interface IncomingRequestCfPropertiesTLSClientAuth {
    * name](https://knowledge.digicert.com/generalinformation/INFO1745.html)
    * ([RFC 2253](https://www.rfc-editor.org/rfc/rfc2253.html) formatted)
    *
-   * @example CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin,
-   * O=Cloudflare
+   * @example CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare
    */
   certSubjectDNRFC2253: string
   /** The certificate issuer's distinguished name (legacy policies) */
@@ -5614,10 +5595,10 @@ declare abstract class D1Database {
   batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>
   exec(query: string): Promise<D1ExecResult>
   /**
-   * Creates a new D1 Session anchored at the given constraint or the
-   * bookmark. All queries executed using the created session will have
-   * sequential consistency, meaning that all writes done through the session
-   * will be visible in subsequent reads.
+   * Creates a new D1 Session anchored at the given constraint or the bookmark.
+   * All queries executed using the created session will have sequential
+   * consistency, meaning that all writes done through the session will be
+   * visible in subsequent reads.
    *
    * @param constraintOrBookmark Either the session constraint or the explicit
    *   bookmark to anchor the created session.
@@ -5730,9 +5711,9 @@ interface Hyperdrive {
    * socket.
    *
    * Calling this method returns an idential socket to if you call
-   * `connect("host:port")` using the `host` and `port` fields from this
-   * object. Pick whichever approach works better with your preferred DB
-   * client library.
+   * `connect("host:port")` using the `host` and `port` fields from this object.
+   * Pick whichever approach works better with your preferred DB client
+   * library.
    *
    * Note that this socket is not yet authenticated -- it's expected that your
    * code (or preferably, the client library of your choice) will authenticate
@@ -5879,8 +5860,8 @@ interface ImagesBinding {
 }
 interface ImageTransformer {
   /**
-   * Apply transform next, returning a transform handle. You can then apply
-   * more transformations, draw, or retrieve the output.
+   * Apply transform next, returning a transform handle. You can then apply more
+   * transformations, draw, or retrieve the output.
    *
    * @param transform
    */
@@ -6300,8 +6281,8 @@ declare module 'cloudflare:workers' {
 }
 interface SecretsStoreSecret {
   /**
-   * Get a secret from the Secrets Store, returning a string of the secret
-   * value if it exists, or throws an error if it does not exist
+   * Get a secret from the Secrets Store, returning a string of the secret value
+   * if it exists, or throws an error if it does not exist
    */
   get(): Promise<string>
 }
@@ -6604,10 +6585,7 @@ interface VectorizeIndexDetails {
   name: string
   /** (optional) A human readable description for the index. */
   description?: string
-  /**
-   * The index configuration, including the dimension size and distance
-   * metric.
-   */
+  /** The index configuration, including the dimension size and distance metric. */
   config: VectorizeIndexConfig
   /** The number of records containing vectors within the index. */
   vectorsCount: number
@@ -6624,8 +6602,8 @@ interface VectorizeIndexInfo {
    */
   processedUpToDatetime: number
   /**
-   * UUIDv4 of the last mutation processed by the index. All changes before
-   * this mutation will be reflected in the index state.
+   * UUIDv4 of the last mutation processed by the index. All changes before this
+   * mutation will be reflected in the index state.
    */
   processedUpToMutation: number
 }
@@ -6698,8 +6676,7 @@ declare abstract class VectorizeIndex {
   /**
    * Get information about the currently bound index.
    *
-   * @returns A promise that resolves with information about the current
-   *   index.
+   * @returns A promise that resolves with information about the current index.
    */
   public describe(): Promise<VectorizeIndexDetails>
   /**
@@ -6719,8 +6696,8 @@ declare abstract class VectorizeIndex {
    * an error will be thrown.
    *
    * @param vectors List of vectors that will be inserted.
-   * @returns A promise that resolves with the ids & count of records that
-   *   were successfully processed.
+   * @returns A promise that resolves with the ids & count of records that were
+   *   successfully processed.
    */
   public insert(vectors: VectorizeVector[]): Promise<VectorizeVectorMutation>
   /**
@@ -6728,24 +6705,24 @@ declare abstract class VectorizeIndex {
    * it will be replaced with the new values.
    *
    * @param vectors List of vectors that will be upserted.
-   * @returns A promise that resolves with the ids & count of records that
-   *   were successfully processed.
+   * @returns A promise that resolves with the ids & count of records that were
+   *   successfully processed.
    */
   public upsert(vectors: VectorizeVector[]): Promise<VectorizeVectorMutation>
   /**
    * Delete a list of vectors with a matching id.
    *
    * @param ids List of vector ids that should be deleted.
-   * @returns A promise that resolves with the ids & count of records that
-   *   were successfully processed (and thus deleted).
+   * @returns A promise that resolves with the ids & count of records that were
+   *   successfully processed (and thus deleted).
    */
   public deleteByIds(ids: string[]): Promise<VectorizeVectorMutation>
   /**
    * Get a list of vectors with a matching id.
    *
    * @param ids List of vector ids that should be returned.
-   * @returns A promise that resolves with the raw unscored vectors matching
-   *   the id set.
+   * @returns A promise that resolves with the raw unscored vectors matching the
+   *   id set.
    */
   public getByIds(ids: string[]): Promise<VectorizeVector[]>
 }
@@ -6758,8 +6735,7 @@ declare abstract class Vectorize {
   /**
    * Get information about the currently bound index.
    *
-   * @returns A promise that resolves with information about the current
-   *   index.
+   * @returns A promise that resolves with information about the current index.
    */
   public describe(): Promise<VectorizeIndexInfo>
   /**
@@ -6775,11 +6751,10 @@ declare abstract class Vectorize {
     options?: VectorizeQueryOptions,
   ): Promise<VectorizeMatches>
   /**
-   * Use the provided vector-id to perform a similarity search across the
-   * index.
+   * Use the provided vector-id to perform a similarity search across the index.
    *
-   * @param vectorId Id for a vector in the index against which the index
-   *   should be queried.
+   * @param vectorId Id for a vector in the index against which the index should
+   *   be queried.
    * @param options Configuration options to massage the returned data.
    * @returns A promise that resolves with matched and scored vectors.
    */
@@ -6817,8 +6792,8 @@ declare abstract class Vectorize {
    * Get a list of vectors with a matching id.
    *
    * @param ids List of vector ids that should be returned.
-   * @returns A promise that resolves with the raw unscored vectors matching
-   *   the id set.
+   * @returns A promise that resolves with the raw unscored vectors matching the
+   *   id set.
    */
   public getByIds(ids: string[]): Promise<VectorizeVector[]>
 }
@@ -6855,8 +6830,8 @@ interface DispatchNamespace {
    * @param options Options for Dynamic Dispatch invocation.
    * @returns A Fetcher object that allows you to send requests to the Worker
    *   script.
-   * @throws If the Worker script does not exist in this dispatch namespace,
-   *   an error will be thrown.
+   * @throws If the Worker script does not exist in this dispatch namespace, an
+   *   error will be thrown.
    */
   get(
     name: string,
@@ -6939,8 +6914,8 @@ declare abstract class WorkflowInstance {
   /** Resume the instance. If it is already running, an error will be thrown. */
   public resume(): Promise<void>
   /**
-   * Terminate the instance. If it is errored, terminated or complete, an
-   * error will be thrown.
+   * Terminate the instance. If it is errored, terminated or complete, an error
+   * will be thrown.
    */
   public terminate(): Promise<void>
   /** Restart the instance. */

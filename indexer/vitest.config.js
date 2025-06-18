@@ -1,7 +1,7 @@
 import path from 'node:path'
 import {
   defineWorkersProject,
-  readD1Migrations
+  readD1Migrations,
 } from '@cloudflare/vitest-pool-workers/config'
 
 export default defineWorkersProject(async () => {
@@ -16,15 +16,15 @@ export default defineWorkersProject(async () => {
           singleWorker: true,
           wrangler: {
             configPath: './wrangler.toml',
-            environment: 'dev'
+            environment: 'dev',
           },
           miniflare: {
             // Add a test-only binding for migrations, so we can apply them in a
             // setup file
-            bindings: { TEST_MIGRATIONS: migrations }
-          }
-        }
-      }
-    }
+            bindings: { TEST_MIGRATIONS: migrations },
+          },
+        },
+      },
+    },
   }
 })
