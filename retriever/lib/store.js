@@ -1,4 +1,5 @@
 import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
+import { httpAssert } from './http-assert.js'
 
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
@@ -20,7 +21,7 @@ import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
 export async function logRetrievalResult(env, params) {
-  console.log({ msg: 'retrieval log', ...params })
+  console.log('retrieval log', params)
   const {
     ownerAddress,
     clientAddress,
@@ -76,13 +77,8 @@ export async function logRetrievalResult(env, params) {
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
- * @returns {Promise<{
- *   ownerAddress?: string
- *   error?: string
- *   errorStatus?: number
- * }>}
- *   - The result containing either the approved owner address or a descriptive
- *       error
+ * @returns {Promise<string>} - The result containing either the approved owner
+ *   address or a descriptive error
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
@@ -111,43 +107,43 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
       (await env.DB.prepare(query).bind(rootCid).all()).results
     )
   )
-
-  if (!results || results.length === 0) {
-    return {
-      error: `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
-    }
-  }
+  httpAssert(
+    results && results.length > 0,
+    404,
+    `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
+  )
 
   const withOwner = results.filter((row) => row && row.owner != null)
-  if (withOwner.length === 0) {
-    return {
-      error: `Root_cid '${rootCid}' exists but has no associated owner.`,
-    }
-  }
+  httpAssert(
+    withOwner.length > 0,
+    404,
+    `Root_cid '${rootCid}' exists but has no associated owner.`,
+  )
+
   const approved = withOwner.filter((row) => approvedOwners.includes(row.owner))
-  if (approved.length === 0) {
-    return {
-      error: `Root_cid '${rootCid}' exists but has no approved owner`,
-    }
-  }
+  httpAssert(
+    approved.length > 0,
+    404,
+    `Root_cid '${rootCid}' exists but has no approved owner.`,
+  )
+
   const withPaymentRail = approved.filter(
     (row) => row.payer && row.payer.toLowerCase() === clientAddress,
   )
-  if (withPaymentRail.length === 0) {
-    return {
-      error: `There is no payment rail for client '${clientAddress}' and root_cid '${rootCid}'.`,
-    }
-  }
+  httpAssert(
+    withPaymentRail.length > 0,
+    402,
+    `There is no payment rail for client '${clientAddress}' and root_cid '${rootCid}'.`,
+  )
 
   const withCDN = withPaymentRail.filter(
     (row) => row.with_cdn && row.with_cdn === 1,
   )
-  if (withCDN.length === 0) {
-    return {
-      error: `The payment rail for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
-      errorStatus: 402,
-    }
-  }
+  httpAssert(
+    withCDN.length > 0,
+    402,
+    `The payment rail for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
+  )
 
   const { set_id: setId, owner } = withCDN[0]
 
@@ -155,5 +151,5 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}' and client '${clientAddress}'`,
   )
 
-  return { ownerAddress: owner }
+  return owner
 }

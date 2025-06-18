@@ -57,24 +57,20 @@ describe('getOwnerAndValidateClient', () => {
       .bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true)
       .run()
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.deepEqual(result, { ownerAddress: APPROVED_OWNER_ADDRESS })
+    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
   })
 
-  it('returns error if rootCid not found', async () => {
+  it('throws error if rootCid not found', async () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-    const result = await getOwnerAndValidateClient(
-      env,
-      clientAddress,
-      'nonexistent-cid',
-    )
-    assert.ok(
-      result.error.includes('does not exist'),
-      'Expected an error for missing root_cid',
+    await assert.rejects(
+      async () =>
+        await getOwnerAndValidateClient(env, clientAddress, 'nonexistent-cid'),
+      /does not exist/,
     )
   })
 
-  it('returns error if set_id exists but has no associated owner', async () => {
+  it('throws error if set_id exists but has no associated owner', async () => {
     const cid = 'cid-no-owner'
     const setId = 'set-no-owner'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
@@ -88,15 +84,13 @@ describe('getOwnerAndValidateClient', () => {
       .bind('root-1', setId, cid)
       .run()
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, cid)
-
-    assert.ok(
-      result.error.includes('no associated owner'),
-      'Expected error for set_id without an owner',
+    await assert.rejects(
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      /no associated owner/,
     )
   })
 
-  it('returns error if owner exists but is not approved', async () => {
+  it('throws error if owner exists but is not approved', async () => {
     const cid = 'cid-unapproved'
     const setId = 'set-unapproved'
     const owner = '0x0000000000000000000000000000000000000000' // not in approved list
@@ -111,10 +105,9 @@ describe('getOwnerAndValidateClient', () => {
       ).bind('root-2', setId, cid),
     ])
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, cid)
-    assert.ok(
-      result.error.includes('exists but has no approved owner'),
-      `Expected error for unapproved owner, received: ${JSON.stringify(result)}`,
+    await assert.rejects(
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      /exists but has no approved owner/,
     )
   })
 
@@ -143,10 +136,9 @@ describe('getOwnerAndValidateClient', () => {
       ),
     ])
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, cid)
-    assert.ok(
-      result.error.includes('There is no payment rail'),
-      `Expected error for no payment rail, received: ${JSON.stringify(result)}`,
+    await assert.rejects(
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      /There is no payment rail for client/,
     )
   })
 
@@ -169,10 +161,9 @@ describe('getOwnerAndValidateClient', () => {
       ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, false),
     ])
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, cid)
-    assert.ok(
-      result.error.includes('withCDN=false'),
-      `Expected error for withCDN=false, received: ${JSON.stringify(result)}`,
+    await assert.rejects(
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      /withCDN=false/,
     )
   })
 
@@ -194,9 +185,9 @@ describe('getOwnerAndValidateClient', () => {
       ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true),
     ])
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, cid)
+    const owner = await getOwnerAndValidateClient(env, clientAddress, cid)
 
-    assert.deepEqual(result, { ownerAddress: APPROVED_OWNER_ADDRESS })
+    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
   })
   it('returns owner for valid rootCid with mixed-case owner (case insensitive)', async () => {
     const setId = 'test-set-1'
@@ -226,8 +217,8 @@ describe('getOwnerAndValidateClient', () => {
       .run()
 
     // Lookup by rootCid and assert returned owner is normalized to lowercase
-    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.deepEqual(result, { ownerAddress: expectedOwner })
+    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(owner, expectedOwner)
   })
 
   it('returns only the approved owner when multiple owners share the same rootCid', async () => {
@@ -276,9 +267,7 @@ describe('getOwnerAndValidateClient', () => {
       .run()
 
     // Should return only the approved owner
-    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.deepEqual(result, {
-      ownerAddress: APPROVED_OWNER_ADDRESS.toLowerCase(),
-    })
+    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS.toLowerCase())
   })
 })
