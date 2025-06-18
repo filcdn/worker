@@ -5,7 +5,7 @@ import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
-import { getOwnerByRootCid, logRetrievalResult } from '../lib/store.js'
+import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
 
 export default {
   /**
@@ -47,13 +47,16 @@ export default {
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
-    const { ownerAddress, error: ownerLookupError } = await getOwnerByRootCid(
-      env,
-      rootCid,
-    )
+    const {
+      ownerAddress,
+      error: ownerLookupError,
+      errorStatus: ownerLookupErrorStatus,
+    } = await getOwnerAndValidateClient(env, clientWalletAddress, rootCid)
     if (ownerLookupError) {
       console.error(ownerLookupError)
-      return new Response(ownerLookupError, { status: 404 })
+      return new Response(ownerLookupError, {
+        status: ownerLookupErrorStatus || 404,
+      })
     }
 
     if (

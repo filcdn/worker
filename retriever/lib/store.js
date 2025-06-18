@@ -74,27 +74,39 @@ export async function logRetrievalResult(env, params) {
  * Retrieves the approved owner address for a given root CID.
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
+ * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
  * @returns {Promise<{
  *   ownerAddress?: string
  *   error?: string
- * }>} - The result
- *   containing either the approved owner address or a descriptive error
+ *   errorStatus?: number
+ * }>}
+ *   - The result containing either the approved owner address or a descriptive
+ *       error
  */
-export async function getOwnerByRootCid(env, rootCid) {
+export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
     (owner) => owner.toLowerCase(),
   )
 
   const query = `
-   SELECT ir.set_id, lower(ips.owner) as owner
+   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn
    FROM indexer_roots ir
    LEFT OUTER JOIN indexer_proof_sets ips
      ON ir.set_id = ips.set_id
+   LEFT OUTER JOIN indexer_proof_set_rails ipsr
+     ON ir.set_id = ipsr.proof_set_id
    WHERE ir.root_cid = ?
  `
 
-  const results = /** @type {{ owner: string; set_id: string }[]} */ (
+  const results = /**
+   * @type {{
+   *   owner: string
+   *   set_id: string
+   *   payer: string | undefined
+   *   with_cdn: number | undefined
+   * }[]}
+   */ (
     /** @type {any[]} */ (
       (await env.DB.prepare(query).bind(rootCid).all()).results
     )
@@ -112,17 +124,35 @@ export async function getOwnerByRootCid(env, rootCid) {
       error: `Root_cid '${rootCid}' exists but has no associated owner.`,
     }
   }
-  const approved = withOwner.find((row) => approvedOwners.includes(row.owner))
-  if (!approved) {
+  const approved = withOwner.filter((row) => approvedOwners.includes(row.owner))
+  if (approved.length === 0) {
     return {
       error: `Root_cid '${rootCid}' exists but has no approved owner`,
     }
   }
+  const withPaymentRail = approved.filter(
+    (row) => row.payer && row.payer.toLowerCase() === clientAddress,
+  )
+  if (withPaymentRail.length === 0) {
+    return {
+      error: `There is no payment rail for client '${clientAddress}' and root_cid '${rootCid}'.`,
+    }
+  }
 
-  const { set_id: setId, owner } = approved
+  const withCDN = withPaymentRail.filter(
+    (row) => row.with_cdn && row.with_cdn === 1,
+  )
+  if (withCDN.length === 0) {
+    return {
+      error: `The payment rail for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
+      errorStatus: 402,
+    }
+  }
+
+  const { set_id: setId, owner } = withCDN[0]
 
   console.log(
-    `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}'`,
+    `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}' and client '${clientAddress}'`,
   )
 
   return { ownerAddress: owner }
