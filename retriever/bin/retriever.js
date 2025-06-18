@@ -27,7 +27,7 @@ export default {
         'status' in error &&
         typeof error.status === 'number'
       const message =
-        errHasStatus && 'message' in error && typeof error.message === 'string'
+        errHasStatus && error.status < 500 && 'message' in error && typeof error.message === 'string'
           ? error.message
           : 'Internal Server Error'
       const status = errHasStatus ? /** @type {number} */ (error.status) : 500
