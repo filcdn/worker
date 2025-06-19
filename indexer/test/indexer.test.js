@@ -406,5 +406,34 @@ describe('retriever.indexer', () => {
       expect(proofSetRails.length).toBe(1)
       expect(proofSetRails[0].with_cdn).toBeNull()
     })
+
+    it('stores numeric ID values as integers', async () => {
+      const proofSetId = Number(randomId())
+      const railId = Number(randomId())
+      const req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          proof_set_id: proofSetId,
+          rail_id: railId,
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: true,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ? AND rail_id = ?',
+      )
+        .bind(String(proofSetId), String(railId))
+        .all()
+      expect(proofSetRails[0]?.proof_set_id).toMatch(/^\d+$/)
+      expect(proofSetRails[0]?.rail_id).toMatch(/^\d+$/)
+    })
   })
 })
