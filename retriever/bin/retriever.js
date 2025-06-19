@@ -5,7 +5,7 @@ import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
-import { getOwnerByRootCid, logRetrievalResult } from '../lib/store.js'
+import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 
 export default {
@@ -49,7 +49,12 @@ export default {
 
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
-    const ownerAddress = await getOwnerByRootCid(env, rootCid)
+
+    const ownerAddress = await getOwnerAndValidateClient(
+      env,
+      clientWalletAddress,
+      rootCid,
+    )
 
     httpAssert(
       ownerAddress &&

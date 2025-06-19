@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
-import { logRetrievalResult, getOwnerByRootCid } from '../lib/store.js'
+import { logRetrievalResult, getOwnerAndValidateClient } from '../lib/store.js'
 import { env } from 'cloudflare:test'
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
@@ -34,11 +34,13 @@ describe('logRetrievalResult', () => {
   })
 })
 
-describe('getOwnerByRootCid', () => {
+describe('getOwnerAndValidateClient', () => {
   const APPROVED_OWNER_ADDRESS = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   it('returns owner for valid rootCid', async () => {
     const setId = 'test-set-1'
     const rootCid = 'test-cid-1'
+    const railId = 'test-rail-1'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     await env.DB.prepare(
       'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
     )
@@ -49,14 +51,21 @@ describe('getOwnerByRootCid', () => {
     )
       .bind('root-1', setId, rootCid)
       .run()
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+    )
+      .bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true)
+      .run()
 
-    const result = await getOwnerByRootCid(env, rootCid)
-    assert.strictEqual(result, APPROVED_OWNER_ADDRESS)
+    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
   })
 
   it('throws error if rootCid not found', async () => {
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     await assert.rejects(
-      async () => await getOwnerByRootCid(env, 'nonexistent-cid'),
+      async () =>
+        await getOwnerAndValidateClient(env, clientAddress, 'nonexistent-cid'),
       /does not exist/,
     )
   })
@@ -64,6 +73,7 @@ describe('getOwnerByRootCid', () => {
   it('throws error if set_id exists but has no associated owner', async () => {
     const cid = 'cid-no-owner'
     const setId = 'set-no-owner'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await env.DB.prepare(
       `
@@ -75,7 +85,7 @@ describe('getOwnerByRootCid', () => {
       .run()
 
     await assert.rejects(
-      async () => await getOwnerByRootCid(env, cid),
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
       /no associated owner/,
     )
   })
@@ -84,6 +94,7 @@ describe('getOwnerByRootCid', () => {
     const cid = 'cid-unapproved'
     const setId = 'set-unapproved'
     const owner = '0x0000000000000000000000000000000000000000' // not in approved list
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await env.DB.batch([
       env.DB.prepare(
@@ -95,14 +106,72 @@ describe('getOwnerByRootCid', () => {
     ])
 
     await assert.rejects(
-      async () => await getOwnerByRootCid(env, cid),
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
       /exists but has no approved owner/,
+    )
+  })
+
+  it('returns error if no payment rail', async () => {
+    const cid = 'cid-unapproved'
+    const setId = 'set-unapproved'
+    const railId = 'rail-id'
+    const owner = APPROVED_OWNER_ADDRESS
+    const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
+
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      ).bind(setId, owner),
+      env.DB.prepare(
+        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      ).bind('root-2', setId, cid),
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(
+        setId,
+        railId,
+        clientAddress.replace('a', 'b'),
+        APPROVED_OWNER_ADDRESS,
+        true,
+      ),
+    ])
+
+    await assert.rejects(
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      /There is no Filecoin Services deal for client/,
+    )
+  })
+
+  it('returns error if withCDN=false', async () => {
+    const cid = 'cid-unapproved'
+    const setId = 'set-unapproved'
+    const railId = 'rail-id'
+    const owner = APPROVED_OWNER_ADDRESS
+    const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
+
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      ).bind(setId, owner),
+      env.DB.prepare(
+        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      ).bind('root-2', setId, cid),
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, false),
+    ])
+
+    await assert.rejects(
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      /withCDN=false/,
     )
   })
 
   it('returns ownerAddress for approved owner', async () => {
     const cid = 'cid-approved'
     const setId = 'set-approved'
+    const railId = 'rail'
+    const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await env.DB.batch([
       env.DB.prepare(
@@ -111,17 +180,22 @@ describe('getOwnerByRootCid', () => {
       env.DB.prepare(
         'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
       ).bind('root-3', setId, cid),
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true),
     ])
 
-    const result = await getOwnerByRootCid(env, cid)
+    const owner = await getOwnerAndValidateClient(env, clientAddress, cid)
 
-    assert.strictEqual(result, APPROVED_OWNER_ADDRESS)
+    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
   })
   it('returns owner for valid rootCid with mixed-case owner (case insensitive)', async () => {
     const setId = 'test-set-1'
     const rootCid = 'test-cid-1'
+    const railId = 'test-rail-1'
     const mixedCaseOwner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     const expectedOwner = mixedCaseOwner.toLowerCase()
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     // Insert a proof set with a mixed-case owner
     await env.DB.prepare(
@@ -136,16 +210,22 @@ describe('getOwnerByRootCid', () => {
     )
       .bind('root-1', setId, rootCid)
       .run()
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+    )
+      .bind(setId, railId, clientAddress, mixedCaseOwner, true)
+      .run()
 
     // Lookup by rootCid and assert returned owner is normalized to lowercase
-    const result = await getOwnerByRootCid(env, rootCid)
-    assert.strictEqual(result, expectedOwner)
+    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(owner, expectedOwner)
   })
 
   it('returns only the approved owner when multiple owners share the same rootCid', async () => {
     const setId1 = 'set-a'
     const setId2 = 'set-b'
     const rootCid = 'shared-root-cid'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     const unapprovedOwner = '0xUnapprovedabcdef1234567890abcdef1234567899'
 
@@ -174,9 +254,20 @@ describe('getOwnerByRootCid', () => {
     )
       .bind('root-b', setId2, rootCid)
       .run()
+    // Insert same payment rail for both sets
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+    )
+      .bind(setId2, 'rail-b', clientAddress, APPROVED_OWNER_ADDRESS, true)
+      .run()
+    await env.DB.prepare(
+      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+    )
+      .bind(setId1, 'rail-a', clientAddress, unapprovedOwner, true)
+      .run()
 
     // Should return only the approved owner
-    const result = await getOwnerByRootCid(env, rootCid, APPROVED_OWNER_ADDRESS)
-    assert.strictEqual(result, APPROVED_OWNER_ADDRESS.toLowerCase())
+    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS.toLowerCase())
   })
 })
