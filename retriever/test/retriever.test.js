@@ -414,6 +414,72 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 402)
   })
+  it('logs to retrieval_logs on method not allowed (405)', async () => {
+    const req = withRequest(defaultClientAddress, realRootCid, 'POST')
+    const res = await worker.fetch(req, env)
+
+    expect(res.status).toBe(405)
+    expect(await res.text()).toBe('Method Not Allowed')
+
+    const result = await env.DB.prepare(
+      `SELECT response_status FROM retrieval_logs WHERE client_address = ? ORDER BY id DESC LIMIT 1`,
+    )
+      .bind(defaultClientAddress)
+      .first()
+
+    expect(result.response_status).toBe(405)
+  })
+  it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
+    const invalidRootCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
+    const proofSetId = 'unsupported-owner-test'
+    const unsupportedOwner = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      ).bind(proofSetId, unsupportedOwner),
+      env.DB.prepare(
+        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      ).bind('root-unsupported', proofSetId, invalidRootCid),
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(
+        proofSetId,
+        'rail-unsupported',
+        defaultClientAddress,
+        unsupportedOwner,
+        true,
+      ),
+    ])
+
+    const req = withRequest(defaultClientAddress, invalidRootCid)
+    const res = await worker.fetch(req, env)
+
+    expect(res.status).toBe(404)
+    const { results } = await env.DB.prepare(
+      'SELECT response_status FROM retrieval_logs WHERE client_address = ? AND response_status = 404',
+    )
+      .bind(defaultClientAddress)
+      .all()
+
+    expect(results.length).toBeGreaterThan(0)
+  })
+  it('logs to retrieval_logs when client address is invalid (400)', async () => {
+    const invalidAddress = 'not-an-address'
+    const req = withRequest(invalidAddress, realRootCid)
+    const res = await worker.fetch(req, env)
+
+    expect(res.status).toBe(400)
+    expect(await res.text()).toContain('Invalid address')
+
+    const result = await env.DB.prepare(
+      'SELECT response_status FROM retrieval_logs WHERE client_address = ? ORDER BY id DESC LIMIT 1',
+    )
+      .bind(invalidAddress)
+      .first()
+
+    expect(result.response_status).toBe(400)
+  })
 })
 
 /**
