@@ -135,7 +135,15 @@ export default {
     } else if (pathname === '/proof-set-rail-created') {
       if (
         !payload.proof_set_id ||
+        !(
+          typeof payload.proof_set_id === 'number' ||
+          typeof payload.proof_set_id === 'string'
+        ) ||
         !payload.rail_id ||
+        !(
+          typeof payload.rail_id === 'number' ||
+          typeof payload.rail_id === 'string'
+        ) ||
         !payload.payer ||
         !payload.payee
       ) {
@@ -159,8 +167,8 @@ export default {
         `,
       )
         .bind(
-          payload.proof_set_id,
-          payload.rail_id,
+          String(payload.proof_set_id),
+          String(payload.rail_id),
           payload.payer,
           payload.payee,
           payload.with_cdn ?? null,

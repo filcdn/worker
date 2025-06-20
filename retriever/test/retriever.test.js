@@ -44,6 +44,7 @@ describe('retriever.fetch', () => {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM indexer_roots'),
       env.DB.prepare('DELETE FROM indexer_proof_sets'),
+      env.DB.prepare('DELETE FROM indexer_proof_set_rails'),
     ])
 
     let i = 1
@@ -54,6 +55,7 @@ describe('retriever.fetch', () => {
       },
     ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
       const rootId = `root-${i}`
+      const railId = `rail-${i}`
 
       await env.DB.batch([
         env.DB.prepare(
@@ -69,6 +71,12 @@ describe('retriever.fetch', () => {
           VALUES (?, ?, ?)
         `,
         ).bind(rootId, proofSetId, rootCid),
+        env.DB.prepare(
+          `
+          INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
+          VALUES (?, ?, ?, ?, ?)
+        `,
+        ).bind(proofSetId, railId, defaultClientAddress, owner, true),
       ])
 
       i++
@@ -370,6 +378,41 @@ describe('retriever.fetch', () => {
     const mappingEntry = OWNER_TO_RETRIEVAL_URL_MAPPING[lookupKey]
     assert.ok(mappingEntry)
     assert.strictEqual(mappingEntry.sample.rootCid, rootCid)
+  })
+  it('requests payment if withCDN=false', async () => {
+    const proofSetId = 'test-proof-set-no-cdn'
+    const railId = 'rail-no-cdn'
+    const rootId = 'root-no-cdn'
+    const rootCid =
+      'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
+    const owner = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)[0]
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `
+        INSERT INTO indexer_proof_sets (set_id, owner)
+        VALUES (?, ?)
+      `,
+      ).bind(proofSetId, owner),
+
+      env.DB.prepare(
+        `
+        INSERT INTO indexer_roots (root_id, set_id, root_cid)
+        VALUES (?, ?, ?)
+      `,
+      ).bind(rootId, proofSetId, rootCid),
+      env.DB.prepare(
+        `
+        INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
+        VALUES (?, ?, ?, ?, ?)
+      `,
+      ).bind(proofSetId, railId, defaultClientAddress, owner, false),
+    ])
+
+    const req = withRequest(defaultClientAddress, rootCid, 'GET')
+    const res = await worker.fetch(req, env)
+
+    assert.strictEqual(res.status, 402)
   })
 })
 
