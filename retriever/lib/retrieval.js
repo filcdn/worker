@@ -7,7 +7,7 @@
  *   Default is `86400`
  * @returns {Promise<{
  *   response: Response
- *   cacheMiss: null | boolean
+ *   cacheMiss: boolean
  * }>}
  *
  *   - The response from the fetch request, the cache miss and the content length.

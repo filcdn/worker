@@ -8,6 +8,29 @@ import {
 import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 
+/**
+ * Extracts status and message from an error object.
+ * - If the error has a numeric `status`, it is used; otherwise, defaults to 500.
+ * - If the status is < 500 and a string `message` exists, it's used; otherwise, a generic message is returned.
+ * @param {unknown} error - The error object to extract from.
+ * @returns {{ status: number, message: string }}
+ */
+function extractStatusAndMessage(error) {
+  const isObject = typeof error === 'object' && error !== null
+  const status = isObject && 'status' in error && typeof error.status === 'number'
+    ? error.status
+    : 500
+
+  const message = isObject &&
+    status < 500 &&
+    'message' in error &&
+    typeof error.message === 'string'
+      ? error.message
+      : 'Internal Server Error'
+
+  return { status, message }
+}
+
 export default {
   /**
    * @param {Request} request
@@ -36,10 +59,10 @@ export default {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
-    httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
+
+        httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
 
     const { clientWalletAddress, rootCid } = parseRequest(request, env)
-
     httpAssert(clientWalletAddress && rootCid, 400, 'Missing required fields')
     httpAssert(
       isValidEthereumAddress(clientWalletAddress),
@@ -47,9 +70,25 @@ export default {
       `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
     )
 
-    // Timestamp to measure file retrieval performance (from cache and from SP)
-    const fetchStartedAt = performance.now()
+    /**
+     * @type {{clientAddress: string, ownerAddress: string, cacheMiss: boolean, responseStatus: number, egressBytes: number| null, requestCountryCode: string | null, timestamp: string, performanceStats: { fetchTtfb: number | null, fetchTtlb: number| null, workerTtfb: number | null} }}
+     */
+  let retrievalResultEntry = {
+    clientAddress:clientWalletAddress,
+    ownerAddress:"",
+    cacheMiss:false,
+    responseStatus:500,
+    egressBytes:null,
+    requestCountryCode,
+    timestamp:requestTimestamp,
+    performanceStats: {
+      fetchTtfb: null,
+      fetchTtlb: null,
+      workerTtfb: null,
+    },
+  }
 
+  try {
     const ownerAddress = await getOwnerAndValidateClient(
       env,
       clientWalletAddress,
@@ -65,6 +104,10 @@ export default {
       404,
       `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
     )
+
+    retrievalResultEntry.ownerAddress = ownerAddress
+    const fetchStartedAt = performance.now()
+
     const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
     const { response, cacheMiss } = await retrieveFile(
       spURL,
@@ -72,42 +115,21 @@ export default {
       env.CACHE_TTL,
     )
 
-    const retrievalResultEntry = {
-      ownerAddress,
-      clientAddress: clientWalletAddress,
-      cacheMiss,
-      egressBytes: null, // Will be populated later
-      responseStatus: response.status,
-      timestamp: requestTimestamp,
-      performanceStats: {
-        fetchTtfb: null, // Will be populated later
-        fetchTtlb: null, // Will be populated later
-        workerTtfb: null, // Will be populated later
-      },
-      requestCountryCode,
-    }
+    retrievalResultEntry.cacheMiss = cacheMiss
+    retrievalResultEntry.responseStatus = response.status
 
     if (!response.body) {
-      // The upstream response does not have any readable body
-      // There is no need to measure response body size, we can
-      // return the original response object.
       const firstByteAt = performance.now()
-      ctx.waitUntil(
-        logRetrievalResult(env, {
-          ...retrievalResultEntry,
-          egressBytes: 0, // No body to measure
-          performanceStats: {
-            fetchTtfb: firstByteAt - fetchStartedAt,
-            fetchTtlb: firstByteAt - fetchStartedAt,
-            workerTtfb: firstByteAt - workerStartedAt,
-          },
-        }),
-      )
+      retrievalResultEntry.performanceStats = {
+          fetchTtfb: firstByteAt - fetchStartedAt,
+          fetchTtlb: firstByteAt - fetchStartedAt,
+          workerTtfb: firstByteAt - workerStartedAt,
+      }
+
+      ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
       return response
     }
 
-    // Stream and count bytes
-    // We create two identical streams, one for the egress measurement and the other for returning the response as soon as possible
     const [returnedStream, egressMeasurementStream] = response.body.tee()
     const reader = egressMeasurementStream.getReader()
     const firstByteAt = performance.now()
@@ -117,24 +139,34 @@ export default {
         const egressBytes = await measureStreamedEgress(reader)
         const lastByteFetchedAt = performance.now()
 
-        await logRetrievalResult(env, {
-          ...retrievalResultEntry,
-          egressBytes,
-          performanceStats: {
-            fetchTtfb: firstByteAt - fetchStartedAt,
-            fetchTtlb: lastByteFetchedAt - fetchStartedAt,
-            workerTtfb: firstByteAt - workerStartedAt,
-          },
-        })
+        retrievalResultEntry.egressBytes = egressBytes
+        retrievalResultEntry.performanceStats = {
+          fetchTtfb: firstByteAt - fetchStartedAt,
+          fetchTtlb: lastByteFetchedAt - fetchStartedAt,
+          workerTtfb: firstByteAt - workerStartedAt,
+        }
+
+        await logRetrievalResult(env, retrievalResultEntry)
       })(),
     )
 
-    // Return immediately, proxying the transformed response
     return new Response(returnedStream, {
       status: response.status,
       statusText: response.statusText,
       headers: response.headers,
     })
+
+  } catch (error) {
+    const {status} =extractStatusAndMessage(error)
+
+    retrievalResultEntry.responseStatus = status
+    retrievalResultEntry.performanceStats.workerTtfb =
+      performance.now() - workerStartedAt
+
+    ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
+
+    throw error
+  }
   },
 
   /**
@@ -142,21 +174,8 @@ export default {
    * @returns
    */
   _handleError(error) {
-    const errHasStatus =
-      typeof error === 'object' &&
-      error !== null &&
-      'status' in error &&
-      typeof error.status === 'number'
+    const {status,message} = extractStatusAndMessage(error)
 
-    const status = errHasStatus ? /** @type {number} */ (error.status) : 500
-
-    const message =
-      errHasStatus &&
-      status < 500 &&
-      'message' in error &&
-      typeof error.message === 'string'
-        ? error.message
-        : 'Internal Server Error'
     if (status >= 500) {
       console.error(error)
     }
