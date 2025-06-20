@@ -5,10 +5,9 @@
     "skipLibCheck": true,
     "lib": ["es2022"],
     "target": "es2022",
-    "module": "Node16",
-    "moduleResolution": "node16",
+    "module": "preserve",
+    "moduleResolution": "bundler",
 
-    // TODO
     "strict": true,
     "forceConsistentCasingInFileNames": true,
 
