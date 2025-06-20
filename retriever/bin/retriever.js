@@ -10,18 +10,23 @@ import { httpAssert } from '../lib/http-assert.js'
 
 /**
  * Extracts status and message from an error object.
+ *
  * - If the error has a numeric `status`, it is used; otherwise, defaults to 500.
- * - If the status is < 500 and a string `message` exists, it's used; otherwise, a generic message is returned.
+ * - If the status is < 500 and a string `message` exists, it's used; otherwise, a
+ *   generic message is returned.
+ *
  * @param {unknown} error - The error object to extract from.
- * @returns {{ status: number, message: string }}
+ * @returns {{ status: number; message: string }}
  */
 function extractStatusAndMessage(error) {
   const isObject = typeof error === 'object' && error !== null
-  const status = isObject && 'status' in error && typeof error.status === 'number'
-    ? error.status
-    : 500
+  const status =
+    isObject && 'status' in error && typeof error.status === 'number'
+      ? error.status
+      : 500
 
-  const message = isObject &&
+  const message =
+    isObject &&
     status < 500 &&
     'message' in error &&
     typeof error.message === 'string'
@@ -60,7 +65,7 @@ export default {
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
 
-        httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
+    httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
 
     const { clientWalletAddress, rootCid } = parseRequest(request, env)
     httpAssert(clientWalletAddress && rootCid, 400, 'Missing required fields')
@@ -71,102 +76,114 @@ export default {
     )
 
     /**
-     * @type {{clientAddress: string, ownerAddress: string, cacheMiss: boolean, responseStatus: number, egressBytes: number| null, requestCountryCode: string | null, timestamp: string, performanceStats: { fetchTtfb: number | null, fetchTtlb: number| null, workerTtfb: number | null} }}
+     * @type {{
+     *   clientAddress: string
+     *   ownerAddress: string
+     *   cacheMiss: boolean
+     *   responseStatus: number
+     *   egressBytes: number | null
+     *   requestCountryCode: string | null
+     *   timestamp: string
+     *   performanceStats: {
+     *     fetchTtfb: number | null
+     *     fetchTtlb: number | null
+     *     workerTtfb: number | null
+     *   }
+     * }}
      */
-  let retrievalResultEntry = {
-    clientAddress:clientWalletAddress,
-    ownerAddress:"",
-    cacheMiss:false,
-    responseStatus:500,
-    egressBytes:null,
-    requestCountryCode,
-    timestamp:requestTimestamp,
-    performanceStats: {
-      fetchTtfb: null,
-      fetchTtlb: null,
-      workerTtfb: null,
-    },
-  }
+    let retrievalResultEntry = {
+      clientAddress: clientWalletAddress,
+      ownerAddress: '',
+      cacheMiss: false,
+      responseStatus: 500,
+      egressBytes: null,
+      requestCountryCode,
+      timestamp: requestTimestamp,
+      performanceStats: {
+        fetchTtfb: null,
+        fetchTtlb: null,
+        workerTtfb: null,
+      },
+    }
 
-  try {
-    const ownerAddress = await getOwnerAndValidateClient(
-      env,
-      clientWalletAddress,
-      rootCid,
-    )
+    try {
+      const ownerAddress = await getOwnerAndValidateClient(
+        env,
+        clientWalletAddress,
+        rootCid,
+      )
 
-    httpAssert(
-      ownerAddress &&
-        Object.prototype.hasOwnProperty.call(
-          OWNER_TO_RETRIEVAL_URL_MAPPING,
-          ownerAddress,
-        ),
-      404,
-      `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
-    )
+      httpAssert(
+        ownerAddress &&
+          Object.prototype.hasOwnProperty.call(
+            OWNER_TO_RETRIEVAL_URL_MAPPING,
+            ownerAddress,
+          ),
+        404,
+        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
+      )
 
-    retrievalResultEntry.ownerAddress = ownerAddress
-    const fetchStartedAt = performance.now()
+      retrievalResultEntry.ownerAddress = ownerAddress
+      const fetchStartedAt = performance.now()
 
-    const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
-    const { response, cacheMiss } = await retrieveFile(
-      spURL,
-      rootCid,
-      env.CACHE_TTL,
-    )
+      const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
+      const { response, cacheMiss } = await retrieveFile(
+        spURL,
+        rootCid,
+        env.CACHE_TTL,
+      )
 
-    retrievalResultEntry.cacheMiss = cacheMiss
-    retrievalResultEntry.responseStatus = response.status
+      retrievalResultEntry.cacheMiss = cacheMiss
+      retrievalResultEntry.responseStatus = response.status
 
-    if (!response.body) {
-      const firstByteAt = performance.now()
-      retrievalResultEntry.performanceStats = {
+      if (!response.body) {
+        const firstByteAt = performance.now()
+        retrievalResultEntry.performanceStats = {
           fetchTtfb: firstByteAt - fetchStartedAt,
           fetchTtlb: firstByteAt - fetchStartedAt,
           workerTtfb: firstByteAt - workerStartedAt,
-      }
-
-      ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
-      return response
-    }
-
-    const [returnedStream, egressMeasurementStream] = response.body.tee()
-    const reader = egressMeasurementStream.getReader()
-    const firstByteAt = performance.now()
-
-    ctx.waitUntil(
-      (async () => {
-        const egressBytes = await measureStreamedEgress(reader)
-        const lastByteFetchedAt = performance.now()
-
-        retrievalResultEntry.egressBytes = egressBytes
-        retrievalResultEntry.performanceStats = {
-          fetchTtfb: firstByteAt - fetchStartedAt,
-          fetchTtlb: lastByteFetchedAt - fetchStartedAt,
-          workerTtfb: firstByteAt - workerStartedAt,
         }
 
-        await logRetrievalResult(env, retrievalResultEntry)
-      })(),
-    )
+        ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
+        return response
+      }
 
-    return new Response(returnedStream, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-    })
+      const [returnedStream, egressMeasurementStream] = response.body.tee()
+      const reader = egressMeasurementStream.getReader()
+      const firstByteAt = performance.now()
 
-  } catch (error) {
-    const {status} =extractStatusAndMessage(error)
+      ctx.waitUntil(
+        (async () => {
+          const egressBytes = await measureStreamedEgress(reader)
+          const lastByteFetchedAt = performance.now()
 
-    retrievalResultEntry.responseStatus = status
-    retrievalResultEntry.performanceStats.workerTtfb =
-      performance.now() - workerStartedAt
+          retrievalResultEntry.egressBytes = egressBytes
+          retrievalResultEntry.performanceStats = {
+            fetchTtfb: firstByteAt - fetchStartedAt,
+            fetchTtlb: lastByteFetchedAt - fetchStartedAt,
+            workerTtfb: firstByteAt - workerStartedAt,
+          }
 
-    ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
+          await logRetrievalResult(env, retrievalResultEntry)
+        })(),
+      )
 
-    throw error
-  }
+      return new Response(returnedStream, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      })
+    } catch (error) {
+      const { status } = extractStatusAndMessage(error)
+
+      retrievalResultEntry.responseStatus = status
+      retrievalResultEntry.performanceStats.workerTtfb =
+        performance.now() - workerStartedAt
+
+      ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
+
+      throw error
+    }
   },
 
   /**
@@ -174,7 +191,7 @@ export default {
    * @returns
    */
   _handleError(error) {
-    const {status,message} = extractStatusAndMessage(error)
+    const { status, message } = extractStatusAndMessage(error)
 
     if (status >= 500) {
       console.error(error)
