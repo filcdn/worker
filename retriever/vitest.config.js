@@ -1,7 +1,6 @@
 import path from 'node:path'
 import {
   defineWorkersProject,
-  // @ts-ignore
   readD1Migrations,
 } from '@cloudflare/vitest-pool-workers/config'
 
