@@ -12,15 +12,7 @@ import { httpAssert } from './http-assert.js'
  * @param {number} params.responseStatus - The HTTP response status code.
  * @param {boolean | null} params.cacheMiss - Whether the retrieval was a cache
  *   miss.
-<<<<<<< HEAD
- * @param {{
- *   fetchTtfb: number | null
- *   fetchTtlb: number | null
- *   workerTtfb: number | null
- * }} [params.performanceStats]
-=======
  * @param {{ fetchTtfb: number; fetchTtlb: number; workerTtfb: number }} [params.performanceStats]
->>>>>>> parent of 6e707bf (add logging)
  *   - Performance statistics.
  *
  * @param {string} params.timestamp - The timestamp of the retrieval.
