@@ -64,7 +64,6 @@ export default {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
-
     httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
 
     const { clientWalletAddress, rootCid } = parseRequest(request, env)
@@ -79,7 +78,7 @@ export default {
      * @type {{
      *   clientAddress: string
      *   ownerAddress: string
-     *   cacheMiss: boolean
+     *   cacheMiss: boolean | null
      *   responseStatus: number
      *   egressBytes: number | null
      *   requestCountryCode: string | null
@@ -93,19 +92,19 @@ export default {
      */
     let retrievalResultEntry = {
       clientAddress: clientWalletAddress,
-      ownerAddress: '',
-      cacheMiss: false,
-      responseStatus: 500,
-      egressBytes: null,
+      ownerAddress: '', // Will be populated later
+      cacheMiss: false, // Default to false until we know the cache status
+      responseStatus: 500, // Default to 500 until we know the actual status
+      egressBytes: null, // Will be populated later
       requestCountryCode,
       timestamp: requestTimestamp,
       performanceStats: {
-        fetchTtfb: null,
-        fetchTtlb: null,
-        workerTtfb: null,
+        fetchTtfb: null, // Will be populated later
+        fetchTtlb: null, // Will be populated later
+        workerTtfb: null, // Will be populated later
       },
     }
-
+    
     try {
       const ownerAddress = await getOwnerAndValidateClient(
         env,
@@ -138,6 +137,7 @@ export default {
 
       if (!response.body) {
         const firstByteAt = performance.now()
+        retrievalResultEntry.egressBytes = 0
         retrievalResultEntry.performanceStats = {
           fetchTtfb: firstByteAt - fetchStartedAt,
           fetchTtlb: firstByteAt - fetchStartedAt,

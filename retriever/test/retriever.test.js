@@ -307,8 +307,7 @@ describe('retriever.fetch', () => {
         const req = withRequest(defaultClientAddress, rootCid)
 
         const res = await worker.fetch(req, env, { retrieveFile })
-
-        assert.strictEqual(res.status, 200)
+        assert.strictEqual(res.status, 200, `Failed for owner: ${owner}, url: ${OWNER_TO_RETRIEVAL_URL_MAPPING[owner].url}`)
 
         const content = await res.arrayBuffer()
         const actualBytes = content.byteLength
@@ -414,7 +413,7 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 402)
   })
-  it('logs to retrieval_logs on method not allowed (405)', async () => {
+  it('does not logs to retrieval_logs on method not allowed (405)', async () => {
     const req = withRequest(defaultClientAddress, realRootCid, 'POST')
     const res = await worker.fetch(req, env)
 
@@ -424,10 +423,8 @@ describe('retriever.fetch', () => {
     const result = await env.DB.prepare(
       `SELECT response_status FROM retrieval_logs WHERE client_address = ? ORDER BY id DESC LIMIT 1`,
     )
-      .bind(defaultClientAddress)
-      .first()
-
-    expect(result.response_status).toBe(405)
+      .bind(defaultClientAddress).first()
+    expect(result).toBeNull()
   })
   it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
     const invalidRootCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
@@ -456,15 +453,20 @@ describe('retriever.fetch', () => {
     const res = await worker.fetch(req, env)
 
     expect(res.status).toBe(404)
-    const { results } = await env.DB.prepare(
-      'SELECT response_status FROM retrieval_logs WHERE client_address = ? AND response_status = 404',
+    expect(await res.text()).toContain('exists but has no approved owner')
+
+    const result = await env.DB.prepare(
+      'SELECT * FROM retrieval_logs WHERE client_address = ?',
     )
       .bind(defaultClientAddress)
-      .all()
-
-    expect(results.length).toBeGreaterThan(0)
+      .first()
+    expect(result.response_status).toBe(404)
+    expect(result.client_address).toBe(defaultClientAddress)
+    expect(result.owner_address).toBe('') // No owner address logged
+    expect(result.cache_miss).toBe(0)
+    expect(result.egress_bytes).toBeNull()
   })
-  it('logs to retrieval_logs when client address is invalid (400)', async () => {
+  it('does not log to retrieval_logs when client address is invalid (400)', async () => {
     const invalidAddress = 'not-an-address'
     const req = withRequest(invalidAddress, realRootCid)
     const res = await worker.fetch(req, env)
@@ -473,12 +475,12 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toContain('Invalid address')
 
     const result = await env.DB.prepare(
-      'SELECT response_status FROM retrieval_logs WHERE client_address = ? ORDER BY id DESC LIMIT 1',
+      'SELECT * FROM retrieval_logs WHERE client_address = ? LIMIT 1',
     )
       .bind(invalidAddress)
       .first()
 
-    expect(result.response_status).toBe(400)
+    expect(result).toBeNull() // No logs should be created for invalid client address
   })
 })
 
