@@ -296,52 +296,65 @@ describe('retriever.fetch', () => {
   })
   it(
     'measures egress correctly from real storage provider',
-    { timeout: 100000 },
+    { timeout: 50000 },
     async () => {
-      let successfulOwners = 0
+      const tasks = Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
+        async ([
+          owner,
+          {
+            sample: { rootCid },
+          },
+        ]) => {
+          try {
+            const req = withRequest(defaultClientAddress, rootCid)
+            const res = await worker.fetch(req, env, { retrieveFile })
 
-      for (const [
-        owner,
-        {
-          sample: { rootCid },
+            assert.strictEqual(res.status, 200)
+
+            const content = await res.arrayBuffer()
+            const actualBytes = content.byteLength
+
+            const { results } = await env.DB.prepare(
+              'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND owner_address = ?',
+            )
+              .bind(defaultClientAddress, owner)
+              .all()
+
+            assert.strictEqual(results.length, 1)
+            assert.strictEqual(results[0].egress_bytes, actualBytes)
+
+            return { owner, success: true }
+          } catch (err) {
+            console.warn(
+              `⚠️ Warning: Fetch or verification failed for owner ${owner}:`,
+              err,
+            )
+            return { owner, success: false, error: err }
+          }
         },
-      ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
-        try {
-          const req = withRequest(defaultClientAddress, rootCid)
-          const res = await worker.fetch(req, env, { retrieveFile })
+      )
 
-          assert.strictEqual(res.status, 200)
+      const results = await Promise.allSettled(tasks)
 
-          const content = await res.arrayBuffer()
-          const actualBytes = content.byteLength
+      const successes = results.filter(
+        (r) => r.status === 'fulfilled' && r.value.success,
+      )
+      const failures = results.filter(
+        (r) => r.status === 'fulfilled' && !r.value.success,
+      )
 
-          const { results } = await env.DB.prepare(
-            'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND owner_address = ?',
-          )
-            .bind(defaultClientAddress, owner)
-            .all()
-
-          assert.strictEqual(results.length, 1)
-          assert.strictEqual(results[0].egress_bytes, actualBytes)
-
-          successfulOwners++
-        } catch (err) {
-          console.warn(
-            `⚠️ Warning: Fetch or verification failed for owner ${owner}:`,
-            err,
-          )
-        }
-      }
-
-      if (successfulOwners === 0) {
+      if (successes.length === 0) {
         throw new Error(
           `❌ All owners failed to fetch. Owners attempted: ${Object.keys(
             OWNER_TO_RETRIEVAL_URL_MAPPING,
-          ).join(', ')}`,
+          ).join(', ')}. Erorrs encountered: ${failures
+            .map((f) => f.value.error.message)
+            .join(', ')}`,
         )
       }
     },
   )
+
   it('matches retrieval URL for owner address case-insensitively', async () => {
     const body = 'file content'
     const rootCid =
