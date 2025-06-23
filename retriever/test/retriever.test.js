@@ -296,7 +296,7 @@ describe('retriever.fetch', () => {
   })
   it(
     'measures egress correctly from real storage provider',
-    { timeout: 50000 },
+    { timeout: 100000 },
     async () => {
       let successfulOwners = 0
 
