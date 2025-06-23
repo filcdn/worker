@@ -338,9 +338,7 @@ describe('retriever.fetch', () => {
 
       if (successfulOwners === 0) {
         throw new Error(
-          `❌ All owners failed to fetch. Owners attempted: ${Object.keys(
-            OWNER_TO_RETRIEVAL_URL_MAPPING,
-          ).join(', ')}`,
+          `❌ All owners failed to fetch. Owners attempted: ${failedOwners.join(', ')}`,
         )
       }
     },
