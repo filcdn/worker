@@ -104,7 +104,7 @@ export default {
         workerTtfb: null, // Will be populated later
       },
     }
-    
+
     try {
       const ownerAddress = await getOwnerAndValidateClient(
         env,

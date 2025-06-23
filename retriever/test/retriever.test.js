@@ -307,7 +307,11 @@ describe('retriever.fetch', () => {
         const req = withRequest(defaultClientAddress, rootCid)
 
         const res = await worker.fetch(req, env, { retrieveFile })
-        assert.strictEqual(res.status, 200, `Failed for owner: ${owner}, url: ${OWNER_TO_RETRIEVAL_URL_MAPPING[owner].url}`)
+        assert.strictEqual(
+          res.status,
+          200,
+          `Failed for owner: ${owner}, url: ${OWNER_TO_RETRIEVAL_URL_MAPPING[owner].url}`,
+        )
 
         const content = await res.arrayBuffer()
         const actualBytes = content.byteLength
@@ -423,7 +427,8 @@ describe('retriever.fetch', () => {
     const result = await env.DB.prepare(
       `SELECT response_status FROM retrieval_logs WHERE client_address = ? ORDER BY id DESC LIMIT 1`,
     )
-      .bind(defaultClientAddress).first()
+      .bind(defaultClientAddress)
+      .first()
     expect(result).toBeNull()
   })
   it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
