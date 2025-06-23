@@ -299,8 +299,6 @@ describe('retriever.fetch', () => {
     { timeout: 50000 },
     async () => {
       let successfulOwners = 0
-      /** @type {string[]} */
-      const failedOwners = []
 
       for (const [
         owner,
@@ -332,13 +330,14 @@ describe('retriever.fetch', () => {
             `⚠️ Warning: Fetch or verification failed for owner ${owner}:`,
             err,
           )
-          failedOwners.push(owner)
         }
       }
 
       if (successfulOwners === 0) {
         throw new Error(
-          `❌ All owners failed to fetch. Owners failed: ${failedOwners.join(', ')}`,
+          `❌ All owners failed to fetch. Owners attempted: ${Object.keys(
+            OWNER_TO_RETRIEVAL_URL_MAPPING,
+          ).join(', ')}`,
         )
       }
     },
