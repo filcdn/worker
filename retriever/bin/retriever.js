@@ -90,7 +90,7 @@ export default {
      *   }
      * }}
      */
-    let retrievalResultEntry = {
+    const retrievalResultEntry = {
       clientAddress: clientWalletAddress,
       ownerAddress: '', // Will be populated later
       cacheMiss: false, // Default to false until we know the cache status
