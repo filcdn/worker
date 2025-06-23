@@ -338,7 +338,7 @@ describe('retriever.fetch', () => {
 
       if (successfulOwners === 0) {
         throw new Error(
-          `❌ All owners failed to fetch. Owners attempted: ${failedOwners.join(', ')}`,
+          `❌ All owners failed to fetch. Owners failed: ${failedOwners.join(', ')}`,
         )
       }
     },
