@@ -347,7 +347,7 @@ describe('retriever.fetch', () => {
         throw new Error(
           `❌ All owners failed to fetch. Owners attempted: ${Object.keys(
             OWNER_TO_RETRIEVAL_URL_MAPPING,
-          ).join(', ')}. Erorrs encountered: ${failures
+          ).join(', ')}. Errors encountered: ${failures
             .map((f) => f.value.error.message)
             .join(', ')}`,
         )
