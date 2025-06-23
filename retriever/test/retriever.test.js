@@ -417,7 +417,7 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 402)
   })
-  it('does not logs to retrieval_logs on method not allowed (405)', async () => {
+  it('does not log to retrieval_logs on method not allowed (405)', async () => {
     const req = withRequest(defaultClientAddress, realRootCid, 'POST')
     const res = await worker.fetch(req, env)
 
