@@ -437,7 +437,7 @@ describe('retriever.indexer', () => {
     })
   })
   describe('POST /provider-registered', () => {
-    it('returns 400 if provider_url or set_id or owner is missing', async () => {
+    it('returns 400 if provider_url and owner are missing', async () => {
       const req = new Request('https://host/provider-registered', {
         method: 'POST',
         headers: {
