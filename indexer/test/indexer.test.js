@@ -436,4 +436,88 @@ describe('retriever.indexer', () => {
       expect(proofSetRails[0]?.rail_id).toMatch(/^\d+$/)
     })
   })
+  describe('POST /provider-registered', () => {
+    it('returns 400 if provider_url or set_id or owner is missing', async () => {
+      const req = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+    it('inserts a provider URL', async () => {
+      const providerUrl = 'https://provider.example.com'
+      const owner = '0xOwnerAddress'
+      const req = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider: owner,
+          pdpUrl: providerUrl,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+    
+      const { results: ownerUrls } = await env.DB.prepare(
+        'SELECT * FROM owner_urls WHERE owner = ?',
+      )
+        .bind(owner.toLowerCase())
+        .all()
+      expect(ownerUrls.length).toBe(1)
+      expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
+      expect(ownerUrls[0].url).toBe(providerUrl)
+    })    
+  })
+  it('updates provider URLs for an existing owner', async () => {
+    const providerUrl = 'https://provider.example.com'
+    const owner = '0xOwnerAddress'
+    const newProviderUrl = 'https://new-provider.example.com'
+    
+    // First insert the initial provider URL
+    let req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider: owner,
+        pdpUrl: providerUrl,
+      }),
+    })
+    let res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    // Now update the provider URL
+    req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider: owner,
+        pdpUrl: newProviderUrl,
+      }),
+    })
+    res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: ownerUrls } = await env.DB.prepare(
+      'SELECT * FROM owner_urls WHERE owner = ?',
+    )
+      .bind(owner.toLowerCase())
+      .all()
+    expect(ownerUrls.length).toBe(1)
+    expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
+    expect(ownerUrls[0].url).toBe(newProviderUrl)
+  })  
 })
