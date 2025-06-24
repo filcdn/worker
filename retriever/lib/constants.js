@@ -48,3 +48,5 @@ export const OWNER_TO_RETRIEVAL_URL_MAPPING = {
   },
   // TODO: Add entry for 0x4A628ebAecc32B8779A934ebcEffF1646F517756
 }
+
+export const MAX_EGRESS_PER_PROOF_SET = 1_073_741_824 // We limit the egress to 100 GiB per proof set
