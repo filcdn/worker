@@ -520,4 +520,78 @@ describe('retriever.indexer', () => {
     expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
     expect(ownerUrls[0].url).toBe(newProviderUrl)
   })
+  describe('POST /provider-removed', () => {
+    // Test for missing provider
+    it('returns 400 if provider is missing', async () => {
+      const req = new Request('https://host/provider-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+
+    // Test for successfully removing a provider
+    it('removes a provider from the owner_urls table', async () => {
+      const owner = '0xOwnerAddress'
+
+      // First, insert a provider
+      const insertReq = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider: owner,
+          pdpUrl: 'https://provider.example.com',
+        }),
+      })
+      const insertRes = await workerImpl.fetch(insertReq, env)
+      expect(insertRes.status).toBe(200)
+      expect(await insertRes.text()).toBe('OK')
+
+      // Now, remove the provider using the providerId
+      const removeReq = new Request('https://host/provider-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider: owner,
+        }),
+      })
+      const removeRes = await workerImpl.fetch(removeReq, env)
+      expect(removeRes.status).toBe(200)
+      expect(await removeRes.text()).toBe('OK')
+
+      // Verify that the provider is removed from the database
+      const { results: ownerUrls } = await env.DB.prepare(
+        'SELECT * FROM owner_urls WHERE owner = ?',
+      )
+        .bind(owner)
+        .all()
+      expect(ownerUrls.length).toBe(0) // The provider should be removed
+    })
+
+    // Test for non-existent provider (provider does not exist)
+    it('returns 404 if the provider does not exist', async () => {
+      const nonExistentProvider = 'nonexistent-provider-id'
+      const req = new Request('https://host/provider-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider: nonExistentProvider,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(404)
+      expect(await res.text()).toBe('Provider Not Found')
+    })
+  })
 })
