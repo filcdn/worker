@@ -465,7 +465,7 @@ describe('retriever.indexer', () => {
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
-    
+
       const { results: ownerUrls } = await env.DB.prepare(
         'SELECT * FROM owner_urls WHERE owner = ?',
       )
@@ -474,13 +474,13 @@ describe('retriever.indexer', () => {
       expect(ownerUrls.length).toBe(1)
       expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
       expect(ownerUrls[0].url).toBe(providerUrl)
-    })    
+    })
   })
   it('updates provider URLs for an existing owner', async () => {
     const providerUrl = 'https://provider.example.com'
     const owner = '0xOwnerAddress'
     const newProviderUrl = 'https://new-provider.example.com'
-    
+
     // First insert the initial provider URL
     let req = new Request('https://host/provider-registered', {
       method: 'POST',
@@ -519,5 +519,5 @@ describe('retriever.indexer', () => {
     expect(ownerUrls.length).toBe(1)
     expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
     expect(ownerUrls[0].url).toBe(newProviderUrl)
-  })  
+  })
 })

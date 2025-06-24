@@ -179,9 +179,7 @@ export default {
     } else if (pathname === '/provider-registered') {
       const { provider, pdpUrl } = payload
       return await handleProviderRegistered(env, provider, pdpUrl)
-    }
-    
-    else {
+    } else {
       return new Response('Not Found', { status: 404 })
     }
   },
