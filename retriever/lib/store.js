@@ -153,3 +153,32 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
 
   return owner
 }
+
+/**
+ * Looks up the owner's URL in the database.
+ *
+ * @param {string} owner The Ethereum address of the owner.
+ * @param {Env} env The environment containing the database connection.
+ * @returns {Promise<string>} The URL associated with the owner.
+ * @throws {Error} If the owner is not found or does not have a valid URL.
+ */
+export async function getOwnerUrl(owner, env) {
+  const result = await env.DB.prepare(
+    'SELECT url FROM owner_urls WHERE owner = ?',
+  )
+    .bind(owner.toLowerCase()) // Ensure the address is lowercased
+    .first()
+
+  if (
+    !result ||
+    result.length === 0 ||
+    !result.url ||
+    typeof result.url !== 'string'
+  ) {
+    throw new Error(
+      `Owner not found in database or no valid URL for owner: ${owner}`,
+    )
+  }
+
+  return result.url
+}
