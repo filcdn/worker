@@ -450,7 +450,7 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
     it('inserts a provider URL', async () => {
-      const providerUrl = 'https://provider.example.com'
+      const pdpUrl = 'https://provider.example.com'
       const owner = '0xOwnerAddress'
       const req = new Request('https://host/provider-registered', {
         method: 'POST',
@@ -459,7 +459,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           provider: owner,
-          pdpUrl: providerUrl,
+          pdp_url: pdpUrl,
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -473,7 +473,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(ownerUrls.length).toBe(1)
       expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-      expect(ownerUrls[0].pdp_url).toBe(providerUrl)
+      expect(ownerUrls[0].pdp_url).toBe(pdpUrl)
     })
   })
   it('updates pdp URLs for an existing owner', async () => {
@@ -489,7 +489,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider: owner,
-        pdpUrl,
+        pdp_url: pdpUrl,
       }),
     })
     let res = await workerImpl.fetch(req, env)
@@ -504,7 +504,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider: owner,
-        pdpUrl: newPdpUrl,
+        pdp_url: newPdpUrl,
       }),
     })
     res = await workerImpl.fetch(req, env)
@@ -531,7 +531,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider: owner.toUpperCase(),
-        pdpUrl,
+        pdp_url: pdpUrl,
       }),
     })
     const res = await workerImpl.fetch(req, env)
