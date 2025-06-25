@@ -19,11 +19,18 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
+   * @param {AbortSignal} [options.signal] - Optional AbortSignal to cancel the
+   *   request.
    * @returns
    */
-  async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
+  async fetch(
+    request,
+    env,
+    ctx,
+    { retrieveFile = defaultRetrieveFile, signal } = {},
+  ) {
     try {
-      return await this._fetch(request, env, ctx, retrieveFile)
+      return await this._fetch(request, env, ctx, retrieveFile, { signal })
     } catch (error) {
       return this._handleError(error)
     }
@@ -34,9 +41,12 @@ export default {
    * @param {Env} env
    * @param {ExecutionContext} ctx
    * @param {typeof defaultRetrieveFile} retrieveFile
+   * @param {object} options
+   * @param {AbortSignal} [options.signal] - Optional AbortSignal to cancel the
+   *   request.
    * @returns
    */
-  async _fetch(request, env, ctx, retrieveFile) {
+  async _fetch(request, env, ctx, retrieveFile, { signal } = {}) {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
@@ -80,6 +90,7 @@ export default {
       spURL,
       rootCid,
       env.CACHE_TTL,
+      { signal },
     )
 
     const retrievalResultEntry = {
@@ -157,7 +168,6 @@ export default {
       error !== null &&
       'status' in error &&
       typeof error.status === 'number'
-
     const status = errHasStatus ? /** @type {number} */ (error.status) : 500
 
     const message =
@@ -170,6 +180,7 @@ export default {
     if (status >= 500) {
       console.error(error)
     }
+
     return new Response(message, { status })
   },
 }

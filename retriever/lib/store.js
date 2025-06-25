@@ -72,7 +72,7 @@ export async function logRetrievalResult(env, params) {
 }
 
 /**
- * Retrieves the approved owner address for a given root CID.
+ * Retrieves the owner address for a given root CID.
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
@@ -81,10 +81,6 @@ export async function logRetrievalResult(env, params) {
  *   address or a descriptive error
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
-  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
-    (owner) => owner.toLowerCase(),
-  )
-
   const query = `
    SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn
    FROM indexer_roots ir
@@ -120,14 +116,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `Root_cid '${rootCid}' exists but has no associated owner.`,
   )
 
-  const approved = withOwner.filter((row) => approvedOwners.includes(row.owner))
-  httpAssert(
-    approved.length > 0,
-    404,
-    `Root_cid '${rootCid}' exists but has no approved owner.`,
-  )
-
-  const withPaymentRail = approved.filter(
+  const withPaymentRail = withOwner.filter(
     (row) => row.payer && row.payer.toLowerCase() === clientAddress,
   )
   httpAssert(
@@ -175,8 +164,10 @@ export async function getOwnerUrl(owner, env) {
     !result.url ||
     typeof result.url !== 'string'
   ) {
-    throw new Error(
-      `Owner not found in database or no valid URL for owner: ${owner}`,
+    httpAssert(
+      false,
+      404,
+      `Unsupported Storage Provider (PDP ProofSet Owner): ${owner}`,
     )
   }
 

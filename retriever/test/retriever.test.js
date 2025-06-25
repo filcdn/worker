@@ -24,7 +24,7 @@ describe('retriever.fetch', () => {
     fetch: async (
       request,
       env,
-      { retrieveFile = defaultRetrieveFile } = {},
+      { retrieveFile = defaultRetrieveFile, signal } = {},
     ) => {
       const waitUntilCalls = []
       const ctx = {
@@ -35,6 +35,7 @@ describe('retriever.fetch', () => {
 
       const response = await workerImpl.fetch(request, env, ctx, {
         retrieveFile,
+        signal,
       })
 
       await Promise.all(waitUntilCalls)
@@ -305,16 +306,20 @@ describe('retriever.fetch', () => {
       const owners = Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
         ([owner, val]) => ({ owner, ...val }),
       )
-
+      const controller = new AbortController()
       const fetchTasks = owners.map(({ owner, sample: { rootCid } }) => {
         return (async () => {
           try {
             const req = withRequest(defaultClientAddress, rootCid)
-            const res = await worker.fetch(req, env, { retrieveFile })
+            const res = await worker.fetch(req, env, {
+              retrieveFile,
+              signal: controller.signal,
+            })
 
             assert.strictEqual(res.status, 200)
 
             const content = await res.arrayBuffer()
+
             const actualBytes = content.byteLength
 
             const { results } = await env.DB.prepare(
@@ -339,6 +344,7 @@ describe('retriever.fetch', () => {
 
       try {
         await Promise.any(fetchTasks)
+        controller.abort() // Abort all tasks if one succeeds
       } catch (err) {
         throw new Error(
           `❌ All owners failed to fetch. Owners attempted: ${owners
@@ -441,31 +447,42 @@ describe('retriever.fetch', () => {
   })
   it('should fall back to the database and fetch the URL when ownerAddress is not found in the mapping', async () => {
     const ownerAddress = '0xOwnerNotInMapping'
-    const clientAddress = '0xClientAddressForTest'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
     const rootCid = 'bagaTest'
+    const body = 'file content'
 
     // Ensure the mapping does not have this address
     delete OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]
     await withDbEntries(env, { owner: ownerAddress, rootCid, clientAddress })
 
-    env.DB.prepare(
+    await env.DB.prepare(
       `
-      INSERT INTO owner_urls (owner, pdp_url)
+      INSERT INTO owner_urls (owner, url)
       VALUES (?, ?)
     `,
     )
       .bind(ownerAddress.toLowerCase(), 'https://mock-pdp-url.com')
       .run()
+    const mockRetrieveFile = async () => {
+      return {
+        response: new Response(body, {
+          status: 200,
+        }),
+        cacheMiss: true,
+      }
+    }
+
     // Simulate the request
     const req = withRequest(clientAddress, rootCid)
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
 
     // Check if the URL fetched is from the database
+    expect(await res.text()).toBe(body)
     expect(res.status).toBe(200)
   })
   it('should throw an error if the ownerAddress is not found in both the mapping and the database', async () => {
     const ownerAddress = '0xOwnerNotFound'
-    const clientAddress = '0xClientAddressForTest'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
     const rootCid = 'bagaTest'
 
     // Ensure the mapping does not have this address
@@ -477,10 +494,10 @@ describe('retriever.fetch', () => {
     const res = await worker.fetch(req, env)
 
     // Expect an error because no URL was found
-    expect(res.status).toBe(404)
     expect(await res.text()).toBe(
-      'Unsupported Storage Provider (PDP ProofSet Owner): 0xOwnerNotFound',
+      'Unsupported Storage Provider (PDP ProofSet Owner): 0xownernotfound',
     )
+    expect(res.status).toBe(404)
   })
 })
 
@@ -518,7 +535,7 @@ async function withDbEntries(
   env,
   {
     owner = '0xTEST_OWNER',
-    clientAddress = '0xTEST_CLIENT',
+    clientAddress = '0x1234567890abcdef1234567890abcdef12345608',
     rootCid = 'bagaTEST',
     proofSetId = 0,
     railId = 0,
@@ -532,7 +549,7 @@ async function withDbEntries(
       INSERT INTO indexer_proof_sets (set_id, owner)
       VALUES (?, ?)
     `,
-    ).bind(proofSetId, owner.toLowerCase()),
+    ).bind(proofSetId, owner),
 
     env.DB.prepare(
       `
@@ -545,12 +562,6 @@ async function withDbEntries(
       INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
       VALUES (?, ?, ?, ?, ?)
     `,
-    ).bind(
-      proofSetId,
-      railId,
-      clientAddress.toLowerCase(),
-      owner.toLowerCase(),
-      with_cdn,
-    ),
+    ).bind(proofSetId, railId, clientAddress, owner, with_cdn),
   ])
 }
