@@ -22,7 +22,7 @@
     "@cloudflare/vitest-pool-workers": "^0.8.46",
     "@types/node": "^22.15.32",
     "neostandard": "^0.12.1",
-    "prettier": "^3.5.3",
+    "prettier": "^3.6.1",
     "typescript": "^5.8.3",
     "vitest": "3.1.4",
     "wrangler": "^4.21.2"
