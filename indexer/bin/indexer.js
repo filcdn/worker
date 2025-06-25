@@ -177,7 +177,7 @@ export default {
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/provider-registered') {
-      const { provider, pdp_url:pdpUrl } = payload
+      const { provider, pdp_url: pdpUrl } = payload
       return await handleProviderRegistered(env, provider, pdpUrl)
     } else {
       return new Response('Not Found', { status: 404 })
