@@ -520,4 +520,31 @@ describe('retriever.indexer', () => {
     expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
     expect(ownerUrls[0].pdp_url).toBe(newPdpUrl)
   })
+  it('stores owner with lower case', async () => {
+    const owner = '0xOwnerAddress'
+    const pdpUrl = 'https://provider.example.com'
+
+    const req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider: owner.toUpperCase(),
+        pdpUrl,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: ownerUrls } = await env.DB.prepare(
+      'SELECT * FROM owner_urls WHERE owner = ?',
+    )
+      .bind(owner.toLowerCase())
+      .all()
+    expect(ownerUrls.length).toBe(1)
+    expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
+    expect(ownerUrls[0].pdp_url).toBe(pdpUrl)
+  })
 })
