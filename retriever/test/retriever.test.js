@@ -32,10 +32,13 @@ describe('retriever.fetch', () => {
           waitUntilCalls.push(promise)
         },
       }
+
       const response = await workerImpl.fetch(request, env, ctx, {
         retrieveFile,
       })
+
       await Promise.all(waitUntilCalls)
+
       return response
     },
   }
@@ -153,6 +156,7 @@ describe('retriever.fetch', () => {
     const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
+
     const readOutput = await env.DB.prepare(
       `SELECT id, response_status, egress_bytes, cache_miss, client_address
        FROM retrieval_logs
@@ -435,6 +439,49 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 402)
   })
+  it('should fall back to the database and fetch the URL when ownerAddress is not found in the mapping', async () => {
+    const ownerAddress = '0xOwnerNotInMapping'
+    const clientAddress = '0xClientAddressForTest'
+    const rootCid = 'bagaTest'
+
+    // Ensure the mapping does not have this address
+    delete OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]
+    await withDbEntries(env, { owner: ownerAddress, rootCid, clientAddress })
+
+    env.DB.prepare(
+      `
+      INSERT INTO owner_urls (owner, pdp_url)
+      VALUES (?, ?)
+    `,
+    )
+      .bind(ownerAddress.toLowerCase(), 'https://mock-pdp-url.com')
+      .run()
+    // Simulate the request
+    const req = withRequest(clientAddress, rootCid)
+    const res = await worker.fetch(req, env)
+
+    // Check if the URL fetched is from the database
+    expect(res.status).toBe(200)
+  })
+  it('should throw an error if the ownerAddress is not found in both the mapping and the database', async () => {
+    const ownerAddress = '0xOwnerNotFound'
+    const clientAddress = '0xClientAddressForTest'
+    const rootCid = 'bagaTest'
+
+    // Ensure the mapping does not have this address
+    delete OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]
+    await withDbEntries(env, { owner: ownerAddress, rootCid, clientAddress })
+
+    // Simulate the request
+    const req = withRequest(clientAddress, rootCid)
+    const res = await worker.fetch(req, env)
+
+    // Expect an error because no URL was found
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe(
+      'Unsupported Storage Provider (PDP ProofSet Owner): 0xOwnerNotFound',
+    )
+  })
 })
 
 /**
@@ -456,4 +503,54 @@ function withRequest(
   if (rootCid) url += `/${rootCid}`
 
   return new Request(url, { method, headers })
+}
+
+/**
+ * @param {Env} env
+ * @param {Object} options
+ * @param {string} options.owner
+ * @param {string} options.rootCid
+ * @param {number} options.proofSetId
+ * @param {number} options.railId
+ * @param {boolean} options.with_cdn
+ */
+async function withDbEntries(
+  env,
+  {
+    owner = '0xTEST_OWNER',
+    clientAddress = '0xTEST_CLIENT',
+    rootCid = 'bagaTEST',
+    proofSetId = 0,
+    railId = 0,
+    with_cdn = true,
+    rootId = 0,
+  } = {},
+) {
+  await env.DB.batch([
+    env.DB.prepare(
+      `
+      INSERT INTO indexer_proof_sets (set_id, owner)
+      VALUES (?, ?)
+    `,
+    ).bind(proofSetId, owner.toLowerCase()),
+
+    env.DB.prepare(
+      `
+      INSERT INTO indexer_roots (root_id, set_id, root_cid)
+      VALUES (?, ?, ?)
+    `,
+    ).bind(rootId, proofSetId, rootCid),
+    env.DB.prepare(
+      `
+      INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    ).bind(
+      proofSetId,
+      railId,
+      clientAddress.toLowerCase(),
+      owner.toLowerCase(),
+      with_cdn,
+    ),
+  ])
 }
