@@ -42,6 +42,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: calibration
+      - name: Deploy Rewards
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: rewards
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: calibration
       - if: failure()
         uses: slackapi/slack-github-action@v2.1.0
         with:

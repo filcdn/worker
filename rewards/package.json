@@ -5,7 +5,7 @@
   "description": "FilCDN Rewards Worker",
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
-  "main": "bin/rewardsCalculator.js",
+  "main": "bin/rewards.js",
   "scripts": {
     "build:types": "wrangler types",
     "deploy:calibration": "wrangler deploy --env calibration",
@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "hono": "^4.8.3"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.40"
