@@ -18,7 +18,7 @@ import { httpAssert } from '../lib/http-assert.js'
  * @param {unknown} error - The error object to extract from.
  * @returns {{ status: number; message: string }}
  */
-function extractStatusAndMessage(error) {
+function getErrorHttpStatusMessage(error) {
   const isObject = typeof error === 'object' && error !== null
   const status =
     isObject && 'status' in error && typeof error.status === 'number'
@@ -174,7 +174,7 @@ export default {
         headers: response.headers,
       })
     } catch (error) {
-      const { status } = extractStatusAndMessage(error)
+      const { status } = getErrorHttpStatusMessage(error)
 
       retrievalResultEntry.responseStatus = status
       retrievalResultEntry.performanceStats.workerTtfb =
@@ -191,7 +191,7 @@ export default {
    * @returns
    */
   _handleError(error) {
-    const { status, message } = extractStatusAndMessage(error)
+    const { status, message } = getErrorHttpStatusMessage(error)
 
     if (status >= 500) {
       console.error(error)
