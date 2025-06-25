@@ -23,10 +23,10 @@ export async function handleProviderRegistered(env, provider, pdpUrl) {
     `
         INSERT INTO owner_urls (
           owner,
-          url
+          pdp_url
         )
         VALUES (?, ?)
-        ON CONFLICT(owner) DO UPDATE SET url=excluded.url
+        ON CONFLICT(owner) DO UPDATE SET pdp_url=excluded.pdp_url
       `,
   )
     .bind(provider.toLowerCase(), pdpUrl)

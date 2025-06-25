@@ -473,13 +473,13 @@ describe('retriever.indexer', () => {
         .all()
       expect(ownerUrls.length).toBe(1)
       expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-      expect(ownerUrls[0].url).toBe(providerUrl)
+      expect(ownerUrls[0].pdp_url).toBe(providerUrl)
     })
   })
-  it('updates provider URLs for an existing owner', async () => {
-    const providerUrl = 'https://provider.example.com'
+  it('updates pdp URLs for an existing owner', async () => {
+    const pdpUrl = 'https://provider.example.com'
     const owner = '0xOwnerAddress'
-    const newProviderUrl = 'https://new-provider.example.com'
+    const newPdpUrl = 'https://new-provider.example.com'
 
     // First insert the initial provider URL
     let req = new Request('https://host/provider-registered', {
@@ -489,7 +489,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider: owner,
-        pdpUrl: providerUrl,
+        pdpUrl,
       }),
     })
     let res = await workerImpl.fetch(req, env)
@@ -504,7 +504,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider: owner,
-        pdpUrl: newProviderUrl,
+        pdpUrl: newPdpUrl,
       }),
     })
     res = await workerImpl.fetch(req, env)
@@ -518,6 +518,6 @@ describe('retriever.indexer', () => {
       .all()
     expect(ownerUrls.length).toBe(1)
     expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-    expect(ownerUrls[0].url).toBe(newProviderUrl)
+    expect(ownerUrls[0].pdp_url).toBe(newPdpUrl)
   })
 })
