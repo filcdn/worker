@@ -451,14 +451,14 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider URL', async () => {
       const pdpUrl = 'https://provider.example.com'
-      const owner = '0xOwnerAddress'
+      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
       const req = new Request('https://host/provider-registered', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          provider: owner,
+          provider,
           pdp_url: pdpUrl,
         }),
       })
@@ -466,19 +466,19 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: ownerUrls } = await env.DB.prepare(
-        'SELECT * FROM owner_urls WHERE owner = ?',
+      const { results: providerUrls } = await env.DB.prepare(
+        'SELECT * FROM provider_urls WHERE address = ?',
       )
-        .bind(owner.toLowerCase())
+        .bind(provider.toLowerCase())
         .all()
-      expect(ownerUrls.length).toBe(1)
-      expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-      expect(ownerUrls[0].pdp_url).toBe(pdpUrl)
+      expect(providerUrls.length).toBe(1)
+      expect(providerUrls[0].address).toBe(provider.toLowerCase())
+      expect(providerUrls[0].pdp_url).toBe(pdpUrl)
     })
   })
-  it('updates pdp URLs for an existing owner', async () => {
+  it('updates pdp URLs for an existing provider', async () => {
     const pdpUrl = 'https://provider.example.com'
-    const owner = '0xOwnerAddress'
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
     const newPdpUrl = 'https://new-provider.example.com'
 
     // First insert the initial provider URL
@@ -488,7 +488,7 @@ describe('retriever.indexer', () => {
         [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
       body: JSON.stringify({
-        provider: owner,
+        provider,
         pdp_url: pdpUrl,
       }),
     })
@@ -503,7 +503,7 @@ describe('retriever.indexer', () => {
         [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
       body: JSON.stringify({
-        provider: owner,
+        provider,
         pdp_url: newPdpUrl,
       }),
     })
@@ -511,17 +511,17 @@ describe('retriever.indexer', () => {
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
 
-    const { results: ownerUrls } = await env.DB.prepare(
-      'SELECT * FROM owner_urls WHERE owner = ?',
+    const { results: providerUrls } = await env.DB.prepare(
+      'SELECT * FROM provider_urls WHERE address = ?',
     )
-      .bind(owner.toLowerCase())
+      .bind(provider.toLowerCase())
       .all()
-    expect(ownerUrls.length).toBe(1)
-    expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-    expect(ownerUrls[0].pdp_url).toBe(newPdpUrl)
+    expect(providerUrls.length).toBe(1)
+    expect(providerUrls[0].address).toBe(provider.toLowerCase())
+    expect(providerUrls[0].pdp_url).toBe(newPdpUrl)
   })
-  it('stores owner with lower case', async () => {
-    const owner = '0xOwnerAddress'
+  it('stores provider with lower case', async () => {
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
     const pdpUrl = 'https://provider.example.com'
 
     const req = new Request('https://host/provider-registered', {
@@ -530,7 +530,7 @@ describe('retriever.indexer', () => {
         [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
       body: JSON.stringify({
-        provider: owner.toUpperCase(),
+        provider,
         pdp_url: pdpUrl,
       }),
     })
@@ -538,13 +538,31 @@ describe('retriever.indexer', () => {
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
 
-    const { results: ownerUrls } = await env.DB.prepare(
-      'SELECT * FROM owner_urls WHERE owner = ?',
+    const { results: providerUrls } = await env.DB.prepare(
+      'SELECT * FROM provider_urls WHERE address = ?',
     )
-      .bind(owner.toLowerCase())
+      .bind(provider.toLowerCase())
       .all()
-    expect(ownerUrls.length).toBe(1)
-    expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-    expect(ownerUrls[0].pdp_url).toBe(pdpUrl)
+    expect(providerUrls.length).toBe(1)
+    expect(providerUrls[0].address).toBe(provider.toLowerCase())
+    expect(providerUrls[0].pdp_url).toBe(pdpUrl)
+  })
+  it('returns 400 on invalid URL', async () => {
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    const pdpUrl = 'INVALID_URL'
+
+    const req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider: provider.toUpperCase(),
+        pdp_url: pdpUrl,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
   })
 })

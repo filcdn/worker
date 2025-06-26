@@ -1,3 +1,6 @@
+import { isValidEthereumAddress } from '../../retriever/lib/address'
+import validator from 'validator'
+
 /**
  * Handles the /provider-registered webhook
  *
@@ -11,9 +14,15 @@ export async function handleProviderRegistered(env, provider, pdpUrl) {
     !provider ||
     typeof provider !== 'string' ||
     !pdpUrl ||
-    typeof pdpUrl !== 'string'
+    typeof pdpUrl !== 'string' ||
+    !isValidEthereumAddress(provider)
   ) {
     console.error('Invalid provider registered payload', { provider, pdpUrl })
+    return new Response('Bad Request', { status: 400 })
+  }
+
+  if (!validator.isURL(pdpUrl)) {
+    console.error('Invalid PDP URL', { pdpUrl })
     return new Response('Bad Request', { status: 400 })
   }
 
@@ -21,12 +30,12 @@ export async function handleProviderRegistered(env, provider, pdpUrl) {
 
   await env.DB.prepare(
     `
-        INSERT INTO owner_urls (
-          owner,
+        INSERT INTO provider_urls (
+          address,
           pdp_url
         )
         VALUES (?, ?)
-        ON CONFLICT(owner) DO UPDATE SET pdp_url=excluded.pdp_url
+        ON CONFLICT(address) DO UPDATE SET pdp_url=excluded.pdp_url
       `,
   )
     .bind(provider.toLowerCase(), pdpUrl)
