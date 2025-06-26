@@ -29,7 +29,7 @@ export async function handleProviderRegistered(
   }
 
   if (!validator.isURL(pieceRetrievalUrl)) {
-    console.error('Invalid PDP URL', { pieceRetrievalUrl })
+    console.error('Invalid Piece Retrieval URL', { pieceRetrievalUrl })
     return new Response('Bad Request', { status: 400 })
   }
 
