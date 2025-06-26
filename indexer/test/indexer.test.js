@@ -450,7 +450,7 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
     it('inserts a provider URL', async () => {
-      const pdpUrl = 'https://provider.example.com'
+      const pieceRetrievalUrl = 'https://provider.example.com'
       const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
       const req = new Request('https://host/provider-registered', {
         method: 'POST',
@@ -459,7 +459,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           provider,
-          pdp_url: pdpUrl,
+          piece_retrieval_url: pieceRetrievalUrl,
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -473,13 +473,13 @@ describe('retriever.indexer', () => {
         .all()
       expect(providerUrls.length).toBe(1)
       expect(providerUrls[0].address).toBe(provider.toLowerCase())
-      expect(providerUrls[0].pdp_url).toBe(pdpUrl)
+      expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
     })
   })
   it('updates pdp URLs for an existing provider', async () => {
-    const pdpUrl = 'https://provider.example.com'
+    const pieceRetrievalUrl = 'https://provider.example.com'
     const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-    const newPdpUrl = 'https://new-provider.example.com'
+    const newpieceRetrievalUrl = 'https://new-provider.example.com'
 
     // First insert the initial provider URL
     let req = new Request('https://host/provider-registered', {
@@ -489,7 +489,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider,
-        pdp_url: pdpUrl,
+        piece_retrieval_url: pieceRetrievalUrl,
       }),
     })
     let res = await workerImpl.fetch(req, env)
@@ -504,7 +504,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider,
-        pdp_url: newPdpUrl,
+        piece_retrieval_url: newpieceRetrievalUrl,
       }),
     })
     res = await workerImpl.fetch(req, env)
@@ -518,11 +518,11 @@ describe('retriever.indexer', () => {
       .all()
     expect(providerUrls.length).toBe(1)
     expect(providerUrls[0].address).toBe(provider.toLowerCase())
-    expect(providerUrls[0].pdp_url).toBe(newPdpUrl)
+    expect(providerUrls[0].piece_retrieval_url).toBe(newpieceRetrievalUrl)
   })
   it('stores provider with lower case', async () => {
     const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-    const pdpUrl = 'https://provider.example.com'
+    const pieceRetrievalUrl = 'https://provider.example.com'
 
     const req = new Request('https://host/provider-registered', {
       method: 'POST',
@@ -531,7 +531,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider,
-        pdp_url: pdpUrl,
+        piece_retrieval_url: pieceRetrievalUrl,
       }),
     })
     const res = await workerImpl.fetch(req, env)
@@ -545,11 +545,11 @@ describe('retriever.indexer', () => {
       .all()
     expect(providerUrls.length).toBe(1)
     expect(providerUrls[0].address).toBe(provider.toLowerCase())
-    expect(providerUrls[0].pdp_url).toBe(pdpUrl)
+    expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
   })
   it('returns 400 on invalid URL', async () => {
     const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-    const pdpUrl = 'INVALID_URL'
+    const pieceRetrievalUrl = 'INVALID_URL'
 
     const req = new Request('https://host/provider-registered', {
       method: 'POST',
@@ -558,7 +558,7 @@ describe('retriever.indexer', () => {
       },
       body: JSON.stringify({
         provider: provider.toUpperCase(),
-        pdp_url: pdpUrl,
+        piece_retrieval_url: pieceRetrievalUrl,
       }),
     })
     const res = await workerImpl.fetch(req, env)

@@ -6,39 +6,48 @@ import validator from 'validator'
  *
  * @param {Env} env
  * @param {string} provider
- * @param {string} pdpUrl
+ * @param {string} pieceRetrievalUrl
  * @returns {Promise<Response>}
  */
-export async function handleProviderRegistered(env, provider, pdpUrl) {
+export async function handleProviderRegistered(
+  env,
+  provider,
+  pieceRetrievalUrl,
+) {
   if (
     !provider ||
     typeof provider !== 'string' ||
-    !pdpUrl ||
-    typeof pdpUrl !== 'string' ||
+    !pieceRetrievalUrl ||
+    typeof pieceRetrievalUrl !== 'string' ||
     !isValidEthereumAddress(provider)
   ) {
-    console.error('Invalid provider registered payload', { provider, pdpUrl })
+    console.error('Invalid provider registered payload', {
+      provider,
+      pieceRetrievalUrl,
+    })
     return new Response('Bad Request', { status: 400 })
   }
 
-  if (!validator.isURL(pdpUrl)) {
-    console.error('Invalid PDP URL', { pdpUrl })
+  if (!validator.isURL(pieceRetrievalUrl)) {
+    console.error('Invalid PDP URL', { pieceRetrievalUrl })
     return new Response('Bad Request', { status: 400 })
   }
 
-  console.log(`Provider registered (provider=${provider}, pdpUrl=${pdpUrl})`)
+  console.log(
+    `Provider registered (provider=${provider}, pieceRetrievalUrl=${pieceRetrievalUrl})`,
+  )
 
   await env.DB.prepare(
     `
         INSERT INTO provider_urls (
           address,
-          pdp_url
+          piece_retrieval_url
         )
         VALUES (?, ?)
-        ON CONFLICT(address) DO UPDATE SET pdp_url=excluded.pdp_url
+        ON CONFLICT(address) DO UPDATE SET piece_retrieval_url=excluded.piece_retrieval_url
       `,
   )
-    .bind(provider.toLowerCase(), pdpUrl)
+    .bind(provider.toLowerCase(), pieceRetrievalUrl)
     .run()
 
   return new Response('OK', { status: 200 })
