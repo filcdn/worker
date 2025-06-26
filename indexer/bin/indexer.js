@@ -1,4 +1,4 @@
-import { handleProviderRegistered } from '../lib/handle-provider-events.js'
+import { handleProviderRegistered } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 
 export default {
