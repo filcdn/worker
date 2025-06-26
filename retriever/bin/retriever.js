@@ -40,7 +40,12 @@ export default {
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
    * @returns
    */
-  async _fetch(request, env, ctx, { retrieveFile, signal } = {}) {
+  async _fetch(
+    request,
+    env,
+    ctx,
+    { retrieveFile = defaultRetrieveFile, signal } = {},
+  ) {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
