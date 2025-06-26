@@ -25,7 +25,7 @@ export default {
     { retrieveFile = defaultRetrieveFile, signal } = {},
   ) {
     try {
-      return await this._fetch(request, env, ctx, retrieveFile, { signal })
+      return await this._fetch(request, env, ctx, { retrieveFile, signal })
     } catch (error) {
       return this._handleError(error)
     }
@@ -35,12 +35,12 @@ export default {
    * @param {Request} request
    * @param {Env} env
    * @param {ExecutionContext} ctx
-   * @param {typeof defaultRetrieveFile} retrieveFile
    * @param {object} options
    * @param {AbortSignal} [options.signal]
+   * @param {typeof defaultRetrieveFile} [options.retrieveFile]
    * @returns
    */
-  async _fetch(request, env, ctx, retrieveFile, { signal } = {}) {
+  async _fetch(request, env, ctx, { retrieveFile, signal } = {}) {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
