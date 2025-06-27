@@ -627,4 +627,139 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     }
   })
+  describe('POST /provider-removed', () => {
+    // Test for missing provider
+    it('returns 400 if provider is missing', async () => {
+      const req = new Request('https://host/provider-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+
+    // Test for successfully removing a provider
+    it('removes a provider from the provider_urls table', async () => {
+      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+
+      // First, insert a provider
+      const insertReq = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider,
+          piece_retrieval_url: 'https://provider.example.com',
+        }),
+      })
+      const insertRes = await workerImpl.fetch(insertReq, env)
+      expect(insertRes.status).toBe(200)
+      expect(await insertRes.text()).toBe('OK')
+
+      // Now, remove the provider
+      const removeReq = new Request('https://host/provider-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider,
+        }),
+      })
+      const removeRes = await workerImpl.fetch(removeReq, env)
+      expect(removeRes.status).toBe(200)
+      expect(await removeRes.text()).toBe('OK')
+
+      // Verify that the provider is removed from the database
+      const { results: ownerUrls } = await env.DB.prepare(
+        'SELECT * FROM provider_urls WHERE address =?',
+      )
+        .bind(provider)
+        .all()
+      expect(ownerUrls.length).toBe(0) // The provider should be removed
+    })
+
+    // Test for non-existent provider (provider does not exist)
+    it('returns 404 if the provider does not exist', async () => {
+      const nonExistentProvider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const req = new Request('https://host/provider-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider: nonExistentProvider,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(404)
+      expect(await res.text()).toBe('Provider Not Found')
+    })
+    it('returns 400 when piece_retrieval_url is not a string', async () => {
+      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+
+      // Test with various non-string URL values
+      const invalidUrls = [
+        123, // Number
+        true, // Boolean
+        null, // Null
+        undefined, // Undefined
+        { url: 'https://provider.example.com' }, // Object
+        ['https://provider.example.com'], // Array
+      ]
+
+      for (const invalidUrl of invalidUrls) {
+        const req = new Request('https://host/provider-registered', {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider,
+            piece_retrieval_url: invalidUrl,
+          }),
+        })
+        const res = await workerImpl.fetch(req, env)
+        expect(res.status).toBe(
+          400,
+          `Expected 400 for invalid URL type: ${typeof invalidUrl}`,
+        )
+        expect(await res.text()).toBe('Bad Request')
+      }
+    })
+    it('returns 400 when provider is an invalid Ethereum address', async () => {
+      // Test with various invalid Ethereum addresses
+      const invalidAddresses = [
+        'not-an-address', // Not hex
+        '0x123', // Too short
+        '0xinvalid', // Invalid hex
+        '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68', // Too short (40 chars needed after 0x)
+        '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DCZZ', // Too long
+        '12345678901234567890123456789012345678901', // No 0x prefix
+      ]
+
+      for (const invalidAddress of invalidAddresses) {
+        const req = new Request('https://host/provider-removed', {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider: invalidAddress,
+          }),
+        })
+        const res = await workerImpl.fetch(req, env)
+        expect(res.status).toBe(
+          400,
+          `Expected 400 for invalid address: ${invalidAddress}`,
+        )
+        expect(await res.text()).toBe('Bad Request')
+      }
+    })
+  })
 })
