@@ -5,9 +5,7 @@ import { storeProviderRSRScores } from './store.js'
  * = (Successful cache miss retrievals / Total cache miss attempts) * 100
  *
  * @param {Env} env - Environment object containing database connection
- * @returns {Promise<
- *   { address: string; rsr: number; calculated_at: string }[]
- * >}
+ * @returns {Promise<{ address: string; rsr: number; calculatedAt: string }[]>}
  *   - Array of provider RSR scores
  */
 export async function calculateProviderRSRScores(env) {
@@ -50,13 +48,13 @@ export async function calculateProviderRSRScores(env) {
     const { results } = await env.DB.prepare(query).bind(startTimestamp).all()
 
     // Current timestamp for the calculation
-    const calculated_at = new Date().toISOString()
+    const calculatedAt = new Date().toISOString()
 
     // Format the results with the calculation timestamp
     const providerScores = results.map((row) => ({
       address: row.address,
       rsr: row.rsr,
-      calculated_at,
+      calculated_at: calculatedAt,
     }))
 
     return providerScores
