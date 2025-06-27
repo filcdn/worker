@@ -5,7 +5,10 @@ import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
-import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
+import {
+  getOwnerAndProofSetIdAndValidateClient,
+  logRetrievalResult,
+} from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 
 export default {
@@ -63,11 +66,12 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const ownerAddress = await getOwnerAndValidateClient(
-      env,
-      clientWalletAddress,
-      rootCid,
-    )
+    const { owner: ownerAddress, setId: proofSetId } =
+      await getOwnerAndProofSetIdAndValidateClient(
+        env,
+        clientWalletAddress,
+        rootCid,
+      )
 
     httpAssert(
       ownerAddress &&
@@ -99,6 +103,7 @@ export default {
         workerTtfb: null, // Will be populated later
       },
       requestCountryCode,
+      proofSetId,
     }
 
     if (!response.body) {

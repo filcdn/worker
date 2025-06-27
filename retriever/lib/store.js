@@ -17,7 +17,9 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {string} params.timestamp - The timestamp of the retrieval.
  * @param {string | null} params.requestCountryCode - The country code where the
+ * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
+ * @param {string | null} params.proofSetId - The ID of the proof set
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
 export async function logRetrievalResult(env, params) {
@@ -31,6 +33,7 @@ export async function logRetrievalResult(env, params) {
     timestamp,
     performanceStats,
     requestCountryCode,
+    proofSetId,
   } = params
 
   try {
@@ -46,9 +49,10 @@ export async function logRetrievalResult(env, params) {
         fetch_ttfb,
         fetch_ttlb,
         worker_ttfb,
-        request_country_code
+        request_country_code,
+        proof_set_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
       .bind(
@@ -62,6 +66,7 @@ export async function logRetrievalResult(env, params) {
         performanceStats?.fetchTtlb ?? null,
         performanceStats?.workerTtfb ?? null,
         requestCountryCode,
+        proofSetId ?? null,
       )
       .run()
   } catch (error) {
@@ -72,15 +77,19 @@ export async function logRetrievalResult(env, params) {
 }
 
 /**
- * Retrieves the approved owner address for a given root CID.
+ * Retrieves the approved owner address and proof set id for a given root CID.
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
- * @returns {Promise<string>} - The result containing either the approved owner
- *   address or a descriptive error
+ * @returns {Promise<{owner: string, setId: string>}} - The result containing
+ *   either the approved owner and proofSet Id address or a descriptive error
  */
-export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
+export async function getOwnerAndProofSetIdAndValidateClient(
+  env,
+  clientAddress,
+  rootCid,
+) {
   const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
     (owner) => owner.toLowerCase(),
   )
@@ -151,5 +160,5 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}' and client '${clientAddress}'`,
   )
 
-  return owner
+  return { owner, setId }
 }

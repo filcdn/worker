@@ -6,20 +6,32 @@ import { env } from 'cloudflare:test'
 describe('storeProviderRSRScores', () => {
   it('inserts new provider scores correctly', async () => {
     const timestamp = new Date().toISOString()
+    const proofSetId1 = 'test-proof-set1'
+    const proofSetId2 = 'test-proof-set2'
     const testScores = [
-      { address: 'provider1', rsr: 85, calculated_at: timestamp },
-      { address: 'provider2', rsr: 92, calculated_at: timestamp },
+      {
+        address: 'provider1',
+        rsr: 85,
+        calculated_at: timestamp,
+        proof_set_id: proofSetId1,
+      },
+      {
+        address: 'provider2',
+        rsr: 92,
+        calculated_at: timestamp,
+        proof_set_id: proofSetId2,
+      },
     ]
 
     await storeProviderRSRScores(env, testScores)
 
     const results = await env.DB.prepare(
-      'SELECT address, rsr FROM provider_scores ORDER BY address',
+      'SELECT address, rsr, proof_set_id FROM provider_scores ORDER BY address',
     ).all()
 
     assert.deepStrictEqual(results.results, [
-      { address: 'provider1', rsr: 85 },
-      { address: 'provider2', rsr: 92 },
+      { address: 'provider1', rsr: 85, proof_set_id: proofSetId1 },
+      { address: 'provider2', rsr: 92, proof_set_id: proofSetId2 },
     ])
   })
 
@@ -28,7 +40,7 @@ describe('storeProviderRSRScores', () => {
     const timestamp1 = new Date()
     timestamp1.setDate(timestamp1.getDate() - 1)
     const timestamp1Str = timestamp1.toISOString()
-
+    const proofSetId = 'time-series-proof-set'
     const timestamp2 = new Date().toISOString()
 
     // First insert with older timestamp
@@ -37,12 +49,18 @@ describe('storeProviderRSRScores', () => {
         address: 'time-series-provider',
         rsr: 75,
         calculated_at: timestamp1Str,
+        proof_set_id: proofSetId,
       },
     ])
 
     // Then insert with newer timestamp
     await storeProviderRSRScores(env, [
-      { address: 'time-series-provider', rsr: 80, calculated_at: timestamp2 },
+      {
+        address: 'time-series-provider',
+        rsr: 80,
+        calculated_at: timestamp2,
+        proof_set_id: proofSetId,
+      },
     ])
 
     // Check that both records exist (since we have compound primary key)
@@ -71,22 +89,32 @@ describe('storeProviderRSRScores', () => {
 
   it('updates existing provider scores for the same timestamp', async () => {
     const timestamp = new Date().toISOString()
-
+    const proofSetId = 'update-proof-set'
     // First insert
     await storeProviderRSRScores(env, [
-      { address: 'update-test', rsr: 60, calculated_at: timestamp },
+      {
+        address: 'update-test',
+        rsr: 60,
+        calculated_at: timestamp,
+        proof_set_id: proofSetId,
+      },
     ])
 
     // Update with same timestamp
     await storeProviderRSRScores(env, [
-      { address: 'update-test', rsr: 65, calculated_at: timestamp },
+      {
+        address: 'update-test',
+        rsr: 65,
+        calculated_at: timestamp,
+        proof_set_id: proofSetId,
+      },
     ])
 
     // Verify update worked
     const result = await env.DB.prepare(
-      'SELECT rsr FROM provider_scores WHERE address = ? AND calculated_at = ?',
+      'SELECT rsr FROM provider_scores WHERE address = ? AND calculated_at = ? AND proof_set_id = ?',
     )
-      .bind('update-test', timestamp)
+      .bind('update-test', timestamp, proofSetId)
       .first()
 
     assert.strictEqual(result.rsr, 65, 'Should have updated RSR value')
@@ -148,6 +176,7 @@ describe('storeProviderRSRScores', () => {
         address: 'negative-rsr-provider',
         rsr: -10,
         calculated_at: new Date().toISOString(),
+        proof_set_id: 'invalid-proof-set',
       },
     ]
 
@@ -169,8 +198,6 @@ describe('storeProviderRSRScores', () => {
   })
 
   it('handles a large batch of scores', async () => {
-    await env.DB.exec('DELETE FROM provider_scores')
-
     const largeScoresBatch = []
     const timestamp = new Date().toISOString()
 
@@ -179,6 +206,7 @@ describe('storeProviderRSRScores', () => {
         address: `batch-provider-${i}`,
         rsr: Math.floor(Math.random() * 101), // 0-100
         calculated_at: timestamp,
+        proof_set_id: `batch-proof-set-${i}`,
       })
     }
 
@@ -204,11 +232,6 @@ describe('storeProviderRSRScores', () => {
   })
 
   it('supports time-series data with multiple calculated_at timestamps', async () => {
-    // Clear previous data
-    await env.DB.exec(
-      'DELETE FROM provider_scores WHERE address = "time-series-test"',
-    )
-
     // Create timestamps for a week's worth of data
     const timestamps = []
     const baseDate = new Date()
@@ -223,6 +246,7 @@ describe('storeProviderRSRScores', () => {
       address: 'time-series-test',
       rsr: 50 + index * 5, // 50, 55, 60, etc.
       calculated_at: timestamp,
+      proof_set_id: 'time-series-proof-set',
     }))
 
     // Insert all time series data

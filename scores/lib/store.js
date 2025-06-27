@@ -1,8 +1,14 @@
 /**
- * Stores the calculated RSR scores in the provider_scores table
+ * Stores the calculated RSR scores in the provider_scores table using batch
+ * operations
  *
  * @param {Env} env - Environment object containing database connection
- * @param {{ address: string; rsr: number; calculated_at: string }[]} providerScores
+ * @param {{
+ *   address: string
+ *   proof_set_id: string | null
+ *   rsr: number
+ *   calculated_at: string
+ * }[]} providerScores
  *   - Array of provider RSR scores
  *
  * @returns {Promise<void>}
@@ -14,16 +20,22 @@ export async function storeProviderRSRScores(env, providerScores) {
   }
 
   try {
+    // Prepare the statement for inserting/updating scores
     const stmt = env.DB.prepare(`
-        INSERT INTO provider_scores (address, rsr, calculated_at)
-        VALUES (?, ?, ?)
-        ON CONFLICT(address, calculated_at) DO UPDATE SET 
+        INSERT INTO provider_scores (address, proof_set_id, rsr, calculated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(address, proof_set_id, calculated_at) DO UPDATE SET 
           rsr = excluded.rsr
       `)
 
     // Create batch operations
     const batchOperations = providerScores.map((score) =>
-      stmt.bind(score.address, score.rsr, score.calculated_at),
+      stmt.bind(
+        score.address,
+        score.proof_set_id,
+        score.rsr,
+        score.calculated_at,
+      ),
     )
 
     // Execute batch

@@ -1,11 +1,19 @@
 import { storeProviderRSRScores } from './store.js'
 
 /**
- * Calculates the RSR (Retrievability Success Rate) score for each provider RSR
- * = (Successful cache miss retrievals / Total cache miss attempts) * 100
+ * Calculates the RSR (Retrievability Success Rate) score for each provider per
+ * proof set RSR = (Successful cache miss retrievals / Total cache miss
+ * attempts) * 100
  *
  * @param {Env} env - Environment object containing database connection
- * @returns {Promise<{ address: string; rsr: number; calculatedAt: string }[]>}
+ * @returns {Promise<
+ *   {
+ *     address: string
+ *     proof_set_id: string | null
+ *     rsr: number
+ *     calculated_at: string
+ *   }[]
+ * >}
  *   - Array of provider RSR scores
  */
 export async function calculateProviderRSRScores(env) {
@@ -17,15 +25,15 @@ export async function calculateProviderRSRScores(env) {
       `
 
     const timestampResult = await env.DB.prepare(timestampQuery).first()
-    // Use the last calculated timestamp or default to epoch start if no records exist
     const startTimestamp =
       timestampResult?.last_calculated_at || '1970-01-01T00:00:00Z'
 
-    // Query to calculate RSR scores for each provider based on retrieval logs
+    // Query to calculate RSR scores for each provider based on retrieval logs, grouped by proof_set_id
     const query = `
         WITH retrieval_attempts AS (
           SELECT 
             owner_address as address,
+            proof_set_id,
             COUNT(*) as total_attempts,
             SUM(CASE WHEN response_status = 200 THEN 1 ELSE 0 END) as successful_attempts
           FROM 
@@ -34,10 +42,11 @@ export async function calculateProviderRSRScores(env) {
             cache_miss = true AND 
             timestamp > ?
           GROUP BY 
-            owner_address
+            owner_address, proof_set_id
         )
         SELECT 
           address,
+          proof_set_id,
           CASE 
             WHEN total_attempts = 0 THEN 0
             ELSE CAST(successful_attempts * 100 / total_attempts AS INTEGER)
@@ -49,21 +58,20 @@ export async function calculateProviderRSRScores(env) {
     const { results } = await env.DB.prepare(query).bind(startTimestamp).all()
 
     // Current timestamp for the calculation
-    const calculatedAt = new Date().toISOString()
+    const calculated_at = new Date().toISOString()
 
     // Format the results with the calculation timestamp
     const providerScores = results.map((row) => ({
       address: row.address,
+      proof_set_id: row.proof_set_id,
       rsr: row.rsr,
-      calculated_at: calculatedAt,
+      calculated_at,
     }))
 
     return providerScores
   } catch (error) {
     console.error('Error calculating provider RSR scores:', error)
-    throw new Error('Failed to calculate provider RSR scores. ', {
-      cause: error.message,
-    })
+    throw new Error('Failed to calculate provider RSR scores: ' + error.message)
   }
 }
 
