@@ -24,7 +24,7 @@ describe('retriever.fetch', () => {
     fetch: async (
       request,
       env,
-      { retrieveFile = defaultRetrieveFile } = {},
+      { retrieveFile = defaultRetrieveFile, signal } = {},
     ) => {
       const waitUntilCalls = []
       const ctx = {
@@ -34,6 +34,7 @@ describe('retriever.fetch', () => {
       }
       const response = await workerImpl.fetch(request, env, ctx, {
         retrieveFile,
+        signal,
       })
       await Promise.all(waitUntilCalls)
       return response
@@ -301,12 +302,13 @@ describe('retriever.fetch', () => {
       const owners = Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
         ([owner, val]) => ({ owner, ...val }),
       )
-
+      const controller = new AbortController()
+      const { signal } = controller
       const fetchTasks = owners.map(({ owner, sample: { rootCid } }) => {
         return (async () => {
           try {
             const req = withRequest(defaultClientAddress, rootCid)
-            const res = await worker.fetch(req, env, { retrieveFile })
+            const res = await worker.fetch(req, env, { retrieveFile, signal })
 
             assert.strictEqual(res.status, 200)
 
@@ -335,6 +337,7 @@ describe('retriever.fetch', () => {
 
       try {
         await Promise.any(fetchTasks)
+        controller.abort() // Abort remaining tasks if one succeeds
       } catch (err) {
         throw new Error(
           `❌ All owners failed to fetch. Owners attempted: ${owners
