@@ -436,4 +436,195 @@ describe('retriever.indexer', () => {
       expect(proofSetRails[0]?.rail_id).toMatch(/^\d+$/)
     })
   })
+  describe('POST /provider-registered', () => {
+    it('returns 400 if provider_url and owner are missing', async () => {
+      const req = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+    it('inserts a provider URL', async () => {
+      const pieceRetrievalUrl = 'https://provider.example.com'
+      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const req = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider,
+          piece_retrieval_url: pieceRetrievalUrl,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: providerUrls } = await env.DB.prepare(
+        'SELECT * FROM provider_urls WHERE address = ?',
+      )
+        .bind(provider.toLowerCase())
+        .all()
+      expect(providerUrls.length).toBe(1)
+      expect(providerUrls[0].address).toBe(provider.toLowerCase())
+      expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
+    })
+  })
+  it('updates pdp URLs for an existing provider', async () => {
+    const pieceRetrievalUrl = 'https://provider.example.com'
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    const newpieceRetrievalUrl = 'https://new-provider.example.com'
+
+    // First insert the initial provider URL
+    let req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider,
+        piece_retrieval_url: pieceRetrievalUrl,
+      }),
+    })
+    let res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    // Now update the provider URL
+    req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider,
+        piece_retrieval_url: newpieceRetrievalUrl,
+      }),
+    })
+    res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: providerUrls } = await env.DB.prepare(
+      'SELECT * FROM provider_urls WHERE address = ?',
+    )
+      .bind(provider.toLowerCase())
+      .all()
+    expect(providerUrls.length).toBe(1)
+    expect(providerUrls[0].address).toBe(provider.toLowerCase())
+    expect(providerUrls[0].piece_retrieval_url).toBe(newpieceRetrievalUrl)
+  })
+  it('stores provider with lower case', async () => {
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    const pieceRetrievalUrl = 'https://provider.example.com'
+
+    const req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider,
+        piece_retrieval_url: pieceRetrievalUrl,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: providerUrls } = await env.DB.prepare(
+      'SELECT * FROM provider_urls WHERE address = ?',
+    )
+      .bind(provider.toLowerCase())
+      .all()
+    expect(providerUrls.length).toBe(1)
+    expect(providerUrls[0].address).toBe(provider.toLowerCase())
+    expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
+  })
+  it('returns 400 on invalid URL', async () => {
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    const pieceRetrievalUrl = 'INVALID_URL'
+
+    const req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider: provider.toUpperCase(),
+        piece_retrieval_url: pieceRetrievalUrl,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+  it('returns 400 when piece_retrieval_url is not a string', async () => {
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+
+    // Test with various non-string URL values
+    const invalidUrls = [
+      123, // Number
+      true, // Boolean
+      null, // Null
+      undefined, // Undefined
+      { url: 'https://provider.example.com' }, // Object
+      ['https://provider.example.com'], // Array
+    ]
+
+    for (const invalidUrl of invalidUrls) {
+      const req = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider,
+          piece_retrieval_url: invalidUrl,
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(
+        400,
+        `Expected 400 for invalid URL type: ${typeof invalidUrl}`,
+      )
+      expect(await res.text()).toBe('Bad Request')
+    }
+  })
+  it('returns 400 when provider is an invalid Ethereum address', async () => {
+    // Test with various invalid Ethereum addresses
+    const invalidAddresses = [
+      'not-an-address', // Not hex
+      '0x123', // Too short
+      '0xinvalid', // Invalid hex
+      '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68', // Too short (40 chars needed after 0x)
+      '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DCZZ', // Too long
+      '12345678901234567890123456789012345678901', // No 0x prefix
+    ]
+
+    for (const invalidAddress of invalidAddresses) {
+      const req = new Request('https://host/provider-registered', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider: invalidAddress,
+          piece_retrieval_url: 'https://provider.example.com',
+        }),
+      })
+      const res = await workerImpl.fetch(req, env)
+      expect(res.status).toBe(
+        400,
+        `Expected 400 for invalid address: ${invalidAddress}`,
+      )
+      expect(await res.text()).toBe('Bad Request')
+    }
+  })
 })
