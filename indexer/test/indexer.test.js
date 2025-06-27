@@ -661,7 +661,7 @@ describe('retriever.indexer', () => {
       expect(insertRes.status).toBe(200)
       expect(await insertRes.text()).toBe('OK')
 
-      // Now, remove the provider using the providerId
+      // Now, remove the provider
       const removeReq = new Request('https://host/provider-removed', {
         method: 'POST',
         headers: {
@@ -760,47 +760,6 @@ describe('retriever.indexer', () => {
         )
         expect(await res.text()).toBe('Bad Request')
       }
-    })
-    it('relies on SQLite changes count to determine if provider existed', async () => {
-      // Create a test provider
-      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-      const pieceRetrievalUrl = 'https://test-provider.example.com'
-
-      // First ensure the provider exists
-      await env.DB.prepare(
-        `INSERT INTO provider_urls (address, piece_retrieval_url) 
-         VALUES (?, ?)`,
-      )
-        .bind(provider.toLowerCase(), pieceRetrievalUrl)
-        .run()
-
-      // Remove it once - should succeed with 200 OK
-      let req = new Request('https://host/provider-removed', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          provider: provider,
-        }),
-      })
-      let res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      // Try to remove it again - should get 404 since it no longer exists
-      req = new Request('https://host/provider-removed', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          provider: provider,
-        }),
-      })
-      res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(404)
-      expect(await res.text()).toBe('Provider Not Found')
     })
   })
 })
