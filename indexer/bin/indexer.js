@@ -1,3 +1,4 @@
+import { handleProviderRegistered } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 
 export default {
@@ -175,6 +176,9 @@ export default {
         )
         .run()
       return new Response('OK', { status: 200 })
+    } else if (pathname === '/provider-registered') {
+      const { provider, piece_retrieval_url: pieceRetrievalUrl } = payload
+      return await handleProviderRegistered(env, provider, pieceRetrievalUrl)
     } else {
       return new Response('Not Found', { status: 404 })
     }

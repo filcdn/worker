@@ -15,9 +15,11 @@
   "dependencies": {
     "@ethersproject/abi": "^5.8.0",
     "assert-ok-response": "^1.0.0",
-    "multiformats": "^13.3.7"
+    "multiformats": "^13.3.7",
+    "validator": "^13.15.15"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.47"
+    "@cloudflare/vitest-pool-workers": "^0.8.47",
+    "@types/validator": "^13.15.2"
   }
 }
