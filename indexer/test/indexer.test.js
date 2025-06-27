@@ -450,36 +450,36 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
     it('inserts a provider URL', async () => {
-      const pdpUrl = 'https://provider.example.com'
-      const owner = '0xOwnerAddress'
+      const pieceRetrievalUrl = 'https://provider.example.com'
+      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
       const req = new Request('https://host/provider-registered', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          provider: owner,
-          pdp_url: pdpUrl,
+          provider,
+          piece_retrieval_url: pieceRetrievalUrl,
         }),
       })
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: ownerUrls } = await env.DB.prepare(
-        'SELECT * FROM owner_urls WHERE owner = ?',
+      const { results: providerUrls } = await env.DB.prepare(
+        'SELECT * FROM provider_urls WHERE address = ?',
       )
-        .bind(owner.toLowerCase())
+        .bind(provider.toLowerCase())
         .all()
-      expect(ownerUrls.length).toBe(1)
-      expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-      expect(ownerUrls[0].pdp_url).toBe(pdpUrl)
+      expect(providerUrls.length).toBe(1)
+      expect(providerUrls[0].address).toBe(provider.toLowerCase())
+      expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
     })
   })
-  it('updates pdp URLs for an existing owner', async () => {
-    const pdpUrl = 'https://provider.example.com'
-    const owner = '0xOwnerAddress'
-    const newPdpUrl = 'https://new-provider.example.com'
+  it('updates pdp URLs for an existing provider', async () => {
+    const pieceRetrievalUrl = 'https://provider.example.com'
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    const newpieceRetrievalUrl = 'https://new-provider.example.com'
 
     // First insert the initial provider URL
     let req = new Request('https://host/provider-registered', {
@@ -488,8 +488,8 @@ describe('retriever.indexer', () => {
         [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
       body: JSON.stringify({
-        provider: owner,
-        pdp_url: pdpUrl,
+        provider,
+        piece_retrieval_url: pieceRetrievalUrl,
       }),
     })
     let res = await workerImpl.fetch(req, env)
@@ -503,26 +503,26 @@ describe('retriever.indexer', () => {
         [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
       body: JSON.stringify({
-        provider: owner,
-        pdp_url: newPdpUrl,
+        provider,
+        piece_retrieval_url: newpieceRetrievalUrl,
       }),
     })
     res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
 
-    const { results: ownerUrls } = await env.DB.prepare(
-      'SELECT * FROM owner_urls WHERE owner = ?',
+    const { results: providerUrls } = await env.DB.prepare(
+      'SELECT * FROM provider_urls WHERE address = ?',
     )
-      .bind(owner.toLowerCase())
+      .bind(provider.toLowerCase())
       .all()
-    expect(ownerUrls.length).toBe(1)
-    expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-    expect(ownerUrls[0].pdp_url).toBe(newPdpUrl)
+    expect(providerUrls.length).toBe(1)
+    expect(providerUrls[0].address).toBe(provider.toLowerCase())
+    expect(providerUrls[0].piece_retrieval_url).toBe(newpieceRetrievalUrl)
   })
-  it('stores owner with lower case', async () => {
-    const owner = '0xOwnerAddress'
-    const pdpUrl = 'https://provider.example.com'
+  it('stores provider with lower case', async () => {
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    const pieceRetrievalUrl = 'https://provider.example.com'
 
     const req = new Request('https://host/provider-registered', {
       method: 'POST',
@@ -530,21 +530,39 @@ describe('retriever.indexer', () => {
         [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
       body: JSON.stringify({
-        provider: owner.toUpperCase(),
-        pdp_url: pdpUrl,
+        provider,
+        piece_retrieval_url: pieceRetrievalUrl,
       }),
     })
     const res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
 
-    const { results: ownerUrls } = await env.DB.prepare(
-      'SELECT * FROM owner_urls WHERE owner = ?',
+    const { results: providerUrls } = await env.DB.prepare(
+      'SELECT * FROM provider_urls WHERE address = ?',
     )
-      .bind(owner.toLowerCase())
+      .bind(provider.toLowerCase())
       .all()
-    expect(ownerUrls.length).toBe(1)
-    expect(ownerUrls[0].owner).toBe(owner.toLowerCase())
-    expect(ownerUrls[0].pdp_url).toBe(pdpUrl)
+    expect(providerUrls.length).toBe(1)
+    expect(providerUrls[0].address).toBe(provider.toLowerCase())
+    expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
+  })
+  it('returns 400 on invalid URL', async () => {
+    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    const pieceRetrievalUrl = 'INVALID_URL'
+
+    const req = new Request('https://host/provider-registered', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        provider: provider.toUpperCase(),
+        piece_retrieval_url: pieceRetrievalUrl,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
   })
 })
