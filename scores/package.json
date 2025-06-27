@@ -2,7 +2,7 @@
   "name": "@filcdn/scores",
   "version": "1.0.0",
   "private": true,
-  "description": "FilCDN Rewards Worker",
+  "description": "FilCDN Scores Worker",
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
   "main": "bin/rewards.js",

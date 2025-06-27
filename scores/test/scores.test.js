@@ -7,7 +7,6 @@ import {
 import { storeProviderRSRScores } from '../lib/store.js'
 import { env } from 'cloudflare:test'
 
-// Mock storeProviderRSRScores to avoid depending on its implementation
 vi.mock('../lib/store.js', () => {
   return {
     storeProviderRSRScores: vi.fn(),

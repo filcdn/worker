@@ -17,6 +17,7 @@ export async function calculateProviderRSRScores(env) {
       `
 
     const timestampResult = await env.DB.prepare(timestampQuery).first()
+    // Use the last calculated timestamp or default to epoch start if no records exist
     const startTimestamp =
       timestampResult?.last_calculated_at || '1970-01-01T00:00:00Z'
 
@@ -60,7 +61,9 @@ export async function calculateProviderRSRScores(env) {
     return providerScores
   } catch (error) {
     console.error('Error calculating provider RSR scores:', error)
-    throw new Error('Failed to calculate provider RSR scores: ' + error.message)
+    throw new Error('Failed to calculate provider RSR scores. ', {
+      cause: error.message,
+    })
   }
 }
 

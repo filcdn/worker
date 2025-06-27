@@ -1,6 +1,5 @@
 /**
- * Stores the calculated RSR scores in the provider_scores table using batch
- * operations
+ * Stores the calculated RSR scores in the provider_scores table
  *
  * @param {Env} env - Environment object containing database connection
  * @param {{ address: string; rsr: number; calculated_at: string }[]} providerScores
@@ -15,7 +14,6 @@ export async function storeProviderRSRScores(env, providerScores) {
   }
 
   try {
-    // Prepare the statement for inserting/updating scores
     const stmt = env.DB.prepare(`
         INSERT INTO provider_scores (address, rsr, calculated_at)
         VALUES (?, ?, ?)
