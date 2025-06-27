@@ -1,24 +1,6 @@
-import { Hono } from 'hono'
-import { bearerAuth } from 'hono/bearer-auth'
-import { handleRewardsCalculation } from '../lib/handler.js'
-import { handleFetchOwnerRewards } from '../lib/handler.js'
-
-export const app = new Hono()
-app.use(
-  '*',
-  bearerAuth({
-    verifyToken: (token, c) => {
-      return token === c.env.SECRET_AUTH_REWARDS
-    },
-  }),
-)
-
-app.post('/calculate-rewards', async (c) => {
-  await handleRewardsCalculation(c.env)
-})
-
-app.get('/owner-rewards', async (c) => {
-  await handleFetchOwnerRewards(c.env)
-})
-
-export default app
+export default {
+  async scheduled(_controller, _env, _ctx) {
+    console.info('Scheduled task started for rewards calculation...')
+    //TODO: Implement the rewards calculation logic and interaction with the verifier contract
+  },
+};
