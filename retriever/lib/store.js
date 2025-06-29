@@ -82,7 +82,7 @@ export async function logRetrievalResult(env, params) {
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
- * @returns {Promise<{owner: string, setId: string>}} - The result containing
+ * @returns {Promise<{ owner: string; setId: string }>} - The result containing
  *   either the approved owner and proofSet Id address or a descriptive error
  */
 export async function getOwnerAndProofSetIdAndValidateClient(

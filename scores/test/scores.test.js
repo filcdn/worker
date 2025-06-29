@@ -4,7 +4,6 @@ import {
   calculateProviderRSRScores,
   updateProviderRSRScores,
 } from '../lib/lib.js'
-import { storeProviderRSRScores } from '../lib/store.js'
 import { env } from 'cloudflare:test'
 
 vi.mock('../lib/store.js', () => {
@@ -85,49 +84,49 @@ describe('Provider RSR Scores', () => {
       const scores = await calculateProviderRSRScores(env)
       console.log('Calculated scores:', scores)
 
-      const provider1Score_ps1 = scores.find(
+      const provider1ScorePs1 = scores.find(
         (s) => s.address === 'provider1' && s.proof_set_id === 'ps1',
       )
-      const provider1Score_ps2 = scores.find(
+      const provider1ScorePs2 = scores.find(
         (s) => s.address === 'provider1' && s.proof_set_id === 'ps2',
       )
-      const provider2Score_ps1 = scores.find(
+      const provider2ScorePs1 = scores.find(
         (s) => s.address === 'provider2' && s.proof_set_id === 'ps1',
       )
-      const provider3Score_ps3 = scores.find(
+      const provider3ScorePs3 = scores.find(
         (s) => s.address === 'provider3' && s.proof_set_id === 'ps3',
       )
 
-      assert.ok(provider1Score_ps1, 'Provider1 score for ps1 should exist')
-      assert.ok(provider1Score_ps2, 'Provider1 score for ps2 should exist')
-      assert.ok(provider2Score_ps1, 'Provider2 score for ps1 should exist')
-      assert.ok(provider3Score_ps3, 'Provider3 score for ps3 should exist')
+      assert.ok(provider1ScorePs1, 'Provider1 score for ps1 should exist')
+      assert.ok(provider1ScorePs2, 'Provider1 score for ps2 should exist')
+      assert.ok(provider2ScorePs1, 'Provider2 score for ps1 should exist')
+      assert.ok(provider3ScorePs3, 'Provider3 score for ps3 should exist')
 
       assert.strictEqual(
-        provider1Score_ps1.rsr,
+        provider1ScorePs1.rsr,
         75,
         'Provider1 should have 75% RSR for ps1',
       )
       assert.strictEqual(
-        provider1Score_ps2.rsr,
+        provider1ScorePs2.rsr,
         100,
         'Provider1 should have 100% RSR for ps2',
       )
       assert.strictEqual(
-        provider2Score_ps1.rsr,
+        provider2ScorePs1.rsr,
         50,
         'Provider2 should have 50% RSR for ps1',
       )
       assert.strictEqual(
-        provider3Score_ps3.rsr,
+        provider3ScorePs3.rsr,
         0,
         'Provider3 should have 0% RSR for ps3',
       )
 
-      assert.ok(provider1Score_ps1.calculated_at, 'Should have timestamp')
+      assert.ok(provider1ScorePs1.calculated_at, 'Should have timestamp')
       assert.strictEqual(
-        provider1Score_ps1.calculated_at,
-        provider1Score_ps2.calculated_at,
+        provider1ScorePs1.calculated_at,
+        provider1ScorePs2.calculated_at,
         'Timestamps should match',
       )
     })
@@ -243,25 +242,25 @@ describe('Provider RSR Scores', () => {
       const scores = await calculateProviderRSRScores(env)
 
       // Find the scores for provider4 by proof set
-      const provider4Score_ps4 = scores.find(
+      const provider4ScorePs4 = scores.find(
         (s) => s.address === 'provider4' && s.proof_set_id === 'ps4',
       )
-      const provider4Score_ps5 = scores.find(
+      const provider4ScorePs5 = scores.find(
         (s) => s.address === 'provider4' && s.proof_set_id === 'ps5',
       )
 
       // Assert the scores exist
-      assert.ok(provider4Score_ps4, 'Provider4 score for ps4 should exist')
-      assert.ok(provider4Score_ps5, 'Provider4 score for ps5 should exist')
+      assert.ok(provider4ScorePs4, 'Provider4 score for ps4 should exist')
+      assert.ok(provider4ScorePs5, 'Provider4 score for ps5 should exist')
 
       // Assert the scores are correct
       assert.strictEqual(
-        provider4Score_ps4.rsr,
+        provider4ScorePs4.rsr,
         66,
         'Provider4 should have 66% RSR for ps4',
       )
       assert.strictEqual(
-        provider4Score_ps5.rsr,
+        provider4ScorePs5.rsr,
         60,
         'Provider4 should have 60% RSR for ps5',
       )
@@ -306,28 +305,28 @@ describe('Provider RSR Scores', () => {
       const scores = await calculateProviderRSRScores(env)
 
       // Find the scores for provider5 by proof set
-      const provider5Score_null = scores.find(
+      const provider5ScoreNull = scores.find(
         (s) => s.address === 'provider5' && s.proof_set_id === null,
       )
-      const provider5Score_ps6 = scores.find(
+      const provider5ScorePs6 = scores.find(
         (s) => s.address === 'provider5' && s.proof_set_id === 'ps6',
       )
 
       // Assert the scores exist
       assert.ok(
-        provider5Score_null,
+        provider5ScoreNull,
         'Provider5 score for null proof_set_id should exist',
       )
-      assert.ok(provider5Score_ps6, 'Provider5 score for ps6 should exist')
+      assert.ok(provider5ScorePs6, 'Provider5 score for ps6 should exist')
 
       // Assert the scores are correct
       assert.strictEqual(
-        provider5Score_null.rsr,
+        provider5ScoreNull.rsr,
         66,
         'Provider5 should have 66% RSR for null proof_set_id',
       )
       assert.strictEqual(
-        provider5Score_ps6.rsr,
+        provider5ScorePs6.rsr,
         100,
         'Provider5 should have 100% RSR for ps6',
       )

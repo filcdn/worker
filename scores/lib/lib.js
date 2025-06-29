@@ -58,14 +58,14 @@ export async function calculateProviderRSRScores(env) {
     const { results } = await env.DB.prepare(query).bind(startTimestamp).all()
 
     // Current timestamp for the calculation
-    const calculated_at = new Date().toISOString()
+    const calculatedAt = new Date().toISOString()
 
     // Format the results with the calculation timestamp
     const providerScores = results.map((row) => ({
       address: row.address,
       proof_set_id: row.proof_set_id,
       rsr: row.rsr,
-      calculated_at,
+      calculated_at: calculatedAt,
     }))
 
     return providerScores
