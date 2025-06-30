@@ -598,34 +598,7 @@ describe('retriever.indexer', () => {
     }
   })
   it('returns 400 when provider is an invalid Ethereum address', async () => {
-    // Test with various invalid Ethereum addresses
-    const invalidAddresses = [
-      'not-an-address', // Not hex
-      '0x123', // Too short
-      '0xinvalid', // Invalid hex
-      '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68', // Too short (40 chars needed after 0x)
-      '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DCZZ', // Too long
-      '12345678901234567890123456789012345678901', // No 0x prefix
-    ]
-
-    for (const invalidAddress of invalidAddresses) {
-      const req = new Request('https://host/provider-registered', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          provider: invalidAddress,
-          piece_retrieval_url: 'https://provider.example.com',
-        }),
-      })
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(
-        400,
-        `Expected 400 for invalid address: ${invalidAddress}`,
-      )
-      expect(await res.text()).toBe('Bad Request')
-    }
+    testInvalidValidEthereumAddress('provider-registered')
   })
   describe('POST /provider-removed', () => {
     // Test for missing provider
@@ -700,66 +673,39 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(404)
       expect(await res.text()).toBe('Provider Not Found')
     })
-    it('returns 400 when piece_retrieval_url is not a string', async () => {
-      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-
-      // Test with various non-string URL values
-      const invalidUrls = [
-        123, // Number
-        true, // Boolean
-        null, // Null
-        undefined, // Undefined
-        { url: 'https://provider.example.com' }, // Object
-        ['https://provider.example.com'], // Array
-      ]
-
-      for (const invalidUrl of invalidUrls) {
-        const req = new Request('https://host/provider-registered', {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            provider,
-            piece_retrieval_url: invalidUrl,
-          }),
-        })
-        const res = await workerImpl.fetch(req, env)
-        expect(res.status).toBe(
-          400,
-          `Expected 400 for invalid URL type: ${typeof invalidUrl}`,
-        )
-        expect(await res.text()).toBe('Bad Request')
-      }
-    })
     it('returns 400 when provider is an invalid Ethereum address', async () => {
-      // Test with various invalid Ethereum addresses
-      const invalidAddresses = [
-        'not-an-address', // Not hex
-        '0x123', // Too short
-        '0xinvalid', // Invalid hex
-        '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68', // Too short (40 chars needed after 0x)
-        '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DCZZ', // Too long
-        '12345678901234567890123456789012345678901', // No 0x prefix
-      ]
-
-      for (const invalidAddress of invalidAddresses) {
-        const req = new Request('https://host/provider-removed', {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            provider: invalidAddress,
-          }),
-        })
-        const res = await workerImpl.fetch(req, env)
-        expect(res.status).toBe(
-          400,
-          `Expected 400 for invalid address: ${invalidAddress}`,
-        )
-        expect(await res.text()).toBe('Bad Request')
-      }
+      await testInvalidValidEthereumAddress('provider-removed')
     })
   })
 })
+
+async function testInvalidValidEthereumAddress(route, providerUrl) {
+  const invalidAddresses = [
+    'not-an-address', // Not hex
+    '0x123', // Too short
+    '0xinvalid', // Invalid hex
+    '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68', // Too short (40 chars needed after 0x)
+    '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DCZZ', // Too long
+    '12345678901234567890123456789012345678901', // No 0x prefix
+  ]
+
+  for (const invalidAddress of invalidAddresses) {
+    const requestBody = {
+      provider: invalidAddress,
+    }
+    if (providerUrl) requestBody.piece_retrieval_url = providerUrl
+    const req = new Request(`https://host/${route}`, {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify(requestBody),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(
+      400,
+      `Expected 400 for invalid address: ${invalidAddress}`,
+    )
+    expect(await res.text()).toBe('Bad Request')
+  }
+}
