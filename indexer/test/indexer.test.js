@@ -655,7 +655,6 @@ describe('retriever.indexer', () => {
       expect(ownerUrls.length).toBe(0) // The provider should be removed
     })
 
-    // Test for non-existent provider (provider does not exist)
     it('returns 404 if the provider does not exist', async () => {
       const nonExistentProvider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
       const req = new Request('https://host/provider-removed', {
