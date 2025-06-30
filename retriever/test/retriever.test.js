@@ -37,9 +37,7 @@ describe('retriever.fetch', () => {
         retrieveFile,
         signal,
       })
-
       await Promise.all(waitUntilCalls)
-
       return response
     },
   }
@@ -157,7 +155,6 @@ describe('retriever.fetch', () => {
     const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     assert.strictEqual(res.status, 200)
-
     const readOutput = await env.DB.prepare(
       `SELECT id, response_status, egress_bytes, cache_miss, client_address
        FROM retrieval_logs
@@ -315,7 +312,6 @@ describe('retriever.fetch', () => {
             const res = await worker.fetch(req, env, { retrieveFile, signal })
 
             assert.strictEqual(res.status, 200)
-
             const content = await res.arrayBuffer()
 
             const actualBytes = content.byteLength

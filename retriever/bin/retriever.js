@@ -188,7 +188,6 @@ export default {
     if (status >= 500) {
       console.error(error)
     }
-
     return new Response(message, { status })
   },
 }
