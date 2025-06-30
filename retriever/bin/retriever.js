@@ -81,7 +81,12 @@ export default {
 
     // Check the owner URL mapping
     let spURL
-    if (OWNER_TO_RETRIEVAL_URL_MAPPING.hasOwnProperty(ownerAddress)) {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        OWNER_TO_RETRIEVAL_URL_MAPPING,
+        ownerAddress,
+      )
+    ) {
       // If the owner is in the approved list, use the URL from the mapping
       spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
     } else {

@@ -1,25 +1,14 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import workerImpl from '../bin/retriever.js'
-import { createHash } from 'node:crypto'
-import {
-  retrieveFile,
-  retrieveFile as defaultRetrieveFile,
-} from '../lib/retrieval.js'
+import { retrieveFile as defaultRetrieveFile } from '../lib/retrieval.js'
 import { env } from 'cloudflare:test'
-import assert from 'node:assert/strict'
 import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
 
 const DNS_ROOT = '.filcdn.io'
 env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
   const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-  const realRootCid =
-    'baga6ea4seaqntcagzjqzor3qxjba2mybegc6d2jxiewxinkd72ecll6xqicqcfa'
   const worker = {
     fetch: async (
       request,
@@ -528,7 +517,7 @@ function withRequest(
  * @param {string} options.rootCid
  * @param {number} options.proofSetId
  * @param {number} options.railId
- * @param {boolean} options.with_cdn
+ * @param {boolean} options.withCDN
  */
 async function withDbEntries(
   env,
@@ -538,7 +527,7 @@ async function withDbEntries(
     rootCid = 'bagaTEST',
     proofSetId = 0,
     railId = 0,
-    with_cdn = true,
+    withCDN = true,
     rootId = 0,
   } = {},
 ) {
@@ -561,6 +550,6 @@ async function withDbEntries(
       INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
       VALUES (?, ?, ?, ?, ?)
     `,
-    ).bind(proofSetId, railId, clientAddress, owner, with_cdn),
+    ).bind(proofSetId, railId, clientAddress, owner, withCDN),
   ])
 }

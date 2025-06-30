@@ -1,4 +1,3 @@
-import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
 import { httpAssert } from './http-assert.js'
 
 /**
