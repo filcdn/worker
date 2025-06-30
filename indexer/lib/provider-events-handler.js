@@ -79,5 +79,10 @@ export async function handleProviderRemoved(env, provider) {
     .bind(provider.toLowerCase())
     .run()
 
+  // SQLite-specific: result.changes may indicate rows affected
+  if (result.meta.changes === 0) {
+    return new Response('Provider Not Found', { status: 404 })
+  }
+
   return new Response('OK', { status: 200 })
 }
