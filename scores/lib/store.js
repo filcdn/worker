@@ -1,6 +1,5 @@
 /**
- * Stores the calculated RSR scores in the provider_scores table using batch
- * operations
+ * Stores the calculated RSR scores in the provider_scores table
  *
  * @param {Env} env - Environment object containing database connection
  * @param {{

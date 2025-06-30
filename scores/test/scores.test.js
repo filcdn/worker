@@ -82,7 +82,6 @@ describe('Provider RSR Scores', () => {
       ])
 
       const scores = await calculateProviderRSRScores(env)
-      console.log('Calculated scores:', scores)
 
       const provider1ScorePs1 = scores.find(
         (s) => s.address === 'provider1' && s.proof_set_id === 'ps1',

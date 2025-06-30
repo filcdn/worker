@@ -17,7 +17,6 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {string} params.timestamp - The timestamp of the retrieval.
  * @param {string | null} params.requestCountryCode - The country code where the
- * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
  * @param {string | null} params.proofSetId - The ID of the proof set
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.

@@ -2,8 +2,7 @@ import { storeProviderRSRScores } from './store.js'
 
 /**
  * Calculates the RSR (Retrievability Success Rate) score for each provider per
- * proof set RSR = (Successful cache miss retrievals / Total cache miss
- * attempts) * 100
+ * proof set based on retrieval logs.
  *
  * @param {Env} env - Environment object containing database connection
  * @returns {Promise<
@@ -19,12 +18,12 @@ import { storeProviderRSRScores } from './store.js'
 export async function calculateProviderRSRScores(env) {
   try {
     // First, get the most recent calculation timestamp from the provider_scores table
-    const timestampQuery = `
+    const scoresLastCalculatedAt = `
         SELECT MAX(calculated_at) as last_calculated_at 
         FROM provider_scores
       `
 
-    const timestampResult = await env.DB.prepare(timestampQuery).first()
+    const timestampResult = await env.DB.prepare(scoresLastCalculatedAt).first()
     const startTimestamp =
       timestampResult?.last_calculated_at || '1970-01-01T00:00:00Z'
 
@@ -47,10 +46,7 @@ export async function calculateProviderRSRScores(env) {
         SELECT 
           address,
           proof_set_id,
-          CASE 
-            WHEN total_attempts = 0 THEN 0
-            ELSE CAST(successful_attempts * 100 / total_attempts AS INTEGER)
-          END as rsr
+          CAST(successful_attempts * 100 / total_attempts AS INTEGER) as rsr
         FROM 
           retrieval_attempts
       `
@@ -60,7 +56,6 @@ export async function calculateProviderRSRScores(env) {
     // Current timestamp for the calculation
     const calculatedAt = new Date().toISOString()
 
-    // Format the results with the calculation timestamp
     const providerScores = results.map((row) => ({
       address: row.address,
       proof_set_id: row.proof_set_id,
@@ -71,12 +66,14 @@ export async function calculateProviderRSRScores(env) {
     return providerScores
   } catch (error) {
     console.error('Error calculating provider RSR scores:', error)
-    throw new Error('Failed to calculate provider RSR scores: ' + error.message)
+    throw new Error('Failed to calculate provider RSR scores.', {
+      cause: error.message,
+    })
   }
 }
 
 /**
- * Calculates and stores the RSR scores for all providers in one operation
+ * Calculates and stores the RSR scores for all providers
  *
  * @param {Env} env - Environment object containing database connection
  * @returns {Promise<void>}
