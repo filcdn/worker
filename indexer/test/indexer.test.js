@@ -601,7 +601,6 @@ describe('retriever.indexer', () => {
     testInvalidValidEthereumAddress('provider-registered')
   })
   describe('POST /provider-removed', () => {
-    // Test for missing provider
     it('returns 400 if provider is missing', async () => {
       const req = new Request('https://host/provider-removed', {
         method: 'POST',
@@ -615,7 +614,6 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
 
-    // Test for successfully removing a provider
     it('removes a provider from the provider_urls table', async () => {
       const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
 
