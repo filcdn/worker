@@ -182,8 +182,7 @@ export default {
     } else if (pathname === '/provider-registered') {
       const { provider, piece_retrieval_url: pieceRetrievalUrl } = payload
       return await handleProviderRegistered(env, provider, pieceRetrievalUrl)
-    }
-    if (pathname === '/provider-removed') {
+    } else if (pathname === '/provider-removed') {
       const { provider } = payload
       return await handleProviderRemoved(env, provider)
     } else {
