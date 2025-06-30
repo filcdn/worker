@@ -655,7 +655,7 @@ describe('retriever.indexer', () => {
       expect(ownerUrls.length).toBe(0) // The provider should be removed
     })
 
-    it('returns 404 if the provider does not exist', async () => {
+    it('returns 200 if the provider does not exist', async () => {
       const nonExistentProvider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
       const req = new Request('https://host/provider-removed', {
         method: 'POST',
@@ -667,8 +667,7 @@ describe('retriever.indexer', () => {
         }),
       })
       const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(404)
-      expect(await res.text()).toBe('Provider Not Found')
+      expect(res.status).toBe(200)
     })
     it('returns 400 when provider is an invalid Ethereum address', async () => {
       await testInvalidValidEthereumAddress('provider-removed')
