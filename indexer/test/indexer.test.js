@@ -628,7 +628,6 @@ describe('retriever.indexer', () => {
     }
   })
   describe('POST /provider-removed', () => {
-    // Test for missing provider
     it('returns 400 if provider is missing', async () => {
       const req = new Request('https://host/provider-removed', {
         method: 'POST',
