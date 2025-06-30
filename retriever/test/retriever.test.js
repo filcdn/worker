@@ -58,29 +58,15 @@ describe('retriever.fetch', () => {
     ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
       const rootId = `root-${i}`
       const railId = `rail-${i}`
-
-      await env.DB.batch([
-        env.DB.prepare(
-          `
-          INSERT INTO indexer_proof_sets (set_id, owner)
-          VALUES (?, ?)
-        `,
-        ).bind(proofSetId, owner),
-
-        env.DB.prepare(
-          `
-          INSERT INTO indexer_roots (root_id, set_id, root_cid)
-          VALUES (?, ?, ?)
-        `,
-        ).bind(rootId, proofSetId, rootCid),
-        env.DB.prepare(
-          `
-          INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
-          VALUES (?, ?, ?, ?, ?)
-        `,
-        ).bind(proofSetId, railId, defaultClientAddress, owner, true),
-      ])
-
+      await withDbEntries(env, {
+        owner,
+        rootCid,
+        clientAddress: defaultClientAddress,
+        withCDN: true,
+        proofSetId,
+        railId,
+        rootId,
+      })
       i++
     }
   })
@@ -411,28 +397,14 @@ describe('retriever.fetch', () => {
     const rootCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
     const owner = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)[0]
-
-    await env.DB.batch([
-      env.DB.prepare(
-        `
-        INSERT INTO indexer_proof_sets (set_id, owner)
-        VALUES (?, ?)
-      `,
-      ).bind(proofSetId, owner),
-
-      env.DB.prepare(
-        `
-        INSERT INTO indexer_roots (root_id, set_id, root_cid)
-        VALUES (?, ?, ?)
-      `,
-      ).bind(rootId, proofSetId, rootCid),
-      env.DB.prepare(
-        `
-        INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
-        VALUES (?, ?, ?, ?, ?)
-      `,
-      ).bind(proofSetId, railId, defaultClientAddress, owner, false),
-    ])
+    await withDbEntries(env, {
+      owner,
+      rootCid,
+      proofSetId,
+      railId,
+      withCDN: false,
+      rootId,
+    })
 
     const req = withRequest(defaultClientAddress, rootCid, 'GET')
     const res = await worker.fetch(req, env)
