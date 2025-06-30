@@ -7,7 +7,7 @@ import {
 } from '../lib/retrieval.js'
 import {
   getOwnerAndValidateClient,
-  getOwnerUrl,
+  getProviderUrl,
   logRetrievalResult,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
@@ -19,8 +19,7 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
-   * @param {AbortSignal} [options.signal] - Optional AbortSignal to cancel the
-   *   request.
+   * @param {AbortSignal} [options.signal]
    * @returns
    */
   async fetch(
@@ -30,7 +29,7 @@ export default {
     { retrieveFile = defaultRetrieveFile, signal } = {},
   ) {
     try {
-      return await this._fetch(request, env, ctx, retrieveFile, { signal })
+      return await this._fetch(request, env, ctx, { retrieveFile, signal })
     } catch (error) {
       return this._handleError(error)
     }
@@ -40,13 +39,17 @@ export default {
    * @param {Request} request
    * @param {Env} env
    * @param {ExecutionContext} ctx
-   * @param {typeof defaultRetrieveFile} retrieveFile
    * @param {object} options
-   * @param {AbortSignal} [options.signal] - Optional AbortSignal to cancel the
-   *   request.
+   * @param {AbortSignal} [options.signal]
+   * @param {typeof defaultRetrieveFile} [options.retrieveFile]
    * @returns
    */
-  async _fetch(request, env, ctx, retrieveFile, { signal } = {}) {
+  async _fetch(
+    request,
+    env,
+    ctx,
+    { retrieveFile = defaultRetrieveFile, signal } = {},
+  ) {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
@@ -83,7 +86,7 @@ export default {
       spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
     } else {
       // Otherwise, look up the owner in the database
-      spURL = await getOwnerUrl(ownerAddress, env)
+      spURL = await getProviderUrl(ownerAddress, env)
     }
 
     const { response, cacheMiss } = await retrieveFile(

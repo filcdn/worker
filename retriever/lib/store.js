@@ -144,32 +144,32 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
 }
 
 /**
- * Looks up the owner's URL in the database.
+ * Looks up the provider's URL in the database.
  *
- * @param {string} owner The Ethereum address of the owner.
+ * @param {string} provider The Ethereum address of the provider.
  * @param {Env} env The environment containing the database connection.
- * @returns {Promise<string>} The URL associated with the owner.
- * @throws {Error} If the owner is not found or does not have a valid URL.
+ * @returns {Promise<string>} The URL associated with the provider.
+ * @throws {Error} If the provider is not found or does not have a valid URL.
  */
-export async function getOwnerUrl(owner, env) {
+export async function getProviderUrl(provider, env) {
   const result = await env.DB.prepare(
-    'SELECT url FROM owner_urls WHERE owner = ?',
+    'SELECT piece_retrieval_url FROM provider_urls WHERE address = ?',
   )
-    .bind(owner.toLowerCase()) // Ensure the address is lowercased
+    .bind(provider.toLowerCase()) // Ensure the address is lowercased
     .first()
 
   if (
     !result ||
     result.length === 0 ||
-    !result.url ||
-    typeof result.url !== 'string'
+    !result.piece_retrieval_url ||
+    typeof result.piece_retrieval_url !== 'string'
   ) {
     httpAssert(
       false,
       404,
-      `Unsupported Storage Provider (PDP ProofSet Owner): ${owner}`,
+      `Unsupported Storage Provider (PDP ProofSet Provider): ${provider}`,
     )
   }
 
-  return result.url
+  return result.piece_retrieval_url
 }

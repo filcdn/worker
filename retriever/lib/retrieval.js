@@ -5,9 +5,9 @@
  * @param {string} pieceCid - The CID of the piece to retrieve.
  * @param {number} [cacheTtl=86400] - Cache TTL in seconds (default: 86400).
  *   Default is `86400`
- * @param {object} options - Optional parameters.
- * @param {AbortSignal} [options.signal] - An AbortSignal to cancel the request.
- *   Default is `86400`
+ * @param {object} [options] - Optional parameters.
+ * @param {AbortSignal} [options.signal] - An optional AbortSignal to cancel the
+ *   fetch request.
  * @returns {Promise<{
  *   response: Response
  *   cacheMiss: null | boolean
