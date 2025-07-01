@@ -32,7 +32,6 @@ describe('retriever.fetch', () => {
           waitUntilCalls.push(promise)
         },
       }
-
       const response = await workerImpl.fetch(request, env, ctx, {
         retrieveFile,
         signal,
@@ -298,8 +297,8 @@ describe('retriever.fetch', () => {
             const res = await worker.fetch(req, env, { retrieveFile, signal })
 
             assert.strictEqual(res.status, 200)
-            const content = await res.arrayBuffer()
 
+            const content = await res.arrayBuffer()
             const actualBytes = content.byteLength
 
             const { results } = await env.DB.prepare(
