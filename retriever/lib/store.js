@@ -159,7 +159,6 @@ export async function getProviderUrl(provider, env) {
 
   if (
     !result ||
-    result.length === 0 ||
     !result.piece_retrieval_url ||
     typeof result.piece_retrieval_url !== 'string'
   ) {
