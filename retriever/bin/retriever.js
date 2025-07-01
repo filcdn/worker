@@ -176,6 +176,7 @@ export default {
       error !== null &&
       'status' in error &&
       typeof error.status === 'number'
+
     const status = errHasStatus ? /** @type {number} */ (error.status) : 500
 
     const message =

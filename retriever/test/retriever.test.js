@@ -58,7 +58,7 @@ describe('retriever.fetch', () => {
     ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
       const rootId = `root-${i}`
       const railId = `rail-${i}`
-      await withDbEntries(env, {
+      await withProofSetRoots(env, {
         owner,
         rootCid,
         clientAddress: defaultClientAddress,
@@ -397,7 +397,7 @@ describe('retriever.fetch', () => {
     const rootCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
     const owner = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)[0]
-    await withDbEntries(env, {
+    await withProofSetRoots(env, {
       owner,
       rootCid,
       proofSetId,
@@ -418,8 +418,12 @@ describe('retriever.fetch', () => {
     const body = 'file content'
 
     // Ensure the mapping does not have this address
-    delete OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress]
-    await withDbEntries(env, { owner: providerAddress, rootCid, clientAddress })
+    assert(!OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress])
+    await withProofSetRoots(env, {
+      owner: providerAddress,
+      rootCid,
+      clientAddress,
+    })
 
     await env.DB.prepare(
       `
@@ -452,8 +456,12 @@ describe('retriever.fetch', () => {
     const rootCid = 'bagaTest'
 
     // Ensure the mapping does not have this address
-    delete OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress]
-    await withDbEntries(env, { owner: providerAddress, rootCid, clientAddress })
+    assert(!OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress])
+    await withProofSetRoots(env, {
+      owner: providerAddress,
+      rootCid,
+      clientAddress,
+    })
 
     // Simulate the request
     const req = withRequest(clientAddress, rootCid)
@@ -497,7 +505,7 @@ function withRequest(
  * @param {number} options.railId
  * @param {boolean} options.with_cdn
  */
-async function withDbEntries(
+async function withProofSetRoots(
   env,
   {
     owner = '0xTEST_OWNER',
