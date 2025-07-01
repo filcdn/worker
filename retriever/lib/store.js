@@ -163,7 +163,7 @@ export async function getProviderUrl(provider, env) {
     httpAssert(
       false,
       404,
-      `Unsupported Storage Provider (PDP ProofSet Provider): ${provider}`,
+      `Storage Provider (PDP ProofSet Provider) not found: ${provider}`,
     )
   }
 
