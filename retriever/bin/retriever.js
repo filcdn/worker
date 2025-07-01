@@ -80,19 +80,9 @@ export default {
     )
 
     // Check the owner URL mapping
-    let spURL
-    if (
-      Object.prototype.hasOwnProperty.call(
-        OWNER_TO_RETRIEVAL_URL_MAPPING,
-        ownerAddress,
-      )
-    ) {
-      // If the owner is in the approved list, use the URL from the mapping
-      spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
-    } else {
-      // Otherwise, look up the owner in the database
-      spURL = await getProviderUrl(ownerAddress, env)
-    }
+    const spURL =
+      OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]?.url ||
+      (await getProviderUrl(ownerAddress, env))
 
     const { response, cacheMiss } = await retrieveFile(
       spURL,

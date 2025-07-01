@@ -157,16 +157,11 @@ export async function getProviderUrl(provider, env) {
     .bind(provider.toLowerCase()) // Ensure the address is lowercased
     .first()
 
-  if (
-    !result ||
-    result.length === 0 ||
-    !result.piece_retrieval_url ||
-    typeof result.piece_retrieval_url !== 'string'
-  ) {
+  if (!result) {
     httpAssert(
       false,
       404,
-      `Unsupported Storage Provider (PDP ProofSet Provider): ${provider}`,
+      `Storage Provider (PDP ProofSet Provider) not found: ${provider}`,
     )
   }
 
