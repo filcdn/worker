@@ -418,7 +418,7 @@ describe('retriever.fetch', () => {
     const body = 'file content'
 
     // Ensure the mapping does not have this address
-    delete OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress]
+    assert(!OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress])
     await withDbEntries(env, { owner: providerAddress, rootCid, clientAddress })
 
     await env.DB.prepare(
