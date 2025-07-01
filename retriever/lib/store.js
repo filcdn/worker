@@ -151,6 +151,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
  * @throws {Error} If the provider is not found or does not have a valid URL.
  */
 export async function getProviderUrl(provider, env) {
+  /** @type {{ piece_retrieval_url: string } | null} */
   const result = await env.DB.prepare(
     'SELECT piece_retrieval_url FROM provider_urls WHERE address = ? ORDER BY address',
   )
