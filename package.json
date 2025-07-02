@@ -6,9 +6,9 @@
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
   "workspaces": [
+    "bad-bits",
     "indexer",
-    "retriever",
-    "bad-bits"
+    "retriever"
   ],
   "scripts": {
     "build:types": "npm run build:types --workspaces --if-present",
