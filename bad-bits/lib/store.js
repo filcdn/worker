@@ -1,4 +1,3 @@
-// Begin transaction to update database
 /**
  * Updates the badbits database with new hashes
  *

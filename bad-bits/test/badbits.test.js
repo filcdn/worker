@@ -83,6 +83,16 @@ describe('fetchAndStoreBadBits', () => {
       expect(storedHashes.size).toBe(result.added)
       expect(result.removed).toBe(0)
       expect(result.added).toBeGreaterThan(0)
+
+      // Choose a random hash from the real denylist file to verify it's in the database
+      const { hash } = await env.DB.prepare(
+        'SELECT hash FROM badbits WHERE hash = ?',
+      )
+        .bind(
+          'f52158d2e286c09693117194c6ba34c5670aac484fc4631d2fa409897a5dfd38',
+        )
+        .first()
+      expect(storedHashes).toContain(hash)
     },
   )
 })
