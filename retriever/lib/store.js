@@ -153,7 +153,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
 export async function getProviderUrl(provider, env) {
   /** @type {{ piece_retrieval_url: string } | null} */
   const result = await env.DB.prepare(
-    'SELECT piece_retrieval_url FROM provider_urls WHERE address = ? ORDER BY address',
+    'SELECT piece_retrieval_url FROM provider_urls WHERE address = ? ORDER BY address LIMIT 1',
   )
     .bind(provider.toLowerCase()) // Ensure the address is lowercased
     .first()
