@@ -12,7 +12,5 @@
     "start": "wrangler d1 migrations apply dev-db --local --env dev --cwd ../db && wrangler dev --env dev",
     "test": "wrangler d1 migrations apply test-db --local --cwd ../db && vitest run"
   },
-  "dependencies": {
-    "multiformats": "^12.1.3"
-  }
+  "dependencies": {}
 }
