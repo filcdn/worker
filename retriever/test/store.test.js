@@ -1,6 +1,9 @@
 import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
-import { logRetrievalResult, getOwnerAndValidateClient } from '../lib/store.js'
+import {
+  logRetrievalResult,
+  getOwnerAndProofSetIdAndValidateClient,
+} from '../lib/store.js'
 import { env } from 'cloudflare:test'
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
@@ -57,15 +60,21 @@ describe('getOwnerAndValidateClient', () => {
       .bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true)
       .run()
 
-    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    const { owner, setId: proofSetId } =
+      await getOwnerAndProofSetIdAndValidateClient(env, clientAddress, rootCid)
     assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
+    assert.strictEqual(setId, proofSetId)
   })
 
   it('throws error if rootCid not found', async () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     await assert.rejects(
       async () =>
-        await getOwnerAndValidateClient(env, clientAddress, 'nonexistent-cid'),
+        await getOwnerAndProofSetIdAndValidateClient(
+          env,
+          clientAddress,
+          'nonexistent-cid',
+        ),
       /does not exist/,
     )
   })
@@ -85,7 +94,8 @@ describe('getOwnerAndValidateClient', () => {
       .run()
 
     await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      async () =>
+        await getOwnerAndProofSetIdAndValidateClient(env, clientAddress, cid),
       /no associated owner/,
     )
   })
@@ -106,7 +116,8 @@ describe('getOwnerAndValidateClient', () => {
     ])
 
     await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      async () =>
+        await getOwnerAndProofSetIdAndValidateClient(env, clientAddress, cid),
       /exists but has no approved owner/,
     )
   })
@@ -137,7 +148,8 @@ describe('getOwnerAndValidateClient', () => {
     ])
 
     await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      async () =>
+        await getOwnerAndProofSetIdAndValidateClient(env, clientAddress, cid),
       /There is no Filecoin Services deal for client/,
     )
   })
@@ -162,7 +174,8 @@ describe('getOwnerAndValidateClient', () => {
     ])
 
     await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      async () =>
+        await getOwnerAndProofSetIdAndValidateClient(env, clientAddress, cid),
       /withCDN=false/,
     )
   })
@@ -185,7 +198,11 @@ describe('getOwnerAndValidateClient', () => {
       ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true),
     ])
 
-    const owner = await getOwnerAndValidateClient(env, clientAddress, cid)
+    const { owner } = await getOwnerAndProofSetIdAndValidateClient(
+      env,
+      clientAddress,
+      cid,
+    )
 
     assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
   })
@@ -217,7 +234,11 @@ describe('getOwnerAndValidateClient', () => {
       .run()
 
     // Lookup by rootCid and assert returned owner is normalized to lowercase
-    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    const { owner } = await getOwnerAndProofSetIdAndValidateClient(
+      env,
+      clientAddress,
+      rootCid,
+    )
     assert.strictEqual(owner, expectedOwner)
   })
 
@@ -267,7 +288,11 @@ describe('getOwnerAndValidateClient', () => {
       .run()
 
     // Should return only the approved owner
-    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    const { owner } = await getOwnerAndProofSetIdAndValidateClient(
+      env,
+      clientAddress,
+      rootCid,
+    )
     assert.strictEqual(owner, APPROVED_OWNER_ADDRESS.toLowerCase())
   })
 })
