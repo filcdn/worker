@@ -507,7 +507,7 @@ function withRequest(
 async function withProofSetRoots(
   env,
   {
-    owner = '0xTEST_OWNER',
+    owner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
     clientAddress = '0x1234567890abcdef1234567890abcdef12345608',
     rootCid = 'bagaTEST',
     proofSetId = 0,
