@@ -244,7 +244,7 @@ describe('getOwnerAndValidateClient', () => {
       .bind(setId1, 'rail-a', clientAddress, owner2, true)
       .run()
 
-    // Should return only the owner
+    // Should return only the owner1 which is the first in the ordering
     const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
     assert.strictEqual(owner, owner1.toLowerCase())
   })
