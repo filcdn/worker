@@ -7,9 +7,7 @@
   "type": "module",
   "workspaces": [
     "indexer",
-    "retriever",
-    "scores",
-    "bad-bits"
+    "retriever"
   ],
   "scripts": {
     "build:types": "npm run build:types --workspaces --if-present",
