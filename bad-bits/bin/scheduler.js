@@ -1,4 +1,4 @@
-import { fetchAndStoreBadBits, checkCidAgainstBadBits } from '../lib/badbits.js'
+import { fetchAndStoreBadBits } from '../lib/badbits.js'
 
 export default {
   // Scheduled handler that runs every 5 minutes
