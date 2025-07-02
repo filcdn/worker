@@ -441,7 +441,6 @@ describe('retriever.fetch', () => {
       }
     }
 
-    // Simulate the request
     const req = withRequest(clientAddress, rootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
 
@@ -462,7 +461,6 @@ describe('retriever.fetch', () => {
       clientAddress,
     })
 
-    // Simulate the request
     const req = withRequest(clientAddress, rootCid)
     const res = await worker.fetch(req, env)
 

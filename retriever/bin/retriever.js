@@ -79,7 +79,7 @@ export default {
       `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
     )
 
-    // Check the owner URL mapping
+    // Check the owner URL mapping and fall back to the database if not found
     const spURL =
       OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]?.url ||
       (await getProviderUrl(ownerAddress, env))
