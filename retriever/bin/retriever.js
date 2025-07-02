@@ -82,7 +82,7 @@ export default {
     // Check the owner URL mapping
     const spURL =
       OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]?.url ||
-      await getProviderUrl(ownerAddress, env)
+      (await getProviderUrl(ownerAddress, env))
 
     const { response, cacheMiss } = await retrieveFile(
       spURL,
