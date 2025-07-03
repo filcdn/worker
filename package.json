@@ -7,7 +7,8 @@
   "type": "module",
   "workspaces": [
     "indexer",
-    "retriever"
+    "retriever",
+    "address-checker"
   ],
   "scripts": {
     "build:types": "npm run build:types --workspaces --if-present",
@@ -27,4 +28,5 @@
     "vitest": "3.1.4",
     "wrangler": "^4.22.0"
   }
+}
 }

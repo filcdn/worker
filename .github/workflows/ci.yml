@@ -42,6 +42,17 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: calibration
+      - name: Deploy Address Checker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: address-checker
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: calibration
+          secrets: |
+            CHAINALYSIS_API_KEY
+        env:
+          CHAINALYSIS_API_KEY: ${{ secrets.CHAINALYSIS_API_KEY }}
       - if: failure()
         uses: slackapi/slack-github-action@v2.1.0
         with:

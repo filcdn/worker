@@ -1,0 +1,38 @@
+name = "address-checker"
+main = "./bin/address-checker.js"
+compatibility_date = "2023-10-30"
+node_compat = true
+usage_model = "bundled"
+
+[triggers]
+crons = ["0 0 * * *"] # Run once per day at midnight UTC
+
+# Define a secret that will be populated at deployment time
+# The actual secret value is set using:
+# wrangler secret put CHAINALYSIS_API_KEY
+[vars]
+# This dummy key is only used for local development and testing
+# For production, the secret is stored in Cloudflare
+CHAINALYSIS_API_KEY = "dummy-api-key-for-development-only"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "filcdn"
+database_id = "development-db-id" # Will be replaced in deployment
+
+[env.dev]
+name = "address-checker-dev"
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "filcdn-dev"
+database_id = "development-db-id"
+
+[env.calibration]
+name = "address-checker-calibration"
+[[env.calibration.d1_databases]]
+binding = "DB"
+database_name = "filcdn-calibration"
+database_id = "calibration-db-id" # To be replaced with actual ID
+binding = "DB"
+database_name = "filcdn-calibration"
+database_id = "calibration-db-id" # To be replaced with actual ID
