@@ -3,6 +3,7 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
+import { createLogger } from '../../telemetry/papertrail.js'
 
 export default {
   /**
@@ -35,6 +36,7 @@ export default {
       // @ts-ignore
       SECRET_HEADER_VALUE,
     } = env
+    const logger = console
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
     }
@@ -52,10 +54,10 @@ export default {
         ) ||
         !payload.owner
       ) {
-        console.error('Invalid payload', payload)
+        logger.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
-      console.log(
+      logger.log(
         `New proof set (set_id=${payload.set_id}, owner=${payload.owner})`,
       )
       await env.DB.prepare(
@@ -80,7 +82,7 @@ export default {
         !payload.root_ids ||
         typeof payload.root_ids !== 'string'
       ) {
-        console.error('Invalid payload', payload)
+        logger.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
@@ -98,19 +100,19 @@ export default {
       const rootCids = payload.root_cids
         ? payload.root_cids.split(',')
         : await Promise.all(
-            rootIds.map(async (rootId) => {
-              try {
-                return await pdpVerifier.getRootCid(setId, BigInt(rootId))
-              } catch (/** @type {any} */ err) {
-                console.error(
-                  `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
-                )
-                throw err
-              }
-            }),
-          )
+          rootIds.map(async (rootId) => {
+            try {
+              return await pdpVerifier.getRootCid(setId, BigInt(rootId))
+            } catch (/** @type {any} */ err) {
+              logger.error(
+                `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
+              )
+              throw err
+            }
+          }),
+        )
 
-      console.log(
+      logger.log(
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
       )
       await env.DB.prepare(
@@ -121,9 +123,9 @@ export default {
             root_cid
           )
           VALUES ${new Array(rootIds.length)
-            .fill(null)
-            .map(() => '(?, ?, ?)')
-            .join(', ')}
+          .fill(null)
+          .map(() => '(?, ?, ?)')
+          .join(', ')}
           ON CONFLICT DO NOTHING
         `,
       )
@@ -151,10 +153,10 @@ export default {
         !payload.payer ||
         !payload.payee
       ) {
-        console.error('Invalid payload', payload)
+        logger.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
-      console.log(
+      logger.log(
         `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
       await env.DB.prepare(
@@ -181,10 +183,10 @@ export default {
       return new Response('OK', { status: 200 })
     } else if (pathname === '/provider-registered') {
       const { provider, piece_retrieval_url: pieceRetrievalUrl } = payload
-      return await handleProviderRegistered(env, provider, pieceRetrievalUrl)
+      return await handleProviderRegistered(env, provider, pieceRetrievalUrl, {logger})
     } else if (pathname === '/provider-removed') {
       const { provider } = payload
-      return await handleProviderRemoved(env, provider)
+      return await handleProviderRemoved(env, provider, {logger})
     } else {
       return new Response('Not Found', { status: 404 })
     }

@@ -11,6 +11,8 @@ import {
   logRetrievalResult,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
+import { createLogger } from '../../telemetry/papertrail.js'
+import { PapertrailLogger } from '../../telemetry/papertrail.js'
 
 export default {
   /**
@@ -28,10 +30,11 @@ export default {
     ctx,
     { retrieveFile = defaultRetrieveFile, signal } = {},
   ) {
+    const logger = createLogger(env)
     try {
-      return await this._fetch(request, env, ctx, { retrieveFile, signal })
+      return await this._fetch(request, env, ctx, { retrieveFile, signal, logger })
     } catch (error) {
-      return this._handleError(error)
+      return this._handleError(error, env, { logger })
     }
   },
 
@@ -40,15 +43,16 @@ export default {
    * @param {Env} env
    * @param {ExecutionContext} ctx
    * @param {object} options
-   * @param {AbortSignal} [options.signal]
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
+   * @param {AbortSignal} [options.signal]
+   * @param {PapertrailLogger | Console} [options.logger]
    * @returns
    */
   async _fetch(
     request,
     env,
     ctx,
-    { retrieveFile = defaultRetrieveFile, signal } = {},
+    { retrieveFile = defaultRetrieveFile, signal, logger } = {},
   ) {
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
@@ -71,6 +75,7 @@ export default {
       env,
       clientWalletAddress,
       rootCid,
+      { logger }
     )
 
     httpAssert(
@@ -87,7 +92,7 @@ export default {
       spURL,
       rootCid,
       env.CACHE_TTL,
-      { signal },
+      { signal, logger },
     )
 
     const retrievalResultEntry = {
@@ -157,9 +162,12 @@ export default {
 
   /**
    * @param {unknown} error
+   * @param {Env} env
+   * @param {object} options
+   * @param {PapertrailLogger | Console} [options.logger]
    * @returns
    */
-  _handleError(error) {
+  _handleError(error, env, { logger = createLogger(env) } = {}) {
     const errHasStatus =
       typeof error === 'object' &&
       error !== null &&
@@ -170,13 +178,13 @@ export default {
 
     const message =
       errHasStatus &&
-      status < 500 &&
-      'message' in error &&
-      typeof error.message === 'string'
+        status < 500 &&
+        'message' in error &&
+        typeof error.message === 'string'
         ? error.message
         : 'Internal Server Error'
     if (status >= 500) {
-      console.error(error)
+      logger.error(error)
     }
     return new Response(message, { status })
   },

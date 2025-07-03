@@ -1,5 +1,5 @@
 import { httpAssert } from './http-assert.js'
-
+import { createLogger, PapertrailLogger } from '../../telemetry/papertrail.js'
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
  *
@@ -17,10 +17,12 @@ import { httpAssert } from './http-assert.js'
  * @param {string} params.timestamp - The timestamp of the retrieval.
  * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
+ * @param {object} [options] - Optional parameters.
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
-export async function logRetrievalResult(env, params) {
-  console.log('retrieval log', params)
+export async function logRetrievalResult(env, params, { logger = console } = {}) {
+  logger.log('retrieval log', params)
   const {
     ownerAddress,
     clientAddress,
@@ -64,7 +66,7 @@ export async function logRetrievalResult(env, params) {
       )
       .run()
   } catch (error) {
-    console.error(`Error inserting log: ${error}`)
+    logger.error(`Error inserting log: ${error}`)
     // TODO: Handle specific SQL error codes if needed
     throw error
   }
@@ -76,10 +78,12 @@ export async function logRetrievalResult(env, params) {
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
+ * @param {object} [options] - Optional parameters
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
  * @returns {Promise<string>} - The result containing either the approved owner
  *   address or a descriptive error
  */
-export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
+export async function getOwnerAndValidateClient(env, clientAddress, rootCid, { logger = console } = {}) {
   const query = `
    SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn
    FROM indexer_roots ir
@@ -99,9 +103,9 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
    * }[]}
    */ (
     /** @type {any[]} */ (
-      (await env.DB.prepare(query).bind(rootCid).all()).results
+        (await env.DB.prepare(query).bind(rootCid).all()).results
+      )
     )
-  )
   httpAssert(
     results && results.length > 0,
     404,
@@ -135,7 +139,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
 
   const { set_id: setId, owner } = withCDN[0]
 
-  console.log(
+  logger.log(
     `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}' and client '${clientAddress}'`,
   )
 

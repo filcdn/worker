@@ -1,3 +1,8 @@
+import {
+  PapertrailLogger
+} from "../../telemetry/papertrail"
+import { createLogger } from "../../telemetry/papertrail.js"
+
 /**
  * Retrieves the file under the pieceCID from the constructed URL.
  *
@@ -7,6 +12,7 @@
  *   Default is `86400`
  * @param {object} [options] - Optional parameters.
  * @param {AbortSignal} [options.signal] - An optional AbortSignal to cancel the
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
  *   fetch request.
  * @returns {Promise<{
  *   response: Response
@@ -19,7 +25,7 @@ export async function retrieveFile(
   baseUrl,
   pieceCid,
   cacheTtl = 86400,
-  { signal } = {},
+  { signal, logger = console } = {},
 ) {
   const url = `${baseUrl}/piece/${pieceCid}`
   const response = await fetch(url, {
@@ -35,7 +41,7 @@ export async function retrieveFile(
   })
   const cacheStatus = response.headers.get('CF-Cache-Status')
   if (!cacheStatus) {
-    console.log(`CF-Cache-Status was not provided for ${url}`)
+    logger.log(`CF-Cache-Status was not provided for ${url}`)
   }
 
   const cacheMiss = cacheStatus !== 'HIT'

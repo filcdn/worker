@@ -1,5 +1,6 @@
 import { isValidEthereumAddress } from '../../retriever/lib/address'
 import validator from 'validator'
+import { PapertrailLogger } from '../../telemetry/papertrail'
 
 /**
  * Handles the /provider-registered webhook
@@ -7,12 +8,15 @@ import validator from 'validator'
  * @param {Env} env
  * @param {string} provider
  * @param {string} pieceRetrievalUrl
+ * @param {object} options
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
  * @returns {Promise<Response>}
  */
 export async function handleProviderRegistered(
   env,
   provider,
   pieceRetrievalUrl,
+  { logger = console } = {},
 ) {
   if (
     !provider ||
@@ -21,7 +25,7 @@ export async function handleProviderRegistered(
     typeof pieceRetrievalUrl !== 'string' ||
     !isValidEthereumAddress(provider)
   ) {
-    console.error('Invalid provider registered payload', {
+    logger.error('Invalid provider registered payload', {
       provider,
       pieceRetrievalUrl,
     })
@@ -29,11 +33,11 @@ export async function handleProviderRegistered(
   }
 
   if (!validator.isURL(pieceRetrievalUrl)) {
-    console.error('Invalid Piece Retrieval URL', { pieceRetrievalUrl })
+    logger.error('Invalid Piece Retrieval URL', { pieceRetrievalUrl })
     return new Response('Bad Request', { status: 400 })
   }
 
-  console.log(
+  logger.log(
     `Provider registered (provider=${provider}, pieceRetrievalUrl=${pieceRetrievalUrl})`,
   )
 
@@ -58,19 +62,21 @@ export async function handleProviderRegistered(
  *
  * @param {Env} env
  * @param {string} provider
+ * @param {object} options
+ * @param {PapertrailLogger | Console } [options.logger] - An optional logger instance
  * @returns {Promise<Response>}
  */
-export async function handleProviderRemoved(env, provider) {
+export async function handleProviderRemoved(env, provider, { logger = console } = {}) {
   if (
     !provider ||
     typeof provider !== 'string' ||
     !isValidEthereumAddress(provider)
   ) {
-    console.error('Invalid provider removed payload', { provider })
+    logger.error('Invalid provider removed payload', { provider })
     return new Response('Bad Request', { status: 400 })
   }
 
-  console.log(`Provider removed (provider=${provider})`)
+  logger.log(`Provider removed (provider=${provider})`)
 
   /** @type {D1Result<Record<string, unknown>>} */
   const result = await env.DB.prepare(
