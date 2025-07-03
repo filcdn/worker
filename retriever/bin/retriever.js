@@ -12,7 +12,7 @@ import {
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 import { createLogger } from '../../telemetry/papertrail.js'
-import { PapertrailLogger } from '../../telemetry/papertrail.js'
+/** @typedef {import('../../telemetry/papertrail.js').PapertrailLogger} PapertrailLogger */
 
 export default {
   /**
@@ -32,7 +32,11 @@ export default {
   ) {
     const logger = createLogger(env)
     try {
-      return await this._fetch(request, env, ctx, { retrieveFile, signal, logger })
+      return await this._fetch(request, env, ctx, {
+        retrieveFile,
+        signal,
+        logger,
+      })
     } catch (error) {
       return this._handleError(error, env, { logger })
     }
@@ -75,7 +79,7 @@ export default {
       env,
       clientWalletAddress,
       rootCid,
-      { logger }
+      { logger },
     )
 
     httpAssert(
@@ -178,9 +182,9 @@ export default {
 
     const message =
       errHasStatus &&
-        status < 500 &&
-        'message' in error &&
-        typeof error.message === 'string'
+      status < 500 &&
+      'message' in error &&
+      typeof error.message === 'string'
         ? error.message
         : 'Internal Server Error'
     if (status >= 500) {

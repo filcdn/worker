@@ -1,6 +1,6 @@
 import { isValidEthereumAddress } from '../../retriever/lib/address'
 import validator from 'validator'
-import { PapertrailLogger } from '../../telemetry/papertrail'
+/** @typedef {import('../../telemetry/papertrail.js').PapertrailLogger} PapertrailLogger */
 
 /**
  * Handles the /provider-registered webhook
@@ -9,7 +9,8 @@ import { PapertrailLogger } from '../../telemetry/papertrail'
  * @param {string} provider
  * @param {string} pieceRetrievalUrl
  * @param {object} options
- * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger
+ *   instance
  * @returns {Promise<Response>}
  */
 export async function handleProviderRegistered(
@@ -63,10 +64,15 @@ export async function handleProviderRegistered(
  * @param {Env} env
  * @param {string} provider
  * @param {object} options
- * @param {PapertrailLogger | Console } [options.logger] - An optional logger instance
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger
+ *   instance
  * @returns {Promise<Response>}
  */
-export async function handleProviderRemoved(env, provider, { logger = console } = {}) {
+export async function handleProviderRemoved(
+  env,
+  provider,
+  { logger = console } = {},
+) {
   if (
     !provider ||
     typeof provider !== 'string' ||

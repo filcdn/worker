@@ -1,5 +1,5 @@
 import { httpAssert } from './http-assert.js'
-import { createLogger, PapertrailLogger } from '../../telemetry/papertrail.js'
+/** @typedef {import('../../telemetry/papertrail.js').PapertrailLogger} PapertrailLogger */
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
  *
@@ -18,10 +18,15 @@ import { createLogger, PapertrailLogger } from '../../telemetry/papertrail.js'
  * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
  * @param {object} [options] - Optional parameters.
- * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger
+ *   instance
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
-export async function logRetrievalResult(env, params, { logger = console } = {}) {
+export async function logRetrievalResult(
+  env,
+  params,
+  { logger = console } = {},
+) {
   logger.log('retrieval log', params)
   const {
     ownerAddress,
@@ -79,11 +84,17 @@ export async function logRetrievalResult(env, params, { logger = console } = {})
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
  * @param {object} [options] - Optional parameters
- * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger
+ *   instance
  * @returns {Promise<string>} - The result containing either the approved owner
  *   address or a descriptive error
  */
-export async function getOwnerAndValidateClient(env, clientAddress, rootCid, { logger = console } = {}) {
+export async function getOwnerAndValidateClient(
+  env,
+  clientAddress,
+  rootCid,
+  { logger = console } = {},
+) {
   const query = `
    SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn
    FROM indexer_roots ir
@@ -103,9 +114,9 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid, { l
    * }[]}
    */ (
     /** @type {any[]} */ (
-        (await env.DB.prepare(query).bind(rootCid).all()).results
-      )
+      (await env.DB.prepare(query).bind(rootCid).all()).results
     )
+  )
   httpAssert(
     results && results.length > 0,
     404,

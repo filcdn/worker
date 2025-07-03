@@ -1,5 +1,5 @@
-import { createLogger, PapertrailLogger } from '../../telemetry/papertrail.js'
 import { httpAssert } from './http-assert.js'
+/** @typedef {import('../../telemetry/papertrail.js').PapertrailLogger} PapertrailLogger */
 
 /**
  * Parse params found in path of the request URL

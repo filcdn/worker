@@ -3,6 +3,7 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
+import { create } from 'domain'
 import { createLogger } from '../../telemetry/papertrail.js'
 
 export default {
@@ -36,7 +37,7 @@ export default {
       // @ts-ignore
       SECRET_HEADER_VALUE,
     } = env
-    const logger = console
+    const logger = createLogger(env)
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
     }
@@ -100,17 +101,17 @@ export default {
       const rootCids = payload.root_cids
         ? payload.root_cids.split(',')
         : await Promise.all(
-          rootIds.map(async (rootId) => {
-            try {
-              return await pdpVerifier.getRootCid(setId, BigInt(rootId))
-            } catch (/** @type {any} */ err) {
-              logger.error(
-                `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
-              )
-              throw err
-            }
-          }),
-        )
+            rootIds.map(async (rootId) => {
+              try {
+                return await pdpVerifier.getRootCid(setId, BigInt(rootId))
+              } catch (/** @type {any} */ err) {
+                logger.error(
+                  `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
+                )
+                throw err
+              }
+            }),
+          )
 
       logger.log(
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
@@ -123,9 +124,9 @@ export default {
             root_cid
           )
           VALUES ${new Array(rootIds.length)
-          .fill(null)
-          .map(() => '(?, ?, ?)')
-          .join(', ')}
+            .fill(null)
+            .map(() => '(?, ?, ?)')
+            .join(', ')}
           ON CONFLICT DO NOTHING
         `,
       )
@@ -183,10 +184,12 @@ export default {
       return new Response('OK', { status: 200 })
     } else if (pathname === '/provider-registered') {
       const { provider, piece_retrieval_url: pieceRetrievalUrl } = payload
-      return await handleProviderRegistered(env, provider, pieceRetrievalUrl, {logger})
+      return await handleProviderRegistered(env, provider, pieceRetrievalUrl, {
+        logger,
+      })
     } else if (pathname === '/provider-removed') {
       const { provider } = payload
-      return await handleProviderRemoved(env, provider, {logger})
+      return await handleProviderRemoved(env, provider, { logger })
     } else {
       return new Response('Not Found', { status: 404 })
     }

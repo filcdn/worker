@@ -1,7 +1,4 @@
-import {
-  PapertrailLogger
-} from "../../telemetry/papertrail"
-import { createLogger } from "../../telemetry/papertrail.js"
+/** @typedef {import('../../telemetry/papertrail.js').PapertrailLogger} PapertrailLogger */
 
 /**
  * Retrieves the file under the pieceCID from the constructed URL.
@@ -12,8 +9,8 @@ import { createLogger } from "../../telemetry/papertrail.js"
  *   Default is `86400`
  * @param {object} [options] - Optional parameters.
  * @param {AbortSignal} [options.signal] - An optional AbortSignal to cancel the
- * @param {PapertrailLogger | Console} [options.logger] - An optional logger instance
- *   fetch request.
+ * @param {PapertrailLogger | Console} [options.logger] - An optional logger
+ *   instance fetch request.
  * @returns {Promise<{
  *   response: Response
  *   cacheMiss: null | boolean
