@@ -3,7 +3,6 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
-import { create } from 'domain'
 import { createLogger } from '../../telemetry/papertrail.js'
 
 export default {
