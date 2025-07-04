@@ -3,6 +3,7 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
+import { logTailEvents } from '../../logging/papertrail.js'
 
 export default {
   /**
@@ -188,5 +189,13 @@ export default {
     } else {
       return new Response('Not Found', { status: 404 })
     }
+  },
+  /**
+   * @param {TailEvent} tailEvent
+   * @param {Env} env
+   * @param {ExecutionContext} ctx
+   */
+  async tail(tailEvent, env, ctx) {
+    await logTailEvents(tailEvent, env)
   },
 }

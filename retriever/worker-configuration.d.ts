@@ -9,7 +9,10 @@ declare namespace Cloudflare {
     DB: D1Database
   }
 }
-interface Env extends Cloudflare.Env {}
+interface Env extends Cloudflare.Env {
+    SERVICE_NAME: any;
+    PAPERTRAIL_API_TOKEN: any;
+}
 
 // Begin runtime types
 /*! *****************************************************************************

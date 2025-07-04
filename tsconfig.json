@@ -21,6 +21,7 @@
     "db",
     "retriever",
     "indexer",
+    "logging",
     "eslint.config.js",
     "worker-configuration.d.ts"
   ],
