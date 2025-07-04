@@ -11,6 +11,7 @@ import {
   logRetrievalResult,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
+import { logTailEvents } from '../../logging/papertrail.js'
 
 export default {
   /**
@@ -179,5 +180,13 @@ export default {
       console.error(error)
     }
     return new Response(message, { status })
+  },
+  /**
+   * @param {TailEvent} tailEvent
+   * @param {Env} env
+   * @param {ExecutionContext} ctx
+   */
+  async tail(tailEvent, env, ctx) {
+    await logTailEvents(tailEvent, env)
   },
 }
