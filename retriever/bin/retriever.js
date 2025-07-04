@@ -38,7 +38,7 @@ export default {
         logger,
       })
     } catch (error) {
-      return this._handleError(error, env, { logger })
+      return this._handleError(error, { logger })
     }
   },
 
@@ -166,12 +166,11 @@ export default {
 
   /**
    * @param {unknown} error
-   * @param {Env} env
    * @param {object} options
    * @param {PapertrailLogger | Console} [options.logger]
    * @returns
    */
-  _handleError(error, env, { logger = createLogger(env) } = {}) {
+  _handleError(error, { logger = console } = {}) {
     const errHasStatus =
       typeof error === 'object' &&
       error !== null &&

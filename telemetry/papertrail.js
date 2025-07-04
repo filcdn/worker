@@ -15,7 +15,7 @@ class PapertrailLogger {
     this.environment = environment
     this.serviceName = serviceName
 
-    // Only need to determine if we're in production (calibration environment)
+    // Determine if we are in production
     this.isProduction = this.environment === 'calibration'
   }
 
@@ -81,8 +81,8 @@ class PapertrailLogger {
    * @param {string} message - Log message
    * @param {Object} metadata - Additional metadata
    */
-  log(message, metadata = {}) {
-    this._logCore('log', message, metadata)
+  async log(message, metadata = {}) {
+    await this._logCore('log', message, metadata)
   }
 
   /**
@@ -90,8 +90,8 @@ class PapertrailLogger {
    *
    * @param {string} message - Log message
    */
-  info(message, metadata = {}) {
-    this._logCore('info', message, metadata)
+  async info(message, metadata = {}) {
+    await this._logCore('info', message, metadata)
   }
 
   /**
@@ -99,8 +99,8 @@ class PapertrailLogger {
    *
    * @param {string} message - Log message
    */
-  warn(message, metadata = {}) {
-    this._logCore('warn', message, metadata)
+  async warn(message, metadata = {}) {
+    await this._logCore('warn', message, metadata)
   }
 
   /**
@@ -108,8 +108,8 @@ class PapertrailLogger {
    *
    * @param {unknown} message - Log message
    */
-  error(message, metadata = {}) {
-    this._logCore(
+  async error(message, metadata = {}) {
+    await this._logCore(
       'error',
       typeof message === 'string' ? message : JSON.stringify(message),
       metadata,
