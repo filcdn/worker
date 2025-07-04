@@ -5,14 +5,14 @@ export const BADBITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
 /**
  * @param {Env} env
  * @param {object} options
- * @param {typeof globalThis.fetch} [options.fetchBadBits]
+ * @param {typeof globalThis.fetch} [options.fetch]
  * @returns
  */
 export async function fetchAndStoreBadBits(
   env,
-  { fetchBadBits } = { fetchBadBits: globalThis.fetch },
+  { fetch } = { fetch: globalThis.fetch },
 ) {
-  const response = await fetchBadBits(BADBITS_URL)
+  const response = await fetch(BADBITS_URL)
   if (!response.ok) {
     throw new Error(
       `Failed to fetch badbits: ${response.status} ${response.statusText}`,

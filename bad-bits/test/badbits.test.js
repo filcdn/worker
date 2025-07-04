@@ -21,7 +21,7 @@ describe('fetchAndStoreBadBits', () => {
     )
 
     const result = await fetchAndStoreBadBits(env, {
-      fetchBadBits: () =>
+      fetch: () =>
         new Response(text, { headers: { 'Content-Type': 'text/plain' } }),
     })
     const storedHashes = new Set(await getAllBadBitHashes(env))
@@ -51,7 +51,7 @@ describe('fetchAndStoreBadBits', () => {
     )
 
     const result = await fetchAndStoreBadBits(env, {
-      fetchBadBits: () =>
+      fetch: () =>
         new Response(text, { headers: { 'Content-Type': 'text/plain' } }),
     })
     const storedHashes = new Set(await getAllBadBitHashes(env))
@@ -70,7 +70,7 @@ describe('fetchAndStoreBadBits', () => {
       ).text()
 
       const result = await fetchAndStoreBadBits(env, {
-        fetchBadBits: () =>
+        fetch: () =>
           new Response(bits, { headers: { 'Content-Type': 'text/plain' } }),
       })
 
