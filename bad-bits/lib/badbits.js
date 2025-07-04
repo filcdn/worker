@@ -25,10 +25,6 @@ export async function fetchAndStoreBadBits(
   const currentBadHashes = new Set()
 
   for (const line of lines) {
-    if (line.trim() === '' || line.startsWith('# ')) {
-      continue
-    }
-
     if (line.startsWith('//')) {
       const hash = line.substring(2).trim()
       if (hash) {
