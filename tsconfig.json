@@ -21,6 +21,7 @@
     "db",
     "retriever",
     "indexer",
+    "address-checker",
     "eslint.config.js",
     "worker-configuration.d.ts"
   ],

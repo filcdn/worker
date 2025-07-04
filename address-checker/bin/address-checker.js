@@ -1,32 +1,42 @@
-import { isValidEthereumAddress } from '../../retriever/lib/address.js'
+import { addMissingAddresses, getAddressesToCheck, updateAddressStatuses } from '../lib/store.js'
 import { checkAddresses } from '../lib/sanction-check.js'
-import { getAddressesToCheck, updateAddressStatuses } from '../lib/store.js'
 
 export default {
-    async scheduled(event, env, ctx) {
-        console.log('Running scheduled address sanctions check')
-
+    /**
+     * Scheduled worker to check Ethereum addresses against the Chainalysis sanctions API
+     *
+     * @param {ScheduledController} controller - Scheduled event controller
+     * @param {Env} env - Environment variables and bindings
+     * @param {ExecutionContext} ctx - Execution context
+     * @param {Object} [options={}] - Additional options
+     * @param {Function} [options.fetch=globalThis.fetch] - Custom fetch function for testing
+     * @returns {Promise<void>}
+     */
+    async scheduled(controller, env, ctx, { fetch = globalThis.fetch } = {}) {
         try {
-            // Get all unique addresses from the database
-            const addresses = await getAddressesToCheck(env)
+            // First, add missing addresses to the address_sanction_check table
+            const addedCount = await addMissingAddresses(env)
+            console.log(`Added ${addedCount} new addresses with 'pending' status`)
 
-            if (addresses.length === 0) {
-                console.log('No addresses to check')
+            // Get addresses with 'pending' status that need to be checked
+            const pendingAddresses = await getAddressesToCheck(env)
+
+            if (pendingAddresses.length === 0) {
+                console.log('No pending addresses to check')
                 return
             }
 
-            console.log(`Checking ${addresses.length} addresses against Chainalysis API`)
+            console.log(`Checking ${pendingAddresses.length} pending addresses against Chainalysis API`)
 
-            // Check addresses against Chainalysis API using the API key from secrets
-            const results = await checkAddresses(addresses, env.CHAINALYSIS_API_KEY)
+            // Check addresses against Chainalysis API, passing the fetch function
+            const results = await checkAddresses(pendingAddresses, env.CHAINALYSIS_API_KEY, { fetch })
 
             // Update database with results
             await updateAddressStatuses(env, results)
 
             console.log(`Address check completed: ${results.length} addresses processed`)
         } catch (error) {
-            console.error('Error in scheduled address check:', error)
-            throw error
+            console.error('Error in address checker worker:', error)
         }
     }
 }

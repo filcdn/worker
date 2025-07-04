@@ -1,85 +1,196 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest'
-import { getAddressesToCheck, updateAddressStatuses, getAddressStatus } from '../lib/store.js'
-import { unstable_dev } from 'wrangler'
+import { describe, it } from 'vitest'
+import assert from 'node:assert/strict'
+import { 
+  getAddressesToCheck, 
+  updateAddressStatuses, 
+  addMissingAddresses 
+} from '../lib/store.js'
+import { env } from 'cloudflare:test'
 
-describe('store', () => {
-  let worker
-  let env
-
-  beforeAll(async () => {
-    worker = await unstable_dev(
-      './bin/address-checker.js',
-      {
-        experimental: { disableExperimentalWarning: true }
-      }
-    )
-    env = worker.env
-  })
-
-  afterEach(async () => {
-    // Clean up test data after each test
-    await env.DB.prepare('DELETE FROM address_sanction_check').run()
-    await env.DB.prepare('DELETE FROM indexer_proof_set_rails').run()
-  })
-
-  it('should get addresses to check', async () => {
-    // Insert test data
+describe('getAddressesToCheck', () => {
+  it('retrieves pending addresses from the database', async () => {
+    // Setup: Insert some test addresses with different statuses
     await env.DB.batch([
-      env.DB.prepare(`
-        INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
-        VALUES (?, ?, ?, ?, ?)
-      `).bind('1', '1', '0x1234567890abcdef1234567890abcdef12345678', '0x2A06D234246eD18b6C91de8349fF34C22C7268e2', true),
-      
-      env.DB.prepare(`
-        INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
-        VALUES (?, ?, ?, ?, ?)
-      `).bind('2', '1', '0x1234567890abcdef1234567890abcdef12345678', '0x3333333333333333333333333333333333333333', true)
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0x1111111111111111111111111111111111111111', 'pending'),
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0x2222222222222222222222222222222222222222', 'pending'),
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0x3333333333333333333333333333333333333333', 'approved'),
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0x4444444444444444444444444444444444444444', 'sanctioned')
     ])
 
-    const addresses = await getAddressesToCheck(env)
+    // Execute the function
+    const pendingAddresses = await getAddressesToCheck(env)
 
-    // Should return all unique addresses
-    expect(addresses).toHaveLength(3)
-    expect(addresses).toContain('0x1234567890abcdef1234567890abcdef12345678')
-    expect(addresses).toContain('0x2A06D234246eD18b6C91de8349fF34C22C7268e2')
-    expect(addresses).toContain('0x3333333333333333333333333333333333333333')
+    // Verify: Should return only the pending addresses
+    assert.strictEqual(pendingAddresses.length, 2)
+    assert.ok(pendingAddresses.includes('0x1111111111111111111111111111111111111111'))
+    assert.ok(pendingAddresses.includes('0x2222222222222222222222222222222222222222'))
+    assert.ok(!pendingAddresses.includes('0x3333333333333333333333333333333333333333'))
+    assert.ok(!pendingAddresses.includes('0x4444444444444444444444444444444444444444'))
   })
 
-  it('should update address statuses', async () => {
-    const addressResults = [
-      { address: '0x1234567890abcdef1234567890abcdef12345678', status: 'sanctioned' },
-      { address: '0x2A06D234246eD18b6C91de8349fF34C22C7268e2', status: 'approved' }
-    ]
+  it('returns an empty array when no pending addresses exist', async () => {
+    // Clear the table first
+    await env.DB.prepare('DELETE FROM address_sanction_check').run()
+    
+    // Insert only non-pending addresses
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0x5555555555555555555555555555555555555555', 'approved'),
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0x6666666666666666666666666666666666666666', 'sanctioned')
+    ])
 
+    // Execute the function
+    const pendingAddresses = await getAddressesToCheck(env)
+
+    // Verify: Should return an empty array
+    assert.strictEqual(pendingAddresses.length, 0)
+  })
+})
+
+describe('updateAddressStatuses', () => {
+  it('updates the status of existing addresses', async () => {
+    // Setup: Insert test addresses
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0xaaaa111111111111111111111111111111111111', 'pending'),
+      env.DB.prepare(
+        'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+      ).bind('0xbbbb222222222222222222222222222222222222', 'pending')
+    ])
+
+    // Execute: Update the statuses
+    const addressResults = [
+      { address: '0xaaaa111111111111111111111111111111111111', status: 'approved' },
+      { address: '0xbbbb222222222222222222222222222222222222', status: 'sanctioned' }
+    ]
     await updateAddressStatuses(env, addressResults)
 
-    // Check that statuses were updated
-    const status1 = await getAddressStatus(env, '0x1234567890abcdef1234567890abcdef12345678')
-    const status2 = await getAddressStatus(env, '0x2A06D234246eD18b6C91de8349fF34C22C7268e2')
+    // Verify: Addresses should have updated statuses
+    const results = await env.DB.prepare(
+      'SELECT address, status FROM address_sanction_check WHERE address IN (?, ?)'
+    ).bind(
+      '0xaaaa111111111111111111111111111111111111', 
+      '0xbbbb222222222222222222222222222222222222'
+    ).all()
 
-    expect(status1).toBe('sanctioned')
-    expect(status2).toBe('approved')
+    assert.strictEqual(results.results.length, 2)
+    
+    // Find each address in results and verify its status
+    const addr1 = results.results.find(r => 
+      r.address === '0xaaaa111111111111111111111111111111111111')
+    const addr2 = results.results.find(r => 
+      r.address === '0xbbbb222222222222222222222222222222222222')
+    
+    assert.strictEqual(addr1.status, 'approved')
+    assert.strictEqual(addr2.status, 'sanctioned')
   })
 
-  it('should update existing statuses', async () => {
-    // Insert initial data
-    await env.DB.prepare(`
-      INSERT INTO address_sanction_check (address, status, last_checked)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-    `).bind('0x1234567890abcdef1234567890abcdef12345678', 'pending').run()
+  it('inserts new addresses that do not exist yet', async () => {
+    // Setup: Clear any existing data
+    await env.DB.prepare(
+      'DELETE FROM address_sanction_check WHERE address = ?'
+    ).bind('0xcccc333333333333333333333333333333333333').run()
 
-    // Update the status
-    await updateAddressStatuses(env, [
-      { address: '0x1234567890abcdef1234567890abcdef12345678', status: 'sanctioned' }
+    // Execute: Update with a new address
+    const addressResults = [
+      { address: '0xcccc333333333333333333333333333333333333', status: 'approved' }
+    ]
+    await updateAddressStatuses(env, addressResults)
+
+    // Verify: New address should be inserted
+    const result = await env.DB.prepare(
+      'SELECT address, status FROM address_sanction_check WHERE address = ?'
+    ).bind('0xcccc333333333333333333333333333333333333').first()
+
+    assert.strictEqual(result.address, '0xcccc333333333333333333333333333333333333')
+    assert.strictEqual(result.status, 'approved')
+  })
+
+  it('handles empty input array', async () => {
+    // Execute with empty array - should not throw
+    await updateAddressStatuses(env, [])
+    
+    // No assertions needed - just verifying it doesn't throw
+  })
+})
+
+describe('addMissingAddresses', () => {
+  it('adds addresses from indexer_proof_set_rails that are not in address_sanction_check', async () => {
+    // Setup: Clear existing data and add test data
+    await env.DB.prepare('DELETE FROM address_sanction_check').run()
+    await env.DB.prepare('DELETE FROM indexer_proof_set_rails').run()
+    
+    // Insert test data into indexer_proof_set_rails
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)'
+      ).bind('set1', 'rail1', '0x1111111111111111111111111111111111111111', '0x2222222222222222222222222222222222222222', true),
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)'
+      ).bind('set2', 'rail2', '0x3333333333333333333333333333333333333333', '0x4444444444444444444444444444444444444444', true),
+      // Add a duplicate to test the DISTINCT functionality
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)'
+      ).bind('set3', 'rail3', '0x1111111111111111111111111111111111111111', '0x5555555555555555555555555555555555555555', true)
     ])
+    
+    // Pre-existing address in address_sanction_check
+    await env.DB.prepare(
+      'INSERT INTO address_sanction_check (address, status) VALUES (?, ?)'
+    ).bind('0x1111111111111111111111111111111111111111', 'approved').run()
 
-    // Check that status was updated
-    const status = await getAddressStatus(env, '0x1234567890abcdef1234567890abcdef12345678')
-    expect(status).toBe('sanctioned')
+    // Execute
+    const addedCount = await addMissingAddresses(env)
+
+    // Verify: Should have added 4 new addresses (not the pre-existing one)
+    assert.strictEqual(addedCount, 4)
+    
+    // Check that all addresses were added with 'pending' status
+    const results = await env.DB.prepare(
+      'SELECT address, status FROM address_sanction_check'
+    ).all()
+    
+    // Should have 5 total addresses (1 pre-existing + 4 new)
+    assert.strictEqual(results.results.length, 5)
+    
+    // Verify all expected addresses exist
+    const addresses = results.results.map(r => r.address)
+    assert.ok(addresses.includes('0x1111111111111111111111111111111111111111'))
+    assert.ok(addresses.includes('0x2222222222222222222222222222222222222222'))
+    assert.ok(addresses.includes('0x3333333333333333333333333333333333333333'))
+    assert.ok(addresses.includes('0x4444444444444444444444444444444444444444'))
+    assert.ok(addresses.includes('0x5555555555555555555555555555555555555555'))
+    
+    // Check that new addresses have 'pending' status
+    const pending = results.results.filter(r => r.status === 'pending')
+    assert.strictEqual(pending.length, 4)
+    
+    // Pre-existing address should still have its original status
+    const preExisting = results.results.find(r => 
+      r.address === '0x1111111111111111111111111111111111111111')
+    assert.strictEqual(preExisting.status, 'approved')
   })
 
-  it('should return null for unknown addresses', async () => {
-    const status = await getAddressStatus(env, '0x9999999999999999999999999999999999999999')
-    expect(status).toBeNull()
+  it('returns 0 when no new addresses are found', async () => {
+    // Setup: Ensure all addresses are already in address_sanction_check
+    await addMissingAddresses(env) // First call to add all missing addresses
+    
+    // Execute again - should find no new addresses
+    const addedCount = await addMissingAddresses(env)
+    
+    // Verify: Should have added 0 new addresses
+    assert.strictEqual(addedCount, 0)
   })
 })

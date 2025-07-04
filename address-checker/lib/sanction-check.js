@@ -3,11 +3,13 @@ import { isValidEthereumAddress } from '../../retriever/lib/address.js'
 /**
  * Check a list of Ethereum addresses against the Chainalysis API
  * 
- * @param {string[]} addresses Array of Ethereum addresses to check
- * @param {string} apiKey Chainalysis API key
- * @returns {Promise<Array<{address: string, status: 'sanctioned'|'approved'|'pending'}>}
+ * @param {string[]} addresses - Array of Ethereum addresses to check
+ * @param {string} apiKey - Chainalysis API key
+ * @param {Object} options - Additional options
+ * @param {Function} [options.fetch] - Custom fetch function for testing
+ * @returns {Promise<Array<{address: string, status: 'sanctioned'|'approved'|'pending'}>>}
  */
-export async function checkAddresses(addresses, apiKey) {
+export async function checkAddresses(addresses, apiKey, { fetch = globalThis.fetch } = {}) {
     // Filter out any invalid addresses
     const validAddresses = addresses.filter(isValidEthereumAddress)
 
@@ -15,76 +17,61 @@ export async function checkAddresses(addresses, apiKey) {
         return []
     }
 
-    // Process in batches to avoid hitting API rate limits
-    const batchSize = 25 // Adjust based on Chainalysis API batch limits
     const results = []
-
-    for (let i = 0; i < validAddresses.length; i += batchSize) {
-        const batch = validAddresses.slice(i, i + batchSize)
-        const batchResults = await processAddressBatch(batch, apiKey)
-        results.push(...batchResults)
-
-        // Add a small delay between batches to respect API rate limits
-        if (i + batchSize < validAddresses.length) {
-            await new Promise(resolve => setTimeout(resolve, 1000))
-        }
+    for (const address of validAddresses) {
+        const sanctionCheck = await fetchChainalysisSanctions(address, apiKey, { fetch })
+        results.push(sanctionCheck)
     }
 
     return results
 }
 
 /**
- * Process a batch of addresses with the Chainalysis API
+ * Check a single address with the Chainalysis API
  * 
- * @param {string[]} addresses Batch of addresses to check
- * @param {string} apiKey Chainalysis API key
- * @returns {Promise<Array<{address: string, status: 'sanctioned'|'approved'|'pending'}>}
+ * @param {string} address - Ethereum address to check
+ * @param {string} apiKey - Chainalysis API key
+ * @param {Object} options - Additional options
+ * @param {Function} [options.fetch] - Custom fetch function for testing
+ * @returns {Promise<{address: string, status: 'sanctioned'|'approved'|'pending'}>}
  */
-async function processAddressBatch(addresses, apiKey) {
+async function fetchChainalysisSanctions(address, apiKey, { fetch = globalThis.fetch } = {}) {
     try {
-        const url = 'https://api.chainalysis.com/api/risk/v1/ethereum/addresses'
+        const url = `https://public.chainalysis.com/api/v1/address/${address}`
 
         const response = await fetch(url, {
-            method: 'POST',
+            method: 'GET',
             headers: {
                 'X-API-KEY': apiKey,
-                'Content-Type': 'application/json',
                 'Accept': 'application/json'
-            },
-            body: JSON.stringify({ addresses })
+            }
         })
 
         if (!response.ok) {
             console.error(`Chainalysis API error: ${response.status} ${response.statusText}`)
-            // Mark all addresses as pending if the request fails
-            return addresses.map(address => ({
+            // Mark address as pending if the request fails
+            return {
                 address,
                 status: 'pending'
-            }))
+            }
         }
 
         const data = await response.json()
 
-        // Process the response for each address
-        return addresses.map(address => {
-            const addressData = data[address] || {}
+        // If identifications array exists and is not empty, the address is sanctioned
+        const isSanctioned = data.identifications &&
+            data.identifications.length > 0
 
-            // Map Chainalysis response to our internal status format
-            const isSanctioned = addressData.risk?.category === 'sanctions' ||
-                (addressData.identifications &&
-                    addressData.identifications.some(id => id.category === 'sanctions'))
-
-            return {
-                address,
-                status: isSanctioned ? 'sanctioned' : 'approved'
-            }
-        })
+        return {
+            address,
+            status: isSanctioned ? 'sanctioned' : 'approved'
+        }
     } catch (error) {
-        console.error('Error checking addresses:', error)
-        // Mark all addresses as pending if there's an exception
-        return addresses.map(address => ({
+        console.error('Error checking address:', error)
+        // Mark address as pending if there's an exception
+        return {
             address,
             status: 'pending'
-        }))
+        }
     }
 }
