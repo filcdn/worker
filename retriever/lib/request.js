@@ -1,4 +1,5 @@
 import { httpAssert } from './http-assert.js'
+/** @typedef {import('../../telemetry/papertrail.js').PapertrailLogger} PapertrailLogger */
 
 /**
  * Parse params found in path of the request URL
@@ -6,14 +7,15 @@ import { httpAssert } from './http-assert.js'
  * @param {Request} request
  * @param {object} options
  * @param {string} options.DNS_ROOT
+ * @param {PapertrailLogger | Console} [options.logger]
  * @returns {{
  *   clientWalletAddress?: string
  *   rootCid?: string
  * }}
  */
-export function parseRequest(request, { DNS_ROOT }) {
+export function parseRequest(request, { DNS_ROOT, logger = console }) {
   const url = new URL(request.url)
-  console.log('retrieval request', { DNS_ROOT, url })
+  logger.log('retrieval request', { DNS_ROOT, url })
 
   httpAssert(
     url.hostname.endsWith(DNS_ROOT),
