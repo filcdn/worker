@@ -11,7 +11,9 @@ export async function logTailEvents(tailEvent, env) {
     !env.ENVIRONMENT ||
     env.ENVIRONMENT !== 'calibration '
   ) {
-    console.warn('PAPERTRAIL_API_TOKEN is not set, skipping logging')
+    console.warn(
+      'PAPERTRAIL_API_TOKEN or ENVIRONMENT is not set correctly, skipping logging',
+    )
     return
   }
   for (const trace of tailEvent.events) {
