@@ -1,6 +1,6 @@
 /**
  * Get all addresses with 'pending' status that need to be checked
- * 
+ *
  * @param {Env} env - Environment with DB binding
  * @returns {Promise<string[]>} Array of Ethereum addresses with pending status
  */
@@ -15,14 +15,19 @@ export async function getAddressesToCheck(env) {
   const { results } = await statement.all()
 
   // Extract addresses from the results
-  return results.map(row => String(row.address))
+  return results.map((row) => String(row.address))
 }
 
 /**
  * Update the sanction status for multiple addresses
- * 
+ *
  * @param {Env} env - Environment with DB binding
- * @param {Array<{address: string, status: 'sanctioned'|'approved'|'pending'}>} addressResults - Results from sanction check
+ * @param {{
+ *   address: string
+ *   status: 'sanctioned' | 'approved' | 'pending'
+ * }[]} addressResults
+ *   - Results from sanction check
+ *
  * @returns {Promise<void>}
  */
 export async function updateAddressStatuses(env, addressResults) {
@@ -31,12 +36,14 @@ export async function updateAddressStatuses(env, addressResults) {
 
   for (const { address, status } of addressResults) {
     batch.push(
-      env.DB.prepare(`
+      env.DB.prepare(
+        `
         INSERT INTO address_sanction_check (address, status)
         VALUES (?, ?)
         ON CONFLICT (address) DO UPDATE
         SET status = excluded.status
-      `).bind(address.toLowerCase(), status)
+      `,
+      ).bind(address.toLowerCase(), status),
     )
   }
 
@@ -47,7 +54,7 @@ export async function updateAddressStatuses(env, addressResults) {
 
 /**
  * Add missing addresses from indexer_proof_set_rails to address_sanction_check
- * 
+ *
  * @param {Env} env - Environment with DB binding
  * @returns {Promise<number>} Number of addresses added
  */
@@ -55,7 +62,8 @@ export async function addMissingAddresses(env) {
   // Find addresses in indexer_proof_set_rails that are missing from address_sanction_check
   // and insert them with 'pending' status
 
-  const result = await env.DB.prepare(`
+  const result = await env.DB.prepare(
+    `
     INSERT INTO address_sanction_check (address, status)
     SELECT DISTINCT lower(address), 'pending' FROM (
       SELECT DISTINCT payer as address FROM indexer_proof_set_rails
@@ -66,7 +74,10 @@ export async function addMissingAddresses(env) {
       SELECT 1 FROM address_sanction_check
       WHERE address_sanction_check.address = unique_addresses.address
     )
-  `).bind().run()
+  `,
+  )
+    .bind()
+    .run()
 
   return result.meta?.changes || 0
 }

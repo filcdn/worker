@@ -1,3 +1,3 @@
 import { defineWorkspace } from 'vitest/config'
 
-export default defineWorkspace(['indexer', 'retriever','address-checker'])
+export default defineWorkspace(['indexer', 'retriever', 'address-checker'])
