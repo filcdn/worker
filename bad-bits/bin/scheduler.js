@@ -1,7 +1,6 @@
 import { fetchAndStoreBadBits } from '../lib/badbits.js'
 
 export default {
-  // Scheduled handler that runs every 5 minutes
   async scheduled(_controller, env, _ctx) {
     console.log('Running scheduled badbits update...')
     try {
