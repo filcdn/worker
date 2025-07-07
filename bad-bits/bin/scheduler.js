@@ -8,6 +8,7 @@ export default {
       console.log('Updated badbits denylist')
     } catch (error) {
       console.error('Failed to update badbits denylist:', error)
+      throw error
     }
   },
 }

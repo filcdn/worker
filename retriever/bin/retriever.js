@@ -5,7 +5,11 @@ import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
-import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
+import {
+  getOwnerAndValidateClient,
+  getProviderUrl,
+  logRetrievalResult,
+} from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 
 export default {
@@ -70,15 +74,15 @@ export default {
     )
 
     httpAssert(
-      ownerAddress &&
-        Object.prototype.hasOwnProperty.call(
-          OWNER_TO_RETRIEVAL_URL_MAPPING,
-          ownerAddress,
-        ),
+      ownerAddress,
       404,
       `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
     )
-    const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
+
+    // Check the owner URL mapping and fall back to the database if not found
+    const spURL =
+      OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]?.url ||
+      (await getProviderUrl(ownerAddress, env))
     const { response, cacheMiss } = await retrieveFile(
       spURL,
       rootCid,
