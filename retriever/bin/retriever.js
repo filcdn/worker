@@ -11,7 +11,7 @@ import {
   logRetrievalResult,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
-import { handleTailEvents } from '../../logging/papertrail.js'
+import { handleTailEvent } from '../../logging/papertrail.js'
 
 export default {
   /**
@@ -171,9 +171,9 @@ export default {
 
     const message =
       errHasStatus &&
-      status < 500 &&
-      'message' in error &&
-      typeof error.message === 'string'
+        status < 500 &&
+        'message' in error &&
+        typeof error.message === 'string'
         ? error.message
         : 'Internal Server Error'
     if (status >= 500) {
@@ -189,6 +189,6 @@ export default {
    * @param {typeof globalThis.fetch} [options.fetch]
    */
   async tail(tailEvent, env, ctx, { fetch = global.fetch } = {}) {
-    await handleTailEvents(tailEvent, env)
+    await handleTailEvent(tailEvent, env)
   },
 }

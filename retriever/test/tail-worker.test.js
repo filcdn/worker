@@ -405,7 +405,7 @@ describe('Tail worker logging', () => {
     const mockTailEvent = {
       events: [
         {
-          outcome: 'outcome',
+          outcome: 'error',
           logs: [
             {
               timestamp: Date.now(),
@@ -431,13 +431,13 @@ describe('Tail worker logging', () => {
 
     // Verify console methods were called
     expect(consoleLogSpy).toHaveBeenCalledWith('Request processing started', {
-      outcome: 'outcome',
+      outcome: 'error',
     })
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Exception: Failed to process request',
       {
         name: 'TypeError',
-        outcome: 'outcome',
+        outcome: 'error',
         stack:
           'TypeError: Failed to process request\n    at processRequest (/worker.js:42:10)',
       },
@@ -455,7 +455,7 @@ describe('Tail worker logging', () => {
     expect(logBodies[0]).toMatchObject({
       message: 'Request processing started',
       level: 'info',
-      outcome: 'outcome',
+      outcome: 'error',
     })
 
     // Second call should be the exception
@@ -464,7 +464,7 @@ describe('Tail worker logging', () => {
       level: 'error',
       name: 'TypeError',
       stack: expect.stringContaining('TypeError: Failed to process request'),
-      outcome: 'outcome',
+      outcome: 'error',
     })
 
     // Clean up
