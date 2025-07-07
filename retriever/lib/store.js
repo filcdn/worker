@@ -1,4 +1,3 @@
-import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
 import { httpAssert } from './http-assert.js'
 
 /**
@@ -72,7 +71,7 @@ export async function logRetrievalResult(env, params) {
 }
 
 /**
- * Retrieves the approved owner address for a given root CID.
+ * Retrieves the owner address for a given root CID.
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
@@ -81,10 +80,6 @@ export async function logRetrievalResult(env, params) {
  *   address or a descriptive error
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
-  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
-    (owner) => owner.toLowerCase(),
-  )
-
   const query = `
    SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn
    FROM indexer_roots ir
@@ -120,14 +115,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `Root_cid '${rootCid}' exists but has no associated owner.`,
   )
 
-  const approved = withOwner.filter((row) => approvedOwners.includes(row.owner))
-  httpAssert(
-    approved.length > 0,
-    404,
-    `Root_cid '${rootCid}' exists but has no approved owner.`,
-  )
-
-  const withPaymentRail = approved.filter(
+  const withPaymentRail = withOwner.filter(
     (row) => row.payer && row.payer.toLowerCase() === clientAddress,
   )
   httpAssert(
@@ -152,4 +140,31 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   )
 
   return owner
+}
+
+/**
+ * Looks up the provider's URL in the database.
+ *
+ * @param {string} provider The Ethereum address of the provider.
+ * @param {Env} env The environment containing the database connection.
+ * @returns {Promise<string>} The URL associated with the provider.
+ * @throws {Error} If the provider is not found or does not have a valid URL.
+ */
+export async function getProviderUrl(provider, env) {
+  /** @type {{ piece_retrieval_url: string } | null} */
+  const result = await env.DB.prepare(
+    'SELECT piece_retrieval_url FROM provider_urls WHERE address = ? ORDER BY address LIMIT 1',
+  )
+    .bind(provider.toLowerCase()) // Ensure the address is lowercased
+    .first()
+
+  if (!result) {
+    httpAssert(
+      false,
+      404,
+      `Storage Provider (PDP ProofSet Provider) not found: ${provider}`,
+    )
+  }
+
+  return result.piece_retrieval_url
 }
