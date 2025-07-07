@@ -32,6 +32,5 @@ export async function fetchAndStoreBadBits(
       }
     }
   }
-  const updateResult = await updateBadBitsDatabase(env, currentBadHashes)
-  return updateResult
+  await updateBadBitsDatabase(env, currentBadHashes)
 }
