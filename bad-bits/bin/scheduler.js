@@ -10,6 +10,7 @@ export default {
       )
     } catch (error) {
       console.error('Failed to update badbits denylist:', error)
+      throw error
     }
   },
 }
