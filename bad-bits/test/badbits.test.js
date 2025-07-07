@@ -1,6 +1,6 @@
 import { describe, it, beforeAll, expect } from 'vitest'
 import { fetchAndStoreBadBits } from '../lib/badbits.js'
-import { getAllBadBitHashes } from '../lib/store.js'
+import { getAllBadBitHashes } from './util.js'
 import { env } from 'cloudflare:test'
 import { testData } from './testData.js'
 
@@ -20,7 +20,7 @@ describe('fetchAndStoreBadBits', () => {
         .filter(Boolean),
     )
 
-    const result = await fetchAndStoreBadBits(env, {
+    await fetchAndStoreBadBits(env, {
       fetch: () =>
         new Response(text, { headers: { 'Content-Type': 'text/plain' } }),
     })
@@ -28,8 +28,6 @@ describe('fetchAndStoreBadBits', () => {
 
     // Verify the database contains the expected hashes
     expect(storedHashes).toEqual(expectedHashes)
-    expect(result.added).toBe(expectedHashes.size)
-    expect(result.removed).toBe(0)
   })
 
   it('removes hashes not in the current denylist', async () => {
@@ -50,15 +48,13 @@ describe('fetchAndStoreBadBits', () => {
         .filter(Boolean),
     )
 
-    const result = await fetchAndStoreBadBits(env, {
+    await fetchAndStoreBadBits(env, {
       fetch: () =>
         new Response(text, { headers: { 'Content-Type': 'text/plain' } }),
     })
     const storedHashes = new Set(await getAllBadBitHashes(env))
 
     // Verify the database contains only the current hashes
-    expect(result.added).toBe(currentHashes.size)
-    expect(result.removed).toBe(initialHashes.length)
     expect(storedHashes).toEqual(currentHashes)
   })
   it(
@@ -69,7 +65,7 @@ describe('fetchAndStoreBadBits', () => {
         await fetch('https://badbits.dwebops.pub/badbits.deny')
       ).text()
 
-      const result = await fetchAndStoreBadBits(env, {
+      await fetchAndStoreBadBits(env, {
         fetch: () =>
           new Response(bits, { headers: { 'Content-Type': 'text/plain' } }),
       })
@@ -80,9 +76,7 @@ describe('fetchAndStoreBadBits', () => {
       const storedHashes = new Set(await getAllBadBitHashes(env))
 
       // Verify the database contains the expected hashes
-      expect(storedHashes.size).toBe(result.added)
-      expect(result.removed).toBe(0)
-      expect(result.added).toBeGreaterThan(0)
+      expect(storedHashes.size).toBeGreaterThan(0)
 
       // Choose a random hash from the real denylist file to verify it's in the database
       const { hash } = await env.DB.prepare(

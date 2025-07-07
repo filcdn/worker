@@ -1,6 +1,7 @@
 import { describe, it, beforeAll, expect } from 'vitest'
-import { updateBadBitsDatabase, getAllBadBitHashes } from '../lib/store.js'
+import { updateBadBitsDatabase } from '../lib/store.js'
 import { env } from 'cloudflare:test'
+import { getAllBadBitHashes } from './util.js'
 
 describe('updateBadBitsDatabase', () => {
   beforeAll(async () => {
@@ -11,13 +12,11 @@ describe('updateBadBitsDatabase', () => {
   it('adds new hashes to the database', async () => {
     const currentHashes = new Set(['hash1', 'hash2', 'hash3'])
 
-    const result = await updateBadBitsDatabase(env, currentHashes)
+    await updateBadBitsDatabase(env, currentHashes)
     const storedHashes = new Set(await getAllBadBitHashes(env))
 
     // Verify the database contains the new hashes
     expect(storedHashes).toEqual(currentHashes)
-    expect(result.added).toBe(currentHashes.size)
-    expect(result.removed).toBe(0)
   })
 
   it('removes hashes not in the current set', async () => {
@@ -31,13 +30,11 @@ describe('updateBadBitsDatabase', () => {
 
     const currentHashes = new Set(['hash2', 'hash4'])
 
-    const result = await updateBadBitsDatabase(env, currentHashes)
+    await updateBadBitsDatabase(env, currentHashes)
     const storedHashes = new Set(await getAllBadBitHashes(env))
 
     // Verify the database contains only the current hashes
     expect(storedHashes).toEqual(currentHashes)
-    expect(result.added).toBe(1) // 'hash4' added
-    expect(result.removed).toBe(2) // 'hash1' and 'hash3' removed
     expect(storedHashes.has('hash1')).toBe(false)
     expect(storedHashes.has('hash3')).toBe(false)
     expect(storedHashes.has('hash2')).toBe(true)
@@ -54,12 +51,10 @@ describe('updateBadBitsDatabase', () => {
       ),
     )
 
-    const result = await updateBadBitsDatabase(env, currentHashes)
+    await updateBadBitsDatabase(env, currentHashes)
     const storedHashes = new Set(await getAllBadBitHashes(env))
 
     // Verify the database remains unchanged
     expect(storedHashes).toEqual(currentHashes)
-    expect(result.added).toBe(0)
-    expect(result.removed).toBe(0)
   })
 })
