@@ -90,27 +90,6 @@ describe('getOwnerAndValidateClient', () => {
     )
   })
 
-  it('throws error if owner exists but is not approved', async () => {
-    const cid = 'cid-unapproved'
-    const setId = 'set-unapproved'
-    const owner = '0x0000000000000000000000000000000000000000' // not in approved list
-    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-
-    await env.DB.batch([
-      env.DB.prepare(
-        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-      ).bind(setId, owner),
-      env.DB.prepare(
-        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-      ).bind('root-2', setId, cid),
-    ])
-
-    await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
-      /exists but has no approved owner/,
-    )
-  })
-
   it('returns error if no payment rail', async () => {
     const cid = 'cid-unapproved'
     const setId = 'set-unapproved'
@@ -220,26 +199,25 @@ describe('getOwnerAndValidateClient', () => {
     const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
     assert.strictEqual(owner, expectedOwner)
   })
-
-  it('returns only the approved owner when multiple owners share the same rootCid', async () => {
+  it('returns the owner first in the ordering when multiple owners share the same rootCid', async () => {
     const setId1 = 'set-a'
     const setId2 = 'set-b'
     const rootCid = 'shared-root-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-
-    const unapprovedOwner = '0xUnapprovedabcdef1234567890abcdef1234567899'
+    const owner1 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e7'
+    const owner2 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
 
     // Insert both owners into separate sets with the same rootCid
     await env.DB.prepare(
       'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
     )
-      .bind(setId1, APPROVED_OWNER_ADDRESS)
+      .bind(setId1, owner1)
       .run()
 
     await env.DB.prepare(
       'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
     )
-      .bind(setId2, unapprovedOwner)
+      .bind(setId2, owner2)
       .run()
 
     // Insert same rootCid for both sets
@@ -258,16 +236,16 @@ describe('getOwnerAndValidateClient', () => {
     await env.DB.prepare(
       'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(setId2, 'rail-b', clientAddress, APPROVED_OWNER_ADDRESS, true)
+      .bind(setId2, 'rail-b', clientAddress, owner1, true)
       .run()
     await env.DB.prepare(
       'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(setId1, 'rail-a', clientAddress, unapprovedOwner, true)
+      .bind(setId1, 'rail-a', clientAddress, owner2, true)
       .run()
 
-    // Should return only the approved owner
+    // Should return only the owner1 which is the first in the ordering
     const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS.toLowerCase())
+    assert.strictEqual(owner, owner1.toLowerCase())
   })
 })
