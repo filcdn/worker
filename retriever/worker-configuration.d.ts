@@ -10,8 +10,8 @@ declare namespace Cloudflare {
   }
 }
 interface Env extends Cloudflare.Env {
-    SERVICE_NAME: any;
-    PAPERTRAIL_API_TOKEN: any;
+  SERVICE_NAME: any
+  PAPERTRAIL_API_TOKEN: any
 }
 
 // Begin runtime types

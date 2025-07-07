@@ -1,10 +1,17 @@
 /**
  * Logs and forwards events from a Tail Worker event.
  *
- * @param {TailEvent} tailEvent
- * @param {Env} env
+ * @param {TailEvent} tailEvent - The tail event containing logs
+ * @param {Env} env - Environment variables
+ * @param {object} options
+ * @param {typeof globalThis.fetch} [options.fetch]
+ * @returns {Promise<void>}
  */
-export async function logTailEvents(tailEvent, env) {
+export async function logTailEvents(
+  tailEvent,
+  env,
+  { fetch = global.fetch } = {},
+) {
   if (
     !env ||
     !env.PAPERTRAIL_API_TOKEN ||
@@ -12,7 +19,7 @@ export async function logTailEvents(tailEvent, env) {
     env.ENVIRONMENT !== 'calibration '
   ) {
     console.warn(
-      'PAPERTRAIL_API_TOKEN or ENVIRONMENT is not set correctly, skipping logging',
+      'PAPERTRAIL_API_TOKEN or ENVIRONMENT is not set correctly, skipping forwarding logs to Papertrail',
     )
     return
   }
@@ -26,7 +33,7 @@ export async function logTailEvents(tailEvent, env) {
         ...log,
       }
 
-      await sendToPapertrail(payload, env)
+      await sendToPapertrail(payload, env, { fetch })
     }
   }
 }
@@ -34,10 +41,13 @@ export async function logTailEvents(tailEvent, env) {
 /**
  * Sends a structured log to Papertrail.
  *
- * @param {Record<string, any>} data
- * @param {Env} env
+ * @param {Record<string, any>} data - The log data to send
+ * @param {Env} env - Environment variables
+ * @param {object} options
+ * @param {typeof globalThis.fetch} [options.fetch]
+ * @returns {Promise<void>}
  */
-async function sendToPapertrail(data, env) {
+async function sendToPapertrail(data, env, { fetch = global.fetch } = {}) {
   const paperTrailURl =
     'https://logs.collector.na-01.cloud.solarwinds.com/v1/logs'
   try {

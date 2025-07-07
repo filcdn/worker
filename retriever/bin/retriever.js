@@ -185,8 +185,10 @@ export default {
    * @param {TailEvent} tailEvent
    * @param {Env} env
    * @param {ExecutionContext} ctx
+   * @param {object} options
+   * @param {typeof globalThis.fetch} [options.fetch]
    */
-  async tail(tailEvent, env, ctx) {
+  async tail(tailEvent, env, ctx, { fetch = global.fetch } = {}) {
     await logTailEvents(tailEvent, env)
   },
 }
