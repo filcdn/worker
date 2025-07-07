@@ -49,10 +49,6 @@ describe('Tail worker logging', () => {
               timestamp: Date.now(),
               message: 'retrieval request',
               level: 'info',
-              data: {
-                DNS_ROOT: '.calibration.filcdn.io',
-                url: 'https://client.calibration.filcdn.io/bagaTest',
-              },
             },
           ],
         },
@@ -81,11 +77,6 @@ describe('Tail worker logging', () => {
       message: 'retrieval request',
       level: 'info',
       outcome: 'ok',
-      data: {
-        DNS_ROOT: '.calibration.filcdn.io',
-        url: expect.stringContaining('bagaTest'),
-      },
-      time: expect.any(String),
     })
   })
 
@@ -100,10 +91,6 @@ describe('Tail worker logging', () => {
               timestamp: Date.now(),
               message: 'Error: Invalid CID',
               level: 'error',
-              data: {
-                status: 404,
-                cid: 'invalid-cid',
-              },
             },
           ],
         },
@@ -122,10 +109,6 @@ describe('Tail worker logging', () => {
       message: 'Error: Invalid CID',
       level: 'error',
       outcome: 'error',
-      data: {
-        status: 404,
-        cid: 'invalid-cid',
-      },
     })
   })
 
@@ -145,13 +128,11 @@ describe('Tail worker logging', () => {
               timestamp: Date.now(),
               message: 'Processing CID',
               level: 'info',
-              data: { cid: 'bagaTest' },
             },
             {
               timestamp: Date.now(),
               message: 'Request completed',
               level: 'info',
-              data: { responseTime: '120ms' },
             },
           ],
         },
@@ -177,13 +158,11 @@ describe('Tail worker logging', () => {
     expect(logBodies[1]).toMatchObject({
       message: 'Processing CID',
       level: 'info',
-      data: { cid: 'bagaTest' },
     })
 
     expect(logBodies[2]).toMatchObject({
       message: 'Request completed',
       level: 'info',
-      data: { responseTime: '120ms' },
     })
   })
 

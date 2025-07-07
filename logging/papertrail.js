@@ -28,7 +28,6 @@ export async function logTailEvents(
 
     for (const log of logs) {
       const payload = {
-        time: new Date(log.timestamp).toISOString(),
         outcome: trace.outcome,
         ...log,
       }
