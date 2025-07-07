@@ -10,20 +10,20 @@ export async function updateBadBitsDatabase(env, currentHashes) {
     const now = new Date()
     await env.DB.batch(
       [
-        currentHashes.map((hash) =>
+        Array.from(currentHashes).map((hash) =>
           env.DB.prepare(
             `
-          INSERT INTO badbits (hash) VALUES (?)
+          INSERT INTO badbits (hash, last_modified_at) VALUES (?, ?)
           ON CONFLICT(hash) DO UPDATE SET last_modified_at = ?
         `,
-          ).bind(hash, now.toISOString()),
+          ).bind(hash, now.toISOString(), now.toISOString()),
         ),
         env.DB.prepare(
           `
         DELETE FROM badbits WHERE last_modified_at < ?
       `,
         ).bind(now.toISOString()),
-      ].flatMap(),
+      ].flat(),
     )
   } catch (error) {
     console.error('Error updating badbits database:', error)

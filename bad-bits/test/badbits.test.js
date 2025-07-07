@@ -35,7 +35,9 @@ describe('fetchAndStoreBadBits', () => {
     const initialHashes = ['hash1', 'hash2', 'hash3']
     await env.DB.batch(
       initialHashes.map((hash) =>
-        env.DB.prepare('INSERT INTO badbits (hash) VALUES (?)').bind(hash),
+        env.DB.prepare(
+          'INSERT INTO badbits (hash, last_modified_at) VALUES (?, ?)',
+        ).bind(hash, new Date().toISOString()),
       ),
     )
 

@@ -22,9 +22,12 @@ describe('updateBadBitsDatabase', () => {
   it('removes hashes not in the current set', async () => {
     // Insert some initial hashes into the database
     const initialHashes = ['hash1', 'hash2', 'hash3']
+    const now = '2020-01-01T00:00:00.000Z'
     await env.DB.batch(
       initialHashes.map((hash) =>
-        env.DB.prepare('INSERT INTO badbits (hash) VALUES (?)').bind(hash),
+        env.DB.prepare(
+          'INSERT INTO badbits (hash, last_modified_at) VALUES (?, ?)',
+        ).bind(hash, now),
       ),
     )
 
@@ -43,11 +46,14 @@ describe('updateBadBitsDatabase', () => {
 
   it('does not modify the database if hashes are unchanged', async () => {
     const currentHashes = new Set(['hash1', 'hash2', 'hash3'])
+    const now = '2020-01-01T00:00:00.000Z'
 
     // Insert the same hashes into the database
     await env.DB.batch(
       [...currentHashes].map((hash) =>
-        env.DB.prepare('INSERT INTO badbits (hash) VALUES (?)').bind(hash),
+        env.DB.prepare(
+          'INSERT INTO badbits (hash, last_modified_at) VALUES (?, ?)',
+        ).bind(hash, now),
       ),
     )
 
