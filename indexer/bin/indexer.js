@@ -99,17 +99,17 @@ export default {
       const rootCids = payload.root_cids
         ? payload.root_cids.split(',')
         : await Promise.all(
-          rootIds.map(async (rootId) => {
-            try {
-              return await pdpVerifier.getRootCid(setId, BigInt(rootId))
-            } catch (/** @type {any} */ err) {
-              console.error(
-                `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
-              )
-              throw err
-            }
-          }),
-        )
+            rootIds.map(async (rootId) => {
+              try {
+                return await pdpVerifier.getRootCid(setId, BigInt(rootId))
+              } catch (/** @type {any} */ err) {
+                console.error(
+                  `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
+                )
+                throw err
+              }
+            }),
+          )
 
       console.log(
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
@@ -122,9 +122,9 @@ export default {
             root_cid
           )
           VALUES ${new Array(rootIds.length)
-          .fill(null)
-          .map(() => '(?, ?, ?)')
-          .join(', ')}
+            .fill(null)
+            .map(() => '(?, ?, ?)')
+            .join(', ')}
           ON CONFLICT DO NOTHING
         `,
       )

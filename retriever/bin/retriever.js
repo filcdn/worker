@@ -171,9 +171,9 @@ export default {
 
     const message =
       errHasStatus &&
-        status < 500 &&
-        'message' in error &&
-        typeof error.message === 'string'
+      status < 500 &&
+      'message' in error &&
+      typeof error.message === 'string'
         ? error.message
         : 'Internal Server Error'
     if (status >= 500) {
