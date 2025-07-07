@@ -270,6 +270,7 @@ describe('Tail worker logging', () => {
     // Clean up
     consoleWarnSpy.mockRestore()
   })
+
   it('should skip logging when api token is not configured', async () => {
     // Spy on console.warn
     const consoleWarnSpy = vi.spyOn(console, 'warn')
@@ -304,5 +305,188 @@ describe('Tail worker logging', () => {
 
     // Clean up
     consoleWarnSpy.mockRestore()
+  })
+
+  it('should log to both console and Papertrail', async () => {
+    // Spy on console.log
+    const consoleLogSpy = vi.spyOn(console, 'info')
+
+    // Simulate a tail event
+    const mockTailEvent = {
+      events: [
+        {
+          outcome: 'ok',
+          logs: [
+            {
+              timestamp: Date.now(),
+              message: 'Console and Papertrail test',
+              level: 'info',
+            },
+          ],
+        },
+      ],
+    }
+
+    // Call the tail function
+    await worker.tail(mockTailEvent, env, ctx)
+
+    // Verify console was logged to
+    expect(consoleLogSpy).toHaveBeenCalled()
+    expect(consoleLogSpy).toHaveBeenCalledWith('Console and Papertrail test', {
+      outcome: 'ok',
+    })
+
+    // Verify fetch was also called
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    // Clean up
+    consoleLogSpy.mockRestore()
+  })
+
+  it('should handle exceptions in tail events', async () => {
+    // Spy on console.error
+    const consoleErrorSpy = vi.spyOn(console, 'error')
+
+    // Simulate a tail event with exceptions
+    const mockTailEvent = {
+      events: [
+        {
+          outcome: 'error',
+          exceptions: [
+            {
+              timestamp: Date.now(),
+              message: 'Uncaught error in worker',
+              name: 'Error',
+              stack:
+                'Error: Uncaught error in worker\n    at Object.fetch (/worker.js:25:15)',
+            },
+          ],
+        },
+      ],
+    }
+
+    // Call the tail function
+    await worker.tail(mockTailEvent, env, ctx)
+
+    // Verify console.error was called for the exception
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Exception: Uncaught error in worker',
+      expect.objectContaining({
+        stack: expect.stringContaining('Error: Uncaught error in worker'),
+        name: 'Error',
+        outcome: 'error',
+      }),
+    )
+
+    // Verify fetch was called to send to Papertrail
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    // Verify exception details were sent to Papertrail
+    const logBody = JSON.parse(fetchSpy.mock.calls[0][1].body)
+    expect(logBody).toMatchObject({
+      level: 'error',
+      message: 'Exception: Uncaught error in worker',
+      name: 'Error',
+      stack: expect.stringContaining('Error: Uncaught error in worker'),
+      outcome: 'error',
+    })
+
+    // Clean up
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('should handle both logs and exceptions in the same trace', async () => {
+    // Spy on console methods
+    const consoleLogSpy = vi.spyOn(console, 'info')
+    const consoleErrorSpy = vi.spyOn(console, 'error')
+
+    // Simulate a tail event with both logs and exceptions
+    const mockTailEvent = {
+      events: [
+        {
+          outcome: 'outcome',
+          logs: [
+            {
+              timestamp: Date.now(),
+              message: 'Request processing started',
+              level: 'info',
+            },
+          ],
+          exceptions: [
+            {
+              timestamp: Date.now(),
+              message: 'Failed to process request',
+              name: 'TypeError',
+              stack:
+                'TypeError: Failed to process request\n    at processRequest (/worker.js:42:10)',
+            },
+          ],
+        },
+      ],
+    }
+
+    // Call the tail function
+    await worker.tail(mockTailEvent, env, ctx)
+
+    // Verify console methods were called
+    expect(consoleLogSpy).toHaveBeenCalledWith('Request processing started', {
+      outcome: 'outcome',
+    })
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Exception: Failed to process request',
+      {
+        name: 'TypeError',
+        outcome: 'outcome',
+        stack:
+          'TypeError: Failed to process request\n    at processRequest (/worker.js:42:10)',
+      },
+    )
+
+    // Verify fetch was called twice (once for the log, once for the exception)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+
+    // Verify log content
+    const logBodies = fetchSpy.mock.calls.map((call) =>
+      JSON.parse(call[1].body),
+    )
+
+    // First call should be the log
+    expect(logBodies[0]).toMatchObject({
+      message: 'Request processing started',
+      level: 'info',
+      outcome: 'outcome',
+    })
+
+    // Second call should be the exception
+    expect(logBodies[1]).toMatchObject({
+      message: 'Exception: Failed to process request',
+      level: 'error',
+      name: 'TypeError',
+      stack: expect.stringContaining('TypeError: Failed to process request'),
+      outcome: 'outcome',
+    })
+
+    // Clean up
+    consoleLogSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('should handle trace events with no logs or exceptions gracefully', async () => {
+    // Simulate a tail event with no logs or exceptions
+    const mockTailEvent = {
+      events: [
+        {
+          outcome: 'ok',
+          // No logs or exceptions fields
+        },
+      ],
+    }
+
+    // Call the tail function
+    await worker.tail(mockTailEvent, env, ctx)
+
+    // Verify fetch was not called
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 })

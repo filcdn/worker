@@ -11,7 +11,7 @@ import {
   logRetrievalResult,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
-import { logTailEvents } from '../../logging/papertrail.js'
+import { handleTailEvents } from '../../logging/papertrail.js'
 
 export default {
   /**
@@ -189,6 +189,6 @@ export default {
    * @param {typeof globalThis.fetch} [options.fetch]
    */
   async tail(tailEvent, env, ctx, { fetch = global.fetch } = {}) {
-    await logTailEvents(tailEvent, env)
+    await handleTailEvents(tailEvent, env)
   },
 }

@@ -3,7 +3,7 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
-import { logTailEvents } from '../../logging/papertrail.js'
+import { handleTailEvents } from '../../logging/papertrail.js'
 
 export default {
   /**
@@ -198,6 +198,6 @@ export default {
    * @param {typeof globalThis.fetch} [options.fetch]
    */
   async tail(tailEvent, env, ctx, { fetch = global.fetch } = {}) {
-    await logTailEvents(tailEvent, env, { fetch })
+    await handleTailEvents(tailEvent, env, { fetch })
   },
 }
