@@ -75,7 +75,8 @@ async function fetchChainalysisSanctions(
 
     const data = await response.json()
 
-    // If identifications array exists and is not empty, the address is sanctioned
+    // If identifications array exists and is not empty, there exists a sanction for this address
+    // We do not look into which sanctions are applied, just whether any exist
     const isSanctioned = data.identifications && data.identifications.length > 0
 
     return {

@@ -36,7 +36,7 @@ export default {
         `Checking ${pendingAddresses.length} pending addresses against Chainalysis API`,
       )
 
-      // Check addresses against Chainalysis API, passing the fetch function
+      // Check addresses against Chainalysis API
       const results = await checkAddresses(
         pendingAddresses,
         env.CHAINALYSIS_API_KEY,

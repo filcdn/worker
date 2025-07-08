@@ -6,10 +6,11 @@
  */
 export async function getAddressesToCheck(env) {
   // Only get addresses that have 'pending' status
+  // Limit to 1_000 addresses to avoid overwhelming the API
   const statement = env.DB.prepare(`
     SELECT address FROM address_sanction_check 
     WHERE status = 'pending'
-    LIMIT 10000
+    LIMIT 1000
   `)
 
   const { results } = await statement.all()
@@ -31,7 +32,6 @@ export async function getAddressesToCheck(env) {
  * @returns {Promise<void>}
  */
 export async function updateAddressStatuses(env, addressResults) {
-  // Use a transaction for better performance and atomicity
   const batch = []
 
   for (const { address, status } of addressResults) {

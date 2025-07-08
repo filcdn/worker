@@ -108,7 +108,6 @@ describe('address-checker', () => {
     )
       .bind(sanctionedAddress.toLowerCase(), nonSanctionedAddress.toLowerCase())
       .all()
-    console.log('Result:', result)
     expect(result.results.length).toBe(2)
 
     // Check that the statuses are correct
@@ -173,19 +172,6 @@ describe('address-checker', () => {
   it.runIf(process.env.GITHUB_ACTIONS)(
     'correctly identifies sanctioned addresses using real API',
     async () => {
-      // If we get here, we're in GitHub Actions CI
-      console.log('Running real API test in GitHub CI environment')
-
-      // Add our test addresses with pending status
-      await env.DB.prepare(
-        `
-      INSERT INTO address_sanction_check (address, status)
-      VALUES 
-        ('${sanctionedAddress}', 'pending'),
-        ('${nonSanctionedAddress}', 'pending')
-    `,
-      ).run()
-
       // Execute worker with the real fetch function (no mocking)
       await worker.scheduled({}, env, {})
 
@@ -212,8 +198,8 @@ describe('address-checker', () => {
       // The sanctioned address should be marked as sanctioned
       expect(sanctionedResult.status).toBe('sanctioned')
 
-      // The non-sanctioned address should be approved (or pending if API had issues)
-      expect(['approved', 'pending']).toContain(nonSanctionedResult.status)
+      // The non-sanctioned address should be approved
+      expect(nonSanctionedResult.status).toBe('approved')
     },
     { timeout: 10000 },
   ) // Increase timeout for real API call
