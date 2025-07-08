@@ -169,7 +169,7 @@ describe('address-checker', () => {
   })
 
   // Integration test with real API
-  if (process.env.GITHUB_ACTION) {
+  if (process.env.CHAINALYSIS_API_KEY) {
     it(
       'correctly identifies sanctioned addresses using real API',
       { timeout: 10000 },

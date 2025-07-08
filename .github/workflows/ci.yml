@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CHAINALYSIS_API_KEY: ${{ secrets.CHAINALYSIS_API_KEY }}
-      GITHUB_ACTION: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
