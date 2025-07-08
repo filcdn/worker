@@ -169,40 +169,38 @@ describe('address-checker', () => {
   })
 
   // Integration test with real API
-  if (process.env.GITHUB_ACTIONS) {
-    it(
-      'correctly identifies sanctioned addresses using real API',
-      { timeout: 10000 },
-      async () => {
-        // Execute worker with the real fetch function (no mocking)
-        await worker.scheduled({}, env, {})
+  it(
+    'correctly identifies sanctioned addresses using real API',
+    { timeout: 10000 },
+    async () => {
+      // Execute worker with the real fetch function (no mocking)
+      await worker.scheduled({}, env, {})
 
-        // Verify the statuses match our expectations
-        const result = await env.DB.prepare(
-          `
+      // Verify the statuses match our expectations
+      const result = await env.DB.prepare(
+        `
       SELECT address, status FROM address_sanction_check
       WHERE address IN (?, ?)
     `,
+      )
+        .bind(
+          sanctionedAddress.toLowerCase(),
+          nonSanctionedAddress.toLowerCase(),
         )
-          .bind(
-            sanctionedAddress.toLowerCase(),
-            nonSanctionedAddress.toLowerCase(),
-          )
-          .all()
+        .all()
 
-        const sanctionedResult = result.results.find(
-          (r) => r.address === sanctionedAddress.toLowerCase(),
-        )
-        const nonSanctionedResult = result.results.find(
-          (r) => r.address === nonSanctionedAddress.toLowerCase(),
-        )
+      const sanctionedResult = result.results.find(
+        (r) => r.address === sanctionedAddress.toLowerCase(),
+      )
+      const nonSanctionedResult = result.results.find(
+        (r) => r.address === nonSanctionedAddress.toLowerCase(),
+      )
 
-        // The sanctioned address should be marked as sanctioned
-        expect(sanctionedResult.status).toBe('sanctioned')
+      // The sanctioned address should be marked as sanctioned
+      expect(sanctionedResult.status).toBe('sanctioned')
 
-        // The non-sanctioned address should be approved
-        expect(nonSanctionedResult.status).toBe('approved')
-      },
-    ) // Increase timeout for real API call
-  }
+      // The non-sanctioned address should be approved
+      expect(nonSanctionedResult.status).toBe('approved')
+    },
+  ) // Increase timeout for real API call
 })
