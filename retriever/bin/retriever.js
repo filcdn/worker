@@ -11,6 +11,7 @@ import {
   logRetrievalResult,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
+import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
 
 export default {
   /**
@@ -121,7 +122,9 @@ export default {
           },
         }),
       )
-      return response
+      const clonedResponse = new Response(response.body, response)
+      setContentSecurityPolicy(clonedResponse)
+      return clonedResponse
     }
 
     // Stream and count bytes
@@ -148,11 +151,13 @@ export default {
     )
 
     // Return immediately, proxying the transformed response
-    return new Response(returnedStream, {
+    const clonedResponse = new Response(returnedStream, {
       status: response.status,
       statusText: response.statusText,
       headers: response.headers,
     })
+    setContentSecurityPolicy(clonedResponse)
+    return clonedResponse
   },
 
   /**
