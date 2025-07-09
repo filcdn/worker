@@ -70,6 +70,20 @@ describe('retriever.fetch', () => {
     }
   })
 
+  it('redirects to https://filcdn.com when no CID was provided', async () => {
+    const req = new Request(`https://${defaultClientAddress}${DNS_ROOT}/`)
+    const res = await worker.fetch(req, env)
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toBe('https://filcdn.com/')
+  })
+
+  it('redirects to https://filcdn.com when no CID and no wallet address were provided', async () => {
+    const req = new Request(`https://${DNS_ROOT.slice(1)}/`)
+    const res = await worker.fetch(req, env)
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toBe('https://filcdn.com/')
+  })
+
   it('returns 405 for non-GET requests', async () => {
     const req = withRequest(1, 'foo', 'POST')
     const res = await worker.fetch(req, env)
@@ -487,7 +501,7 @@ function withRequest(
 ) {
   let url = 'http://'
   if (clientWalletAddress) url += `${clientWalletAddress}.`
-  url += DNS_ROOT.slice(1) // remove the trailing '.'
+  url += DNS_ROOT.slice(1) // remove the leading '.'
   if (rootCid) url += `/${rootCid}`
 
   return new Request(url, { method, headers })
