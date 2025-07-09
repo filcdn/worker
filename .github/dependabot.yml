@@ -11,11 +11,6 @@ updates:
     commit-message:
       prefix: 'deps'
       prefix-development: 'deps(dev)'
-    reviewers:
-      - 'bajtos'
-      - 'juliangruber'
-      - 'pyropy'
-      - 'NikolasHaimerl'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
@@ -24,8 +19,3 @@ updates:
       timezone: 'Europe/Berlin'
     commit-message:
       prefix: 'ci'
-    reviewers:
-      - 'bajtos'
-      - 'juliangruber'
-      - 'pyropy'
-      - 'NikolasHaimerl'
