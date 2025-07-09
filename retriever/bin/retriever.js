@@ -50,10 +50,14 @@ export default {
     ctx,
     { retrieveFile = defaultRetrieveFile, signal } = {},
   ) {
+    httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
+    if (URL.parse(request.url)?.pathname === '/') {
+      return Response.redirect('https://filcdn.com/', 302)
+    }
+
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
-    httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
 
     const { clientWalletAddress, rootCid } = parseRequest(request, env)
 
