@@ -10,6 +10,7 @@ import {
   logRetrievalResult,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
+import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
 
 export default {
   /**
@@ -83,7 +84,7 @@ export default {
     )
 
     const spURL = await getProviderUrl(ownerAddress, env)
-    const { response, cacheMiss } = await retrieveFile(
+    const { response: originResponse, cacheMiss } = await retrieveFile(
       spURL,
       rootCid,
       env.CACHE_TTL,
@@ -95,7 +96,7 @@ export default {
       clientAddress: clientWalletAddress,
       cacheMiss,
       egressBytes: null, // Will be populated later
-      responseStatus: response.status,
+      responseStatus: originResponse.status,
       timestamp: requestTimestamp,
       performanceStats: {
         fetchTtfb: null, // Will be populated later
@@ -105,7 +106,7 @@ export default {
       requestCountryCode,
     }
 
-    if (!response.body) {
+    if (!originResponse.body) {
       // The upstream response does not have any readable body
       // There is no need to measure response body size, we can
       // return the original response object.
@@ -121,12 +122,14 @@ export default {
           },
         }),
       )
+      const response = new Response(originResponse.body, originResponse)
+      setContentSecurityPolicy(response)
       return response
     }
 
     // Stream and count bytes
     // We create two identical streams, one for the egress measurement and the other for returning the response as soon as possible
-    const [returnedStream, egressMeasurementStream] = response.body.tee()
+    const [returnedStream, egressMeasurementStream] = originResponse.body.tee()
     const reader = egressMeasurementStream.getReader()
     const firstByteAt = performance.now()
 
@@ -148,11 +151,13 @@ export default {
     )
 
     // Return immediately, proxying the transformed response
-    return new Response(returnedStream, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
+    const response = new Response(returnedStream, {
+      status: originResponse.status,
+      statusText: originResponse.statusText,
+      headers: originResponse.headers,
     })
+    setContentSecurityPolicy(response)
+    return response
   },
 
   /**

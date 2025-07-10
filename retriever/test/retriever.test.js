@@ -131,7 +131,24 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('X-Test')).toBe('yes')
   })
 
-  it.only('fetches the file from calibration storage provider', async () => {
+  it('sets Content-Security-Policy response header', async () => {
+    const originResponse = new Response('hello', {
+      headers: {
+        'Content-Security-Policy': 'report-uri: https://endpoint.example.com',
+      },
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: originResponse,
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, realRootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const csp = res.headers.get('Content-Security-Policy')
+    expect(csp).toMatch(/^default-src: 'self'/)
+    expect(csp).toContain('https://*.filcdn.io')
+  })
+
+  it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
       '358f5611998981d5c5584ca2457f5b87afdf7b69650e1919f6e28f0f76943491'
     const req = withRequest(defaultClientAddress, realRootCid)
