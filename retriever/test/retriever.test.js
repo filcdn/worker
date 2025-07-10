@@ -320,10 +320,9 @@ describe('retriever.fetch', () => {
     'measures egress correctly from real storage provider',
     { timeout: 10000 },
     async () => {
-      const owners = CONTENT_STORED_ON_CALIBRATION.map((s) => s.owner)
       const controller = new AbortController()
       const { signal } = controller
-      const fetchTasks = owners.map(({ owner, sample: { rootCid } }) => {
+      const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ owner, rootCid }) => {
         return (async () => {
           try {
             const req = withRequest(defaultClientAddress, rootCid)
@@ -355,13 +354,12 @@ describe('retriever.fetch', () => {
       })
 
       try {
-        await Promise.any(fetchTasks)
+        await Promise.any(tasks)
         controller.abort() // Abort remaining tasks if one succeeds
       } catch (err) {
+        const ownersChecked = CONTENT_STORED_ON_CALIBRATION.map((o) => o.owner)
         throw new Error(
-          `❌ All owners failed to fetch. Owners attempted: ${owners
-            .map((o) => o.owner)
-            .join(', ')}`,
+          `❌ All owners failed to fetch. Owners checked: ${ownersChecked.join(', ')}`,
         )
       }
     },
