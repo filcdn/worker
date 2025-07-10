@@ -15,11 +15,12 @@ describe('retrieveFile', () => {
   })
 
   it('constructs the correct URL', async () => {
-    await retrieveFile(baseUrl, rootCid)
+    const { originUrl } = await retrieveFile(baseUrl, rootCid)
     expect(fetchMock).toHaveBeenCalledWith(
       `${baseUrl}/piece/${rootCid}`,
       expect.any(Object),
     )
+    expect(originUrl).toBe(`${baseUrl}/piece/${rootCid}`)
   })
 
   it('uses the default cacheTtl if not provided', async () => {

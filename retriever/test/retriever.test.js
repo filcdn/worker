@@ -442,6 +442,19 @@ describe('retriever.fetch', () => {
       'Storage Provider (PDP ProofSet Provider) not found: 0x2a06d234246ed18b6c91de8349ff34c22c720000',
     )
   })
+
+  it('returns the origin URL in the X-Origin-URL response header', async () => {
+    const originUrl = 'https://example.com/piece/baga123'
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      originUrl,
+      response: new Response('hello'),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, realRootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(await res.text()).toBe('hello')
+    expect(res.headers.get('X-Origin-URL')).toBe(originUrl)
+  })
 })
 
 /**

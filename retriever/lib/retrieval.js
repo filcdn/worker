@@ -10,9 +10,9 @@
  *   fetch request.
  * @returns {Promise<{
  *   response: Response
+ *   originUrl: string
  *   cacheMiss: null | boolean
  * }>}
- *
  *   - The response from the fetch request, the cache miss and the content length.
  */
 export async function retrieveFile(
@@ -40,7 +40,7 @@ export async function retrieveFile(
 
   const cacheMiss = cacheStatus !== 'HIT'
 
-  return { response, cacheMiss }
+  return { response, originUrl: url, cacheMiss }
 }
 
 /**

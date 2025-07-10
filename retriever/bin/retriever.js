@@ -84,12 +84,11 @@ export default {
     )
 
     const spURL = await getProviderUrl(ownerAddress, env)
-    const { response: originResponse, cacheMiss } = await retrieveFile(
-      spURL,
-      rootCid,
-      env.CACHE_TTL,
-      { signal },
-    )
+    const {
+      response: originResponse,
+      originUrl,
+      cacheMiss,
+    } = await retrieveFile(spURL, rootCid, env.CACHE_TTL, { signal })
 
     const retrievalResultEntry = {
       ownerAddress,
@@ -124,6 +123,7 @@ export default {
       )
       const response = new Response(originResponse.body, originResponse)
       setContentSecurityPolicy(response)
+      setOriginUrl(response, originUrl)
       return response
     }
 
@@ -157,6 +157,7 @@ export default {
       headers: originResponse.headers,
     })
     setContentSecurityPolicy(response)
+    setOriginUrl(response, originUrl)
     return response
   },
 
@@ -185,4 +186,12 @@ export default {
     }
     return new Response(message, { status })
   },
+}
+
+/**
+ * @param {Response} response
+ * @param {string} originUrl
+ */
+function setOriginUrl(response, originUrl) {
+  response.headers.set('X-Origin-URL', originUrl)
 }
