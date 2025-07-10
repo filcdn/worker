@@ -1,5 +1,4 @@
 import { isValidEthereumAddress } from '../lib/address.js'
-import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
 import { parseRequest } from '../lib/request.js'
 import {
   retrieveFile as defaultRetrieveFile,
@@ -83,10 +82,7 @@ export default {
       `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
     )
 
-    // Check the owner URL mapping and fall back to the database if not found
-    const spURL =
-      OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress]?.url ||
-      (await getProviderUrl(ownerAddress, env))
+    const spURL = await getProviderUrl(ownerAddress, env)
     const { response, cacheMiss } = await retrieveFile(
       spURL,
       rootCid,

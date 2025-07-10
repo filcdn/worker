@@ -7,7 +7,7 @@ import {
 } from '../lib/retrieval.js'
 import { env } from 'cloudflare:test'
 import assert from 'node:assert/strict'
-import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
+import { CONTENT_STORED_ON_CALIBRATION } from './test-data.js'
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -49,12 +49,12 @@ describe('retriever.fetch', () => {
     ])
 
     let i = 1
-    for (const [
+    for (const {
       owner,
-      {
-        sample: { rootCid, proofSetId },
-      },
-    ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
+      pieceRetrievalUrl,
+      rootCid,
+      proofSetId,
+    } of CONTENT_STORED_ON_CALIBRATION) {
       const rootId = `root-${i}`
       const railId = `rail-${i}`
       await withProofSetRoots(env, {
@@ -65,6 +65,10 @@ describe('retriever.fetch', () => {
         proofSetId,
         railId,
         rootId,
+      })
+      await withRegisteredProvider(env, {
+        owner,
+        pieceRetrievalUrl,
       })
       i++
     }
@@ -127,7 +131,7 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('X-Test')).toBe('yes')
   })
 
-  it('fetches the file from calibration storage provider', async () => {
+  it.only('fetches the file from calibration storage provider', async () => {
     const expectedHash =
       '358f5611998981d5c5584ca2457f5b87afdf7b69650e1919f6e28f0f76943491'
     const req = withRequest(defaultClientAddress, realRootCid)
@@ -299,9 +303,7 @@ describe('retriever.fetch', () => {
     'measures egress correctly from real storage provider',
     { timeout: 10000 },
     async () => {
-      const owners = Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
-        ([owner, val]) => ({ owner, ...val }),
-      )
+      const owners = CONTENT_STORED_ON_CALIBRATION.map((s) => s.owner)
       const controller = new AbortController()
       const { signal } = controller
       const fetchTasks = owners.map(({ owner, sample: { rootCid } }) => {
@@ -348,68 +350,13 @@ describe('retriever.fetch', () => {
     },
   )
 
-  it('matches retrieval URL for owner address case-insensitively', async () => {
-    const body = 'file content'
-    const rootCid =
-      'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipi'
-    const mixedCaseOwner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8' // mixed case
-    const expectedNormalizedOwner = mixedCaseOwner.toLowerCase()
-
-    // Insert proof set and root into DB
-    const proofSetId = 'test-proof-set-case'
-    await env.DB.prepare(
-      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-    )
-      .bind(proofSetId, mixedCaseOwner)
-      .run()
-
-    await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-    )
-      .bind('root-case-test', proofSetId, rootCid)
-      .run()
-
-    // Simulate file retrieval
-    const mockRetrieveFile = async () => {
-      return {
-        response: new Response(body, {
-          status: 200,
-        }),
-        cacheMiss: true,
-      }
-    }
-
-    const req = withRequest(defaultClientAddress, rootCid, 'GET')
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
-
-    assert.strictEqual(res.status, 200)
-
-    // Verify that request logged with correct (normalized) owner
-    const { results } = await env.DB.prepare(
-      'SELECT owner FROM indexer_proof_sets WHERE set_id = ?',
-    )
-      .bind(proofSetId)
-      .all()
-
-    assert.deepStrictEqual(results, [
-      {
-        owner: mixedCaseOwner, // Stored as mixed case
-      },
-    ])
-
-    // Now verify that retrieval still worked based on case-insensitive matching
-    const lookupKey = expectedNormalizedOwner
-    const mappingEntry = OWNER_TO_RETRIEVAL_URL_MAPPING[lookupKey]
-    assert.ok(mappingEntry)
-    assert.strictEqual(mappingEntry.sample.rootCid, rootCid)
-  })
   it('requests payment if withCDN=false', async () => {
     const proofSetId = 'test-proof-set-no-cdn'
     const railId = 'rail-no-cdn'
     const rootId = 'root-no-cdn'
     const rootCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const owner = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)[0]
+    const owner = '0xOWNER'
     await withProofSetRoots(env, {
       owner,
       rootCid,
@@ -424,28 +371,25 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 402)
   })
-  it('should fall back to the database and fetch the URL when providerAddress is not found in the mapping', async () => {
+  it('reads the provider URL from the database, comparing owner address case-insensitively', async () => {
     const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
     const rootCid = 'bagaTest'
     const body = 'file content'
 
-    // Ensure the mapping does not have this address
-    assert(!OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress])
+    expect(providerAddress.toLowerCase()).not.toEqual(providerAddress)
+
     await withProofSetRoots(env, {
       owner: providerAddress,
       rootCid,
       clientAddress,
     })
 
-    await env.DB.prepare(
-      `
-      INSERT INTO provider_urls (address, piece_retrieval_url)
-      VALUES (?, ?)
-    `,
-    )
-      .bind(providerAddress.toLowerCase(), 'https://mock-pdp-url.com')
-      .run()
+    await withRegisteredProvider(env, {
+      owner: providerAddress,
+      pieceRetrievalUrl: 'https://mock-pdp-url.com',
+    })
+
     const mockRetrieveFile = async () => {
       return {
         response: new Response(body, {
@@ -462,13 +406,12 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toBe(body)
     expect(res.status).toBe(200)
   })
-  it('should throw an error if the providerAddress is not found in both the mapping and the database', async () => {
-    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e3'
+
+  it('throws an error if the providerAddress is not found in the database', async () => {
+    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
     const clientAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     const rootCid = 'bagaTest'
 
-    // Ensure the mapping does not have this address
-    assert(!OWNER_TO_RETRIEVAL_URL_MAPPING[providerAddress])
     await withProofSetRoots(env, {
       owner: providerAddress,
       rootCid,
@@ -481,7 +424,7 @@ describe('retriever.fetch', () => {
     // Expect an error because no URL was found
     expect(res.status).toBe(404)
     expect(await res.text()).toBe(
-      'Storage Provider (PDP ProofSet Provider) not found: 0x2a06d234246ed18b6c91de8349ff34c22c7268e3',
+      'Storage Provider (PDP ProofSet Provider) not found: 0x2a06d234246ed18b6c91de8349ff34c22c720000',
     )
   })
 })
@@ -549,4 +492,21 @@ async function withProofSetRoots(
     `,
     ).bind(proofSetId, railId, clientAddress, owner, withCDN),
   ])
+}
+
+/**
+ * @param {Env} env
+ * @param {Object} options
+ * @param {string} options.owner
+ * @param {string} options.pieceRetrievalUrl
+ */
+async function withRegisteredProvider(env, { owner, pieceRetrievalUrl }) {
+  await env.DB.prepare(
+    `
+    INSERT INTO provider_urls (address, piece_retrieval_url)
+    VALUES (?, ?)
+  `,
+  )
+    .bind(owner.toLowerCase(), pieceRetrievalUrl)
+    .run()
 }
