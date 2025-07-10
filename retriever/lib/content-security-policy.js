@@ -11,8 +11,9 @@ const ALLOWED_HOSTS = [
 ]
 
 /**
- * @param {Response} response This response must be a writeable Response object
- *   (i.e. you must clone the Reponse object returned by `fetch`.)
+ * @param {Response} response A Response object we can modify (i.e. you must
+ *   clone the Reponse object returned by `fetch` before passing it to this
+ *   function).
  */
 export function setContentSecurityPolicy(response) {
   // This functions sets the Content Security Policy (CSP) header for the response.
