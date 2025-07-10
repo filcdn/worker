@@ -76,18 +76,22 @@ export async function logRetrievalResult(env, params) {
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
- * @returns {Promise<string>} - The result containing either the approved owner
- *   address or a descriptive error
+ * @returns {Promise<{
+ *   ownerAddress: string
+ *   pieceRetrievalUrl: string
+ * }>}
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   const query = `
-   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn
-   FROM indexer_roots ir
-   LEFT OUTER JOIN indexer_proof_sets ips
-     ON ir.set_id = ips.set_id
-   LEFT OUTER JOIN indexer_proof_set_rails ipsr
-     ON ir.set_id = ipsr.proof_set_id
-   WHERE ir.root_cid = ?
+    SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn, pu.piece_retrieval_url
+    FROM indexer_roots ir
+    LEFT OUTER JOIN indexer_proof_sets ips
+      ON ir.set_id = ips.set_id
+    LEFT OUTER JOIN indexer_proof_set_rails ipsr
+      ON ir.set_id = ipsr.proof_set_id
+    LEFT OUTER JOIN provider_urls as pu
+      ON lower(ips.owner) = pu.address
+    WHERE ir.root_cid = ?
  `
 
   const results = /**
@@ -96,6 +100,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
    *   set_id: string
    *   payer: string | undefined
    *   with_cdn: number | undefined
+   *   piece_retrieval_url: string | undefined
    * }[]}
    */ (
     /** @type {any[]} */ (
@@ -133,38 +138,26 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `The Filecoin Services deal for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
   )
 
-  const { set_id: setId, owner } = withCDN[0]
+  const withApprovedProvider = withCDN.filter((row) => row.piece_retrieval_url)
+  httpAssert(
+    withApprovedProvider.length > 0,
+    404,
+    `No approved storage provider found for client '${clientAddress}' and root_cid '${rootCid}'.`,
+  )
+
+  const {
+    set_id: setId,
+    owner: ownerAddress,
+    piece_retrieval_url: pieceRetrievalUrl,
+  } = withApprovedProvider[0]
+
+  // We need this assertion to supress TypeScript error. The compiler is not able to infer that
+  // `withCDN.filter()` above returns only rows with `piece_retrieval_url` defined.
+  httpAssert(pieceRetrievalUrl, 500, 'should never happen')
 
   console.log(
-    `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}' and client '${clientAddress}'`,
+    `Looked up set_id '${setId}' and owner '${ownerAddress}' for root_cid '${rootCid}' and client '${clientAddress}'. Piece retrieval URL: ${pieceRetrievalUrl}`,
   )
 
-  return owner
-}
-
-/**
- * Looks up the provider's URL in the database.
- *
- * @param {string} provider The Ethereum address of the provider.
- * @param {Env} env The environment containing the database connection.
- * @returns {Promise<string>} The URL associated with the provider.
- * @throws {Error} If the provider is not found or does not have a valid URL.
- */
-export async function getProviderUrl(provider, env) {
-  /** @type {{ piece_retrieval_url: string } | null} */
-  const result = await env.DB.prepare(
-    'SELECT piece_retrieval_url FROM provider_urls WHERE address = ? ORDER BY address LIMIT 1',
-  )
-    .bind(provider.toLowerCase()) // Ensure the address is lowercased
-    .first()
-
-  if (!result) {
-    httpAssert(
-      false,
-      404,
-      `Storage Provider (PDP ProofSet Provider) not found: ${provider}`,
-    )
-  }
-
-  return result.piece_retrieval_url
+  return { ownerAddress, pieceRetrievalUrl }
 }

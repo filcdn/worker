@@ -7,6 +7,10 @@ import {
 } from '../lib/retrieval.js'
 import { env } from 'cloudflare:test'
 import assert from 'node:assert/strict'
+import {
+  withProofSetRoots,
+  withApprovedProvider,
+} from './test-data-builders.js'
 import { CONTENT_STORED_ON_CALIBRATION } from './test-data.js'
 
 function sleep(ms) {
@@ -66,8 +70,8 @@ describe('retriever.fetch', () => {
         railId,
         rootId,
       })
-      await withRegisteredProvider(env, {
-        owner,
+      await withApprovedProvider(env, {
+        ownerAddress: owner,
         pieceRetrievalUrl,
       })
       i++
@@ -400,8 +404,8 @@ describe('retriever.fetch', () => {
       clientAddress,
     })
 
-    await withRegisteredProvider(env, {
-      owner: providerAddress,
+    await withApprovedProvider(env, {
+      ownerAddress: providerAddress,
       pieceRetrievalUrl: 'https://mock-pdp-url.com',
     })
 
@@ -439,7 +443,7 @@ describe('retriever.fetch', () => {
     // Expect an error because no URL was found
     expect(res.status).toBe(404)
     expect(await res.text()).toBe(
-      'Storage Provider (PDP ProofSet Provider) not found: 0x2a06d234246ed18b6c91de8349ff34c22c720000',
+      `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and root_cid 'bagaTest'.`,
     )
   })
 })
@@ -463,65 +467,4 @@ function withRequest(
   if (rootCid) url += `/${rootCid}`
 
   return new Request(url, { method, headers })
-}
-
-/**
- * @param {Env} env
- * @param {Object} options
- * @param {string} options.owner
- * @param {string} options.rootCid
- * @param {number} options.proofSetId
- * @param {number} options.railId
- * @param {boolean} options.with_cdn
- */
-async function withProofSetRoots(
-  env,
-  {
-    owner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
-    clientAddress = '0x1234567890abcdef1234567890abcdef12345608',
-    rootCid = 'bagaTEST',
-    proofSetId = 0,
-    railId = 0,
-    withCDN = true,
-    rootId = 0,
-  } = {},
-) {
-  await env.DB.batch([
-    env.DB.prepare(
-      `
-      INSERT INTO indexer_proof_sets (set_id, owner)
-      VALUES (?, ?)
-    `,
-    ).bind(proofSetId, owner),
-
-    env.DB.prepare(
-      `
-      INSERT INTO indexer_roots (root_id, set_id, root_cid)
-      VALUES (?, ?, ?)
-    `,
-    ).bind(rootId, proofSetId, rootCid),
-    env.DB.prepare(
-      `
-      INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
-      VALUES (?, ?, ?, ?, ?)
-    `,
-    ).bind(proofSetId, railId, clientAddress, owner, withCDN),
-  ])
-}
-
-/**
- * @param {Env} env
- * @param {Object} options
- * @param {string} options.owner
- * @param {string} options.pieceRetrievalUrl
- */
-async function withRegisteredProvider(env, { owner, pieceRetrievalUrl }) {
-  await env.DB.prepare(
-    `
-    INSERT INTO provider_urls (address, piece_retrieval_url)
-    VALUES (?, ?)
-  `,
-  )
-    .bind(owner.toLowerCase(), pieceRetrievalUrl)
-    .run()
 }

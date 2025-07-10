@@ -1,16 +1,12 @@
 import { isValidEthereumAddress } from '../lib/address.js'
+import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
+import { httpAssert } from '../lib/http-assert.js'
 import { parseRequest } from '../lib/request.js'
 import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
-import {
-  getOwnerAndValidateClient,
-  getProviderUrl,
-  logRetrievalResult,
-} from '../lib/store.js'
-import { httpAssert } from '../lib/http-assert.js'
-import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
+import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
 
 export default {
   /**
@@ -71,7 +67,7 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const ownerAddress = await getOwnerAndValidateClient(
+    const { ownerAddress, pieceRetrievalUrl } = await getOwnerAndValidateClient(
       env,
       clientWalletAddress,
       rootCid,
@@ -83,9 +79,8 @@ export default {
       `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
     )
 
-    const spURL = await getProviderUrl(ownerAddress, env)
     const { response: originResponse, cacheMiss } = await retrieveFile(
-      spURL,
+      pieceRetrievalUrl,
       rootCid,
       env.CACHE_TTL,
       { signal },
