@@ -1,0 +1,15 @@
+{
+  "name": "@filcdn/address-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FilCDN Address Sanctions Checker Worker",
+  "author": "Space Meridian <filcdn@meridian.space>",
+  "type": "module",
+  "main": "bin/address-checker.js",
+  "scripts": {
+    "build:types": "wrangler types",
+    "deploy:calibration": "wrangler deploy --env calibration",
+    "start": "wrangler d1 migrations apply dev-db --local --env dev --cwd ../db && wrangler dev --env dev",
+    "test": "wrangler d1 migrations apply test-db --local --cwd ../db && vitest run"
+  }
+}
