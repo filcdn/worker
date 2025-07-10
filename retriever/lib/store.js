@@ -83,15 +83,15 @@ export async function logRetrievalResult(env, params) {
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   const query = `
-    SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn, pu.piece_retrieval_url
-    FROM indexer_roots ir
-    LEFT OUTER JOIN indexer_proof_sets ips
-      ON ir.set_id = ips.set_id
-    LEFT OUTER JOIN indexer_proof_set_rails ipsr
-      ON ir.set_id = ipsr.proof_set_id
-    LEFT OUTER JOIN provider_urls as pu
-      ON lower(ips.owner) = pu.address
-    WHERE ir.root_cid = ?
+   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn, pu.piece_retrieval_url
+   FROM indexer_roots ir
+   LEFT OUTER JOIN indexer_proof_sets ips
+     ON ir.set_id = ips.set_id
+   LEFT OUTER JOIN indexer_proof_set_rails ipsr
+     ON ir.set_id = ipsr.proof_set_id
+   LEFT OUTER JOIN provider_urls as pu
+     ON lower(ips.owner) = pu.address
+   WHERE ir.root_cid = ?
  `
 
   const results = /**
