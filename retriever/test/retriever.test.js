@@ -22,8 +22,7 @@ env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
   const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-  const realRootCid =
-    'baga6ea4seaqntcagzjqzor3qxjba2mybegc6d2jxiewxinkd72ecll6xqicqcfa'
+  const realRootCid = CONTENT_STORED_ON_CALIBRATION[0].rootCid
   const worker = {
     fetch: async (
       request,
@@ -154,7 +153,7 @@ describe('retriever.fetch', () => {
 
   it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
-      '358f5611998981d5c5584ca2457f5b87afdf7b69650e1919f6e28f0f76943491'
+      '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
     const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile })
     expect(res.status).toBe(200)
