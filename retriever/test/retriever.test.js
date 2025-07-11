@@ -445,6 +445,30 @@ describe('retriever.fetch', () => {
       `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and root_cid 'bagaTest'.`,
     )
   })
+
+  it('returns DataSet (ProofSet) ID in the X-Dataset-ID response header', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response('hello'),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(await res.text()).toBe('hello')
+    expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
+  })
+
+  it('returns DataSet (ProofSet) ID in the X-Dataset-ID response header when the response body is empty', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response(null, { status: 404 }),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.body).toBeNull()
+    expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
+  })
 })
 
 /**

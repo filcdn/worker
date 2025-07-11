@@ -67,11 +67,8 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const { ownerAddress, pieceRetrievalUrl } = await getOwnerAndValidateClient(
-      env,
-      clientWalletAddress,
-      rootCid,
-    )
+    const { ownerAddress, pieceRetrievalUrl, setId } =
+      await getOwnerAndValidateClient(env, clientWalletAddress, rootCid)
 
     httpAssert(
       ownerAddress,
@@ -119,6 +116,7 @@ export default {
       )
       const response = new Response(originResponse.body, originResponse)
       setContentSecurityPolicy(response)
+      response.headers.set('X-Dataset-ID', setId)
       return response
     }
 
@@ -152,6 +150,7 @@ export default {
       headers: originResponse.headers,
     })
     setContentSecurityPolicy(response)
+    response.headers.set('X-Dataset-ID', setId)
     return response
   },
 
