@@ -14,9 +14,9 @@ export async function updateBadBitsDatabase(env, currentHashes) {
           env.DB.prepare(
             `
           INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, ?)
-          ON CONFLICT(hash) DO UPDATE SET last_modified_at = ?
+          ON CONFLICT(hash) DO UPDATE SET last_modified_at = excluded.last_modified_at
         `,
-          ).bind(hash, now.toISOString(), now.toISOString()),
+          ).bind(hash, now.toISOString()),
         ),
         env.DB.prepare(
           `
