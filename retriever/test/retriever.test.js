@@ -448,9 +448,7 @@ describe('retriever.fetch', () => {
 
   it('returns DataSet (ProofSet) ID in the X-Dataset-ID response header', async () => {
     const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
-    const originUrl = 'https://example.com/piece/baga123'
     const mockRetrieveFile = vi.fn().mockResolvedValue({
-      originUrl,
       response: new Response('hello'),
       cacheMiss: true,
     })
@@ -462,9 +460,7 @@ describe('retriever.fetch', () => {
 
   it('returns DataSet (ProofSet) ID in the X-Dataset-ID response header when the response body is empty', async () => {
     const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
-    const originUrl = 'https://example.com/piece/baga123'
     const mockRetrieveFile = vi.fn().mockResolvedValue({
-      originUrl,
       response: new Response(null, { status: 404 }),
       cacheMiss: true,
     })
