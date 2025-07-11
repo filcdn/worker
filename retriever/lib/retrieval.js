@@ -21,7 +21,7 @@ export async function retrieveFile(
   cacheTtl = 86400,
   { signal } = {},
 ) {
-  const url = `${baseUrl}/piece/${pieceCid}`
+  const url = getRetrievalUrl(baseUrl, pieceCid)
   const response = await fetch(url, {
     cf: {
       cacheTtlByStatus: {
@@ -60,4 +60,16 @@ export async function measureStreamedEgress(reader) {
     total += value.length
   }
   return total
+}
+
+/**
+ * @param {string} pieceRetrievalBaseUrl
+ * @param {string} pieceCid
+ * @returns {string}
+ */
+export function getRetrievalUrl(pieceRetrievalBaseUrl, pieceCid) {
+  if (!pieceRetrievalBaseUrl.endsWith('/')) {
+    pieceRetrievalBaseUrl += '/'
+  }
+  return `${pieceRetrievalBaseUrl}piece/${pieceCid}`
 }
