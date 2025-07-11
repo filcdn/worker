@@ -459,6 +459,20 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toBe('hello')
     expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
   })
+
+  it('returns DataSet (ProofSet) ID in the X-Dataset-ID response header when the response body is empty', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const originUrl = 'https://example.com/piece/baga123'
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      originUrl,
+      response: new Response(null, { status: 404 }),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.body).toBeNull()
+    expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
+  })
 })
 
 /**
