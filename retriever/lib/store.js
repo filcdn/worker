@@ -79,6 +79,7 @@ export async function logRetrievalResult(env, params) {
  * @returns {Promise<{
  *   ownerAddress: string
  *   pieceRetrievalUrl: string
+ *   setId: string
  * }>}
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
@@ -159,5 +160,5 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `Looked up set_id '${setId}' and owner '${ownerAddress}' for root_cid '${rootCid}' and client '${clientAddress}'. Piece retrieval URL: ${pieceRetrievalUrl}`,
   )
 
-  return { ownerAddress, pieceRetrievalUrl }
+  return { ownerAddress, pieceRetrievalUrl, setId }
 }
