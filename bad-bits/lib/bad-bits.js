@@ -1,6 +1,6 @@
 import { updateBadBitsDatabase } from './store.js'
 
-export const BADBITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
+export const BAD_BITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
 
 /**
  * @param {Env} env
@@ -12,10 +12,10 @@ export async function fetchAndStoreBadBits(
   env,
   { fetch } = { fetch: globalThis.fetch },
 ) {
-  const response = await fetch(BADBITS_URL)
+  const response = await fetch(BAD_BITS_URL)
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch badbits: ${response.status} ${response.statusText}`,
+      `Failed to fetch bad bits: ${response.status} ${response.statusText}`,
     )
   }
 

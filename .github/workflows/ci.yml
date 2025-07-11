@@ -40,7 +40,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: calibration
-      - name: Deploy Denylist Checker
+      - name: Deploy Bad Bits Updater
         uses: cloudflare/wrangler-action@v3
         with:
           workingDirectory: bad-bits

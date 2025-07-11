@@ -1,5 +1,5 @@
 import { describe, it, beforeAll, expect } from 'vitest'
-import { fetchAndStoreBadBits } from '../lib/badbits.js'
+import { fetchAndStoreBadBits } from '../lib/bad-bits.js'
 import { getAllBadBitHashes } from './util.js'
 import { env } from 'cloudflare:test'
 import { testData } from './testData.js'
@@ -7,7 +7,7 @@ import { testData } from './testData.js'
 describe('fetchAndStoreBadBits', () => {
   beforeAll(async () => {
     // Clear the database before running tests
-    await env.DB.prepare('DELETE FROM badbits').run()
+    await env.DB.prepare('DELETE FROM bad_bits').run()
   })
 
   it('fetches and stores bad bits from the denylist', async () => {
@@ -36,7 +36,7 @@ describe('fetchAndStoreBadBits', () => {
     await env.DB.batch(
       initialHashes.map((hash) =>
         env.DB.prepare(
-          'INSERT INTO badbits (hash, last_modified_at) VALUES (?, ?)',
+          'INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, ?)',
         ).bind(hash, new Date().toISOString()),
       ),
     )
@@ -82,7 +82,7 @@ describe('fetchAndStoreBadBits', () => {
 
       // Choose a random hash from the real denylist file to verify it's in the database
       const { hash } = await env.DB.prepare(
-        'SELECT hash FROM badbits WHERE hash = ?',
+        'SELECT hash FROM bad_bits WHERE hash = ?',
       )
         .bind(
           'f52158d2e286c09693117194c6ba34c5670aac484fc4631d2fa409897a5dfd38',

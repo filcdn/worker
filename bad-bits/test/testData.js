@@ -1,5 +1,5 @@
 // Extracted from the real file and only every 100th hash is kept
-export const testData = `name: "badbits"
+export const testData = `name: "sample bad bits"
 description: "copyright violations, DMCA, GDPR, Code of Conduct or malware reported to Protocol Labs"
 author: "Protocol Labs"
 ---

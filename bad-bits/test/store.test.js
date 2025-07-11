@@ -6,7 +6,7 @@ import { getAllBadBitHashes } from './util.js'
 describe('updateBadBitsDatabase', () => {
   beforeAll(async () => {
     // Clear the database before running tests
-    await env.DB.prepare('DELETE FROM badbits').run()
+    await env.DB.prepare('DELETE FROM bad_bits').run()
   })
 
   it('adds new hashes to the database', async () => {
@@ -26,7 +26,7 @@ describe('updateBadBitsDatabase', () => {
     await env.DB.batch(
       initialHashes.map((hash) =>
         env.DB.prepare(
-          'INSERT INTO badbits (hash, last_modified_at) VALUES (?, ?)',
+          'INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, ?)',
         ).bind(hash, now),
       ),
     )
@@ -52,7 +52,7 @@ describe('updateBadBitsDatabase', () => {
     await env.DB.batch(
       [...currentHashes].map((hash) =>
         env.DB.prepare(
-          'INSERT INTO badbits (hash, last_modified_at) VALUES (?, ?)',
+          'INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, ?)',
         ).bind(hash, now),
       ),
     )

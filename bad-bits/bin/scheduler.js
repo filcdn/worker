@@ -1,4 +1,4 @@
-import { fetchAndStoreBadBits } from '../lib/badbits.js'
+import { fetchAndStoreBadBits } from '../lib/bad-bits.js'
 
 export default {
   async scheduled(_controller, env, _ctx) {

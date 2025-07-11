@@ -2,7 +2,7 @@
   "name": "@filcdn/bad-bits",
   "version": "1.0.0",
   "private": true,
-  "description": "FilCDN BadBits Worker",
+  "description": "FilCDN Bad Bits Worker",
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
   "main": "bin/scheduler.js",
