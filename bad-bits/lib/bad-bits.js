@@ -1,4 +1,4 @@
-import { updateBadBitsDatabase } from './store.js'
+import { getLastEtag, updateBadBitsDatabase } from './store.js'
 
 export const BAD_BITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
 
@@ -12,7 +12,23 @@ export async function fetchAndStoreBadBits(
   env,
   { fetch } = { fetch: globalThis.fetch },
 ) {
-  const response = await fetch(BAD_BITS_URL)
+  const req = new Request(BAD_BITS_URL)
+
+  const lastEtag = await getLastEtag(env)
+  if (lastEtag) {
+    console.log('setting etag', lastEtag)
+    req.headers.set('if-none-match', lastEtag)
+  }
+
+  const response = await fetch(req)
+
+  if (response.status === 304) {
+    console.log(
+      'Bad bits were not modified since the last check, skipping update.',
+    )
+    return
+  }
+
   if (!response.ok) {
     throw new Error(
       `Failed to fetch bad bits: ${response.status} ${response.statusText}`,
@@ -20,6 +36,7 @@ export async function fetchAndStoreBadBits(
   }
 
   const text = await response.text()
+  const etag = response.headers.get('etag')
   const lines = text.split('\n')
 
   const currentBadHashes = new Set()
@@ -32,5 +49,5 @@ export async function fetchAndStoreBadBits(
       }
     }
   }
-  await updateBadBitsDatabase(env, currentBadHashes)
+  await updateBadBitsDatabase(env, currentBadHashes, etag)
 }
