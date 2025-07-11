@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { retrieveFile } from '../lib/retrieval.js'
+import { retrieveFile, getRetrievalUrl } from '../lib/retrieval.js'
 
 describe('retrieveFile', () => {
   const baseUrl = 'https://example.com'
@@ -52,5 +52,17 @@ describe('retrieveFile', () => {
     fetchMock.mockResolvedValueOnce(response)
     const result = await retrieveFile(baseUrl, rootCid)
     expect(result.response).toBe(response)
+  })
+})
+
+describe('getRetrievalUrl', () => {
+  it('appends the endpoint name and piece CID to the base URL', () => {
+    const url = getRetrievalUrl('https://example.com', 'bafy123abc')
+    expect(url).toBe('https://example.com/piece/bafy123abc')
+  })
+
+  it('avoids double slash in path when the base URL ends with a slash', () => {
+    const url = getRetrievalUrl('https://example.com/', 'bafy123abc')
+    expect(url).toBe('https://example.com/piece/bafy123abc')
   })
 })
