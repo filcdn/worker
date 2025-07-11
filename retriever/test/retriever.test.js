@@ -457,7 +457,7 @@ describe('retriever.fetch', () => {
     const req = withRequest(defaultClientAddress, rootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(await res.text()).toBe('hello')
-    expect(res.headers.get('X-Dataset-ID')).toBe(proofSetId.toString())
+    expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
   })
 })
 
