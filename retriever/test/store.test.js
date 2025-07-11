@@ -1,7 +1,11 @@
-import { describe, it } from 'vitest'
+import { describe, it, beforeAll } from 'vitest'
 import assert from 'node:assert/strict'
 import { logRetrievalResult, getOwnerAndValidateClient } from '../lib/store.js'
 import { env } from 'cloudflare:test'
+import {
+  withProofSetRoots,
+  withApprovedProvider,
+} from './test-data-builders.js'
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
     const OWNER_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
@@ -36,11 +40,19 @@ describe('logRetrievalResult', () => {
 
 describe('getOwnerAndValidateClient', () => {
   const APPROVED_OWNER_ADDRESS = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
+  beforeAll(async () => {
+    await withApprovedProvider(env, {
+      ownerAddress: APPROVED_OWNER_ADDRESS,
+      pieceRetrievalUrl: 'https://approved-provider.xyz',
+    })
+  })
+
   it('returns owner for valid rootCid', async () => {
     const setId = 'test-set-1'
     const rootCid = 'test-cid-1'
     const railId = 'test-rail-1'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
+
     await env.DB.prepare(
       'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
     )
@@ -57,8 +69,8 @@ describe('getOwnerAndValidateClient', () => {
       .bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true)
       .run()
 
-    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
+    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(result.ownerAddress, APPROVED_OWNER_ADDRESS)
   })
 
   it('throws error if rootCid not found', async () => {
@@ -164,9 +176,9 @@ describe('getOwnerAndValidateClient', () => {
       ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true),
     ])
 
-    const owner = await getOwnerAndValidateClient(env, clientAddress, cid)
+    const result = await getOwnerAndValidateClient(env, clientAddress, cid)
 
-    assert.strictEqual(owner, APPROVED_OWNER_ADDRESS)
+    assert.strictEqual(result.ownerAddress, APPROVED_OWNER_ADDRESS)
   })
   it('returns owner for valid rootCid with mixed-case owner (case insensitive)', async () => {
     const setId = 'test-set-1'
@@ -175,6 +187,8 @@ describe('getOwnerAndValidateClient', () => {
     const mixedCaseOwner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     const expectedOwner = mixedCaseOwner.toLowerCase()
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
+
+    await withApprovedProvider(env, { ownerAddress: mixedCaseOwner })
 
     // Insert a proof set with a mixed-case owner
     await env.DB.prepare(
@@ -196,8 +210,8 @@ describe('getOwnerAndValidateClient', () => {
       .run()
 
     // Lookup by rootCid and assert returned owner is normalized to lowercase
-    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.strictEqual(owner, expectedOwner)
+    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(result.ownerAddress, expectedOwner)
   })
   it('returns the owner first in the ordering when multiple owners share the same rootCid', async () => {
     const setId1 = 'set-a'
@@ -206,6 +220,9 @@ describe('getOwnerAndValidateClient', () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     const owner1 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e7'
     const owner2 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
+
+    withApprovedProvider(env, { ownerAddress: owner1 })
+    withApprovedProvider(env, { ownerAddress: owner2 })
 
     // Insert both owners into separate sets with the same rootCid
     await env.DB.prepare(
@@ -245,7 +262,49 @@ describe('getOwnerAndValidateClient', () => {
       .run()
 
     // Should return only the owner1 which is the first in the ordering
-    const owner = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.strictEqual(owner, owner1.toLowerCase())
+    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.strictEqual(result.ownerAddress, owner1.toLowerCase())
+  })
+
+  it('ignores owners that are not approved by Pandora', async () => {
+    const setId1 = 'set-a'
+    const setId2 = 'set-b'
+    const rootCid = 'shared-root-cid'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
+    const owner1 = '0x1006D234246eD18b6C91de8349fF34C22C726801'
+    const owner2 = '0x2006D234246eD18b6C91de8349fF34C22C726802'
+
+    withApprovedProvider(env, {
+      ownerAddress: owner1,
+      pieceRetrievalUrl: 'https://pdp-provider-1.xyz',
+    })
+
+    // NOTE: the second owner is not registered as an approved provider
+
+    // Important: we must insert the unapproved provider first!
+    withProofSetRoots(env, {
+      clientAddress,
+      owner: owner2,
+      proofSetId: setId2,
+      railId: 'rail-b',
+      withCDN: true,
+      rootCid,
+    })
+
+    withProofSetRoots(env, {
+      clientAddress,
+      owner: owner1,
+      proofSetId: setId1,
+      railId: 'rail-a',
+      withCDN: true,
+      rootCid,
+    })
+
+    // Should return owner1 because owner2 is not approved
+    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    assert.deepStrictEqual(result, {
+      ownerAddress: owner1.toLowerCase(),
+      pieceRetrievalUrl: 'https://pdp-provider-1.xyz',
+    })
   })
 })
