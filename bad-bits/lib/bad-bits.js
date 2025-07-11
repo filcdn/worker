@@ -25,11 +25,21 @@ export async function fetchAndStoreBadBits(
   const currentBadHashes = new Set()
 
   for (const line of lines) {
+    // FIXME: add tests
+    // Skip empty lines and comments
+    if (line.length === 0 || line.startsWith('#')) continue
+
     if (line.startsWith('//')) {
       const hash = line.substring(2).trim()
       if (hash) {
         currentBadHashes.add(hash)
+      } else {
+        // FIXME: add a test
+        throw new Error(`Malformed bad bits line - empty hash: ${line}`)
       }
+    } else {
+      // FIXME: add a test
+      throw new Error(`Unsupported bad bits line: ${line}`)
     }
   }
   await updateBadBitsDatabase(env, currentBadHashes)
