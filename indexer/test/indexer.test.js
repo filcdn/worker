@@ -434,6 +434,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(proofSetRails.length).toBe(1)
       expect(proofSetRails[0].with_cdn).toBeNull()
+      expect(proofSetRails[0].is_payer_sanctioned).toBeNull()
     })
 
     it('stores numeric ID values as integers', async () => {
@@ -467,7 +468,7 @@ describe('retriever.indexer', () => {
       expect(proofSetRails[0]?.rail_id).toMatch(/^\d+$/)
     })
 
-    it('checks if payer address is sanctioned', async () => {
+    it('checks if payer address is sanctioned when with_cdn = true', async () => {
       const proofSetId = randomId()
       const railId = randomId()
       const req = new Request('https://host/proof-set-rail-created', {

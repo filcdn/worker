@@ -164,10 +164,13 @@ export default {
       console.log(
         `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
-      const isPayerSanctioned = await isAddressSanctioned(
-        CHAINALYSIS_API_KEY,
-        payload.payer,
-      )
+      let isPayerSanctioned
+      if (payload.with_cdn) {
+        isPayerSanctioned = await isAddressSanctioned(
+          CHAINALYSIS_API_KEY,
+          payload.payer,
+        )
+      }
       await env.DB.prepare(
         `
           INSERT INTO indexer_proof_set_rails (
@@ -188,7 +191,7 @@ export default {
           payload.payer,
           payload.payee,
           payload.with_cdn ?? null,
-          isPayerSanctioned,
+          isPayerSanctioned ?? null,
         )
         .run()
       return new Response('OK', { status: 200 })
