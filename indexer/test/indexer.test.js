@@ -314,7 +314,14 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({}),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(
+        req,
+        env,
+        {},
+        {
+          isAddressSanctioned: async (apiKey, address) => false,
+        },
+      )
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
@@ -334,7 +341,14 @@ describe('retriever.indexer', () => {
           with_cdn: true,
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(
+        req,
+        env,
+        {},
+        {
+          isAddressSanctioned: async (apiKey, address) => false,
+        },
+      )
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -349,6 +363,7 @@ describe('retriever.indexer', () => {
       expect(proofSetRails[0].payer).toBe('0xPayerAddress')
       expect(proofSetRails[0].payee).toBe('0xPayeeAddress')
       expect(proofSetRails[0].with_cdn).toBe(1)
+      expect(proofSetRails[0].is_payer_sanctioned).toBe(0)
     })
     it('does not insert duplicate proof set rails', async () => {
       const proofSetId = randomId()
@@ -367,7 +382,14 @@ describe('retriever.indexer', () => {
             with_cdn: true,
           }),
         })
-        const res = await workerImpl.fetch(req, env)
+        const res = await workerImpl.fetch(
+          req,
+          env,
+          {},
+          {
+            isAddressSanctioned: async (apiKey, address) => false,
+          },
+        )
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
       }
@@ -394,7 +416,14 @@ describe('retriever.indexer', () => {
           payee: '0xPayeeAddress',
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(
+        req,
+        env,
+        {},
+        {
+          isAddressSanctioned: async (apiKey, address) => false,
+        },
+      )
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -423,7 +452,9 @@ describe('retriever.indexer', () => {
           with_cdn: true,
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(req, env, {
+        isAddressSanctioned: async (apiKey, address) => false,
+      })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -434,6 +465,78 @@ describe('retriever.indexer', () => {
         .all()
       expect(proofSetRails[0]?.proof_set_id).toMatch(/^\d+$/)
       expect(proofSetRails[0]?.rail_id).toMatch(/^\d+$/)
+    })
+
+    it('checks if payer address is sanctioned', async () => {
+      const proofSetId = randomId()
+      const railId = randomId()
+      const req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          proof_set_id: proofSetId,
+          rail_id: railId,
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: true,
+        }),
+      })
+      const res = await workerImpl.fetch(
+        req,
+        env,
+        {},
+        {
+          isAddressSanctioned: async (apiKey, address) => true,
+        },
+      )
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      )
+        .bind(proofSetId)
+        .all()
+      expect(proofSetRails.length).toBe(1)
+      expect(proofSetRails[0].is_payer_sanctioned).toBe(1)
+    })
+
+    it('stores is_payer_sanctioned = null if not provided', async () => {
+      const proofSetId = randomId()
+      const railId = randomId()
+      const req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          proof_set_id: proofSetId,
+          rail_id: railId,
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: true,
+        }),
+      })
+      const res = await workerImpl.fetch(
+        req,
+        env,
+        {},
+        {
+          isAddressSanctioned: async (apiKey, address) => null,
+        },
+      )
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      )
+        .bind(proofSetId)
+        .all()
+      expect(proofSetRails.length).toBe(1)
+      expect(proofSetRails[0].is_payer_sanctioned).toBeNull()
     })
   })
   describe('POST /provider-registered', () => {

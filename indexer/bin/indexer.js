@@ -3,6 +3,7 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
+import { isAddressSanctioned as defaultIsAddressSanctioned } from '../lib/chainalysis.js'
 
 export default {
   /**
@@ -11,13 +12,17 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
+   * @param {typeof defaultIsAddressSanctioned} [options.isAddressSanctioned]
    * @returns {Promise<Response>}
    */
   async fetch(
     request,
     env,
     ctx,
-    { createPdpVerifierClient = defaultCreatePdpVerifierClient } = {},
+    {
+      createPdpVerifierClient = defaultCreatePdpVerifierClient,
+      isAddressSanctioned = defaultIsAddressSanctioned,
+    } = {},
   ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
@@ -34,6 +39,8 @@ export default {
       SECRET_HEADER_KEY,
       // @ts-ignore
       SECRET_HEADER_VALUE,
+      // @ts-ignore
+      CHAINALYSIS_API_KEY,
     } = env
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
@@ -157,6 +164,10 @@ export default {
       console.log(
         `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
+      const isPayerSanctioned = await isAddressSanctioned(
+        CHAINALYSIS_API_KEY,
+        payload.payer,
+      )
       await env.DB.prepare(
         `
           INSERT INTO indexer_proof_set_rails (
@@ -164,9 +175,10 @@ export default {
             rail_id,
             payer,
             payee,
-            with_cdn
+            with_cdn,
+            is_payer_sanctioned
           )
-          VALUES (?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?)
           ON CONFLICT DO NOTHING
         `,
       )
@@ -176,6 +188,7 @@ export default {
           payload.payer,
           payload.payee,
           payload.with_cdn ?? null,
+          isPayerSanctioned,
         )
         .run()
       return new Response('OK', { status: 200 })
