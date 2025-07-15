@@ -15,3 +15,8 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 binding = "DB"
 database_name = "filcdn-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
+
+[[env.mainnet.d1_databases]]
+binding = "DB"
+database_name = "filcdn-mainnet-db"
+database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"

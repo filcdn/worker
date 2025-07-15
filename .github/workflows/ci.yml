@@ -17,7 +17,7 @@ jobs:
       - run: npm run lint
       - run: npm test
 
-  deploy:
+  deploy-calibration:
     if: github.ref == 'refs/heads/main'
     needs: [test]
     runs-on: ubuntu-latest
@@ -40,6 +40,49 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: calibration
+      - if: failure()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "alerts",
+              "text": "Deployment of `${{ github.event.repository.name }}` failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":warning: *<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Deployment of `${{ github.event.repository.name }}` failed>*"
+                  }
+                }
+              ]
+            }
+  
+  deploy-mainnet:
+    if: github.ref == 'refs/heads/main'
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm ci
+      - name: Deploy Retriever and Migrate Database
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: retriever
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          preCommands: ../db/deploy-mainnet.sh
+          environment: mainnet
+      - name: Deploy Indexer
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: indexer
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: mainnet
       - if: failure()
         uses: slackapi/slack-github-action@v2.1.1
         with:
