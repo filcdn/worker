@@ -28,4 +28,4 @@ database_name = "filcdn-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
 
 [env.calibration.triggers]
-crons = ["*/5 * * * *"]  # Run every 5 minutes
+crons = ["* * * * *"]  # Run every 1 minute
