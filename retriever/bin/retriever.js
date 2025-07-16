@@ -46,7 +46,11 @@ export default {
     ctx,
     { retrieveFile = defaultRetrieveFile, signal } = {},
   ) {
-    httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
+    httpAssert(
+      ['GET', 'HEAD'].includes(request.method),
+      405,
+      'Method Not Allowed',
+    )
     if (URL.parse(request.url)?.pathname === '/') {
       return Response.redirect('https://filcdn.com/', 302)
     }

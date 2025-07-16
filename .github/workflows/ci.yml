@@ -40,6 +40,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: calibration
+      - name: Deploy Bad Bits Updater
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: bad-bits
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: calibration
       - if: failure()
         uses: slackapi/slack-github-action@v2.1.1
         with:

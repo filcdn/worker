@@ -91,7 +91,7 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('Location')).toBe('https://filcdn.com/')
   })
 
-  it('returns 405 for non-GET requests', async () => {
+  it('returns 405 for unsupported request methods', async () => {
     const req = withRequest(1, 'foo', 'POST')
     const res = await worker.fetch(req, env)
     expect(res.status).toBe(405)
@@ -468,6 +468,19 @@ describe('retriever.fetch', () => {
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.body).toBeNull()
     expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
+  })
+
+  it('supports HEAD requests', async () => {
+    const fakeResponse = new Response('file content', {
+      status: 200,
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, realRootCid, 'HEAD')
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.status).toBe(200)
   })
 })
 
