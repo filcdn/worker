@@ -5,7 +5,7 @@ export default {
     console.log('Running scheduled bad bits update...')
     try {
       await fetchAndStoreBadBits(env)
-      console.log('Updated badbits denylist')
+      console.log('Updated bad bits denylist')
     } catch (error) {
       console.error('Failed to update badbits denylist:', error)
       throw error
