@@ -50,6 +50,13 @@ export async function fetchAndStoreBadBits(
     }
   }
 
+  console.log({
+    message: 'New bad bits version',
+    etag,
+    lineCount: lines.length,
+    hashCount: currentBadHashes.size,
+  })
+
   try {
     await updateBadBitsDatabase(env, currentBadHashes, etag)
   } catch (error) {

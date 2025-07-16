@@ -39,7 +39,6 @@ export async function updateBadBitsDatabase(env, currentHashes, etag) {
   ]
 
   if (etag) {
-    console.log({ message: 'Adding bad_bits_history entry', timestamp, etag })
     statements.push(
       env.DB.prepare(
         'INSERT INTO bad_bits_history (timestamp, etag) VALUES (?, ?)',
