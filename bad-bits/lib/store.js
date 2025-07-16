@@ -19,8 +19,8 @@ export async function updateBadBitsDatabase(env, currentHashes, etag) {
   let updated = 0
   const remainingHashes = Array.from(currentHashes)
   while (remainingHashes.length > 0) {
-    // pop first 1000 hashes from remainingHashes
-    const batchHashes = remainingHashes.splice(0, 1000)
+    // pop first N hashes from remainingHashes
+    const batchHashes = remainingHashes.splice(0, 10_000)
     updated += batchHashes.length
     await env.DB.batch(
       batchHashes.map((hash) => insertBadBitStmt.bind(hash, now)),
