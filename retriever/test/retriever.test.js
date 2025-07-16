@@ -91,7 +91,7 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('Location')).toBe('https://filcdn.com/')
   })
 
-  it('returns 405 for non-GET requests', async () => {
+  it('returns 405 for unsupported request methods', async () => {
     const req = withRequest(1, 'foo', 'POST')
     const res = await worker.fetch(req, env)
     expect(res.status).toBe(405)
@@ -444,6 +444,19 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toBe(
       `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and root_cid 'bagaTest'.`,
     )
+  })
+
+  it('supports HEAD requests', async () => {
+    const fakeResponse = new Response('file content', {
+      status: 200,
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, realRootCid, 'HEAD')
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.status).toBe(200)
   })
 })
 
