@@ -36,7 +36,7 @@ export async function updateBadBitsDatabase(env, currentHashes, etag) {
 
     await env.DB.batch(statements)
   } catch (error) {
-    console.error('Error updating bad_bits:', error)
+    console.error('Error updating bad bits:', error)
     throw error
   }
 }
