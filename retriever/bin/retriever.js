@@ -123,7 +123,7 @@ export default {
       )
       const response = new Response(originResponse.body, originResponse)
       setContentSecurityPolicy(response)
-      response.headers.set('X-Proof-Set-ID', setId)
+      response.headers.set('X-Proof-Set-ID', proofSetId)
       return response
     }
 
