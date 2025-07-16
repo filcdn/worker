@@ -49,5 +49,11 @@ export async function fetchAndStoreBadBits(
       }
     }
   }
-  await updateBadBitsDatabase(env, currentBadHashes, etag)
+
+  try {
+    await updateBadBitsDatabase(env, currentBadHashes, etag)
+  } catch (error) {
+    console.error('Error updating bad bits:', error)
+    throw error
+  }
 }

@@ -7,38 +7,38 @@
  * @param {string} etag - ETag for the current denylist
  */
 export async function updateBadBitsDatabase(env, currentHashes, etag) {
-  try {
-    const now = new Date()
-    const insertBadBitStmt = env.DB.prepare(
-      `
+  const now = new Date().toISOString()
+  const insertBadBitStmt = env.DB.prepare(
+    `
       INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, ?)
       ON CONFLICT(hash) DO UPDATE SET last_modified_at = excluded.last_modified_at
       `,
+  )
+
+  const remainingHashes = Array.from(currentHashes)
+  while (remainingHashes.length > 0) {
+    // pop first 1000 hashes from remainingHashes
+    const batchHashes = remainingHashes.splice(0, 1000)
+    await env.DB.batch(
+      batchHashes.map((hash) => insertBadBitStmt.bind(hash, now)),
     )
-
-    const statements = [
-      ...Array.from(currentHashes).map((hash) =>
-        insertBadBitStmt.bind(hash, now.toISOString()),
-      ),
-
-      env.DB.prepare('DELETE FROM bad_bits WHERE last_modified_at < ?').bind(
-        now.toISOString(),
-      ),
-    ]
-
-    if (etag) {
-      statements.push(
-        env.DB.prepare(
-          'INSERT INTO bad_bits_history (timestamp, etag) VALUES (?, ?)',
-        ).bind(now.toISOString(), etag),
-      )
-    }
-
-    await env.DB.batch(statements)
-  } catch (error) {
-    console.error('Error updating bad bits:', error)
-    throw error
   }
+
+  const statements = [
+    env.DB.prepare('DELETE FROM bad_bits WHERE last_modified_at < ?').bind(
+      now.toISOString(),
+    ),
+  ]
+
+  if (etag) {
+    statements.push(
+      env.DB.prepare(
+        'INSERT INTO bad_bits_history (timestamp, etag) VALUES (?, ?)',
+      ).bind(now.toISOString(), etag),
+    )
+  }
+
+  await env.DB.batch(statements)
 }
 
 /**
