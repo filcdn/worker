@@ -267,8 +267,8 @@ describe('getOwnerAndValidateClient', () => {
   })
 
   it('ignores owners that are not approved by Pandora', async () => {
-    const setId1 = 'set-a'
-    const setId2 = 'set-b'
+    const proofSetId1 = 'set-a'
+    const proofSetId2 = 'set-b'
     const rootCid = 'shared-root-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     const owner1 = '0x1006D234246eD18b6C91de8349fF34C22C726801'
@@ -285,7 +285,7 @@ describe('getOwnerAndValidateClient', () => {
     withProofSetRoots(env, {
       clientAddress,
       owner: owner2,
-      proofSetId: setId2,
+      proofSetId: proofSetId2,
       railId: 'rail-b',
       withCDN: true,
       rootCid,
@@ -294,7 +294,7 @@ describe('getOwnerAndValidateClient', () => {
     withProofSetRoots(env, {
       clientAddress,
       owner: owner1,
-      proofSetId: setId1,
+      proofSetId: proofSetId1,
       railId: 'rail-a',
       withCDN: true,
       rootCid,
@@ -303,7 +303,7 @@ describe('getOwnerAndValidateClient', () => {
     // Should return owner1 because owner2 is not approved
     const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
     assert.deepStrictEqual(result, {
-      proofSetId: setId1,
+      proofSetId: proofSetId1,
       ownerAddress: owner1.toLowerCase(),
       pieceRetrievalUrl: 'https://pdp-provider-1.xyz',
     })
