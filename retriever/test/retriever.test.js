@@ -446,7 +446,7 @@ describe('retriever.fetch', () => {
     )
   })
 
-  it('returns DataSet (ProofSet) ID in the X-Dataset-ID response header', async () => {
+  it('returns ProofSet ID in the X-Proof-Set-ID response header', async () => {
     const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response('hello'),
@@ -455,10 +455,10 @@ describe('retriever.fetch', () => {
     const req = withRequest(defaultClientAddress, rootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(await res.text()).toBe('hello')
-    expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
+    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
   })
 
-  it('returns DataSet (ProofSet) ID in the X-Dataset-ID response header when the response body is empty', async () => {
+  it('returns ProofSet ID in the X-Dataset-ID response header when the response body is empty', async () => {
     const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response(null, { status: 404 }),
@@ -467,7 +467,7 @@ describe('retriever.fetch', () => {
     const req = withRequest(defaultClientAddress, rootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.body).toBeNull()
-    expect(res.headers.get('X-Dataset-ID')).toBe(String(proofSetId))
+    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
   })
 
   it('supports HEAD requests', async () => {

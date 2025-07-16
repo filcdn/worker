@@ -79,7 +79,7 @@ export async function logRetrievalResult(env, params) {
  * @returns {Promise<{
  *   ownerAddress: string
  *   pieceRetrievalUrl: string
- *   setId: string
+ *   proofSetId: string
  * }>}
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
@@ -147,7 +147,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   )
 
   const {
-    set_id: setId,
+    set_id: proofSetId,
     owner: ownerAddress,
     piece_retrieval_url: pieceRetrievalUrl,
   } = withApprovedProvider[0]
@@ -157,8 +157,8 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   httpAssert(pieceRetrievalUrl, 500, 'should never happen')
 
   console.log(
-    `Looked up set_id '${setId}' and owner '${ownerAddress}' for root_cid '${rootCid}' and client '${clientAddress}'. Piece retrieval URL: ${pieceRetrievalUrl}`,
+    `Looked up ProofSet ID '${proofSetId}' and owner '${ownerAddress}' for root_cid '${rootCid}' and client '${clientAddress}'. Piece retrieval URL: ${pieceRetrievalUrl}`,
   )
 
-  return { ownerAddress, pieceRetrievalUrl, setId }
+  return { ownerAddress, pieceRetrievalUrl, proofSetId }
 }
