@@ -13,6 +13,7 @@
   "scripts": {
     "build:types": "npm run build:types --workspaces --if-present",
     "deploy:calibration": "npm run deploy:calibration --workspaces --if-present",
+    "deploy:mainnet": "npm run deploy:mainnet --workspaces --if-present",
     "lint": "eslint && prettier --check . && tsc -p .",
     "lint:fix": "eslint --fix && prettier --write .",
     "test": "npm run lint && wrangler d1 migrations apply test-db --local --cwd db && vitest run"
