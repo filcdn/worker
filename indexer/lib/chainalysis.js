@@ -16,7 +16,6 @@ export async function isAddressSanctioned(
     const url = `https://public.chainalysis.com/api/v1/address/${address}`
 
     const response = await fetch(url, {
-      method: 'GET',
       headers: {
         'X-API-KEY': apiKey,
         Accept: 'application/json',

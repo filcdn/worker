@@ -34,7 +34,6 @@ describe('isAddressSanctioned', () => {
       1,
       'https://public.chainalysis.com/api/v1/address/0x1111111111111111111111111111111111111111',
       {
-        method: 'GET',
         headers: {
           'X-API-KEY': apiKey,
           Accept: 'application/json',
