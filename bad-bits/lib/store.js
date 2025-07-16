@@ -8,12 +8,12 @@
  */
 export async function updateBadBitsDatabase(env, currentHashes, etag) {
   const startedAt = Date.now()
-  const now = new Date().toISOString()
+  const timestamp = new Date().toISOString()
   const insertBadBitStmt = env.DB.prepare(
     `
-      INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, ?)
-      ON CONFLICT(hash) DO UPDATE SET last_modified_at = excluded.last_modified_at
-      `,
+    INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, ?)
+    ON CONFLICT(hash) DO UPDATE SET last_modified_at = excluded.last_modified_at
+    `,
   )
 
   let updated = 0
@@ -21,24 +21,28 @@ export async function updateBadBitsDatabase(env, currentHashes, etag) {
   while (remainingHashes.length > 0) {
     // pop first N hashes from remainingHashes
     const batchHashes = remainingHashes.splice(0, 10_000)
-    updated += batchHashes.length
+
     await env.DB.batch(
-      batchHashes.map((hash) => insertBadBitStmt.bind(hash, now)),
+      batchHashes.map((hash) => insertBadBitStmt.bind(hash, timestamp)),
     )
+
+    updated += batchHashes.length
     console.log(
       `Inserted/updated ${updated} bad bits in ${Date.now() - startedAt}ms`,
     )
   }
 
   const statements = [
-    env.DB.prepare('DELETE FROM bad_bits WHERE last_modified_at < ?').bind(now),
+    env.DB.prepare('DELETE FROM bad_bits WHERE last_modified_at < ?').bind(
+      timestamp,
+    ),
   ]
 
   if (etag) {
     statements.push(
       env.DB.prepare(
         'INSERT INTO bad_bits_history (timestamp, etag) VALUES (?, ?)',
-      ).bind(now, etag),
+      ).bind(timestamp, etag),
     )
   }
 
