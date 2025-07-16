@@ -18,12 +18,22 @@ binding = "DB"
 database_name = "dev-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 
-[env.calibration .vars]
+[env.calibration.vars]
 ENVIRONMENT = "calibration "
 CACHE_TTL = 86400
 DNS_ROOT = ".calibration.filcdn.io"
 
-[[env.calibration .d1_databases]]
+[[env.calibration.d1_databases]]
 binding = "DB"
 database_name = "filcdn-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
+
+[env.mainnet.vars]
+ENVIRONMENT = "mainnet"
+CACHE_TTL = 86400
+DNS_ROOT = ".filcdn.io"
+
+[[env.mainnet.d1_databases]]
+binding = "DB"
+database_name = "filcdn-mainnet-db"
+database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"

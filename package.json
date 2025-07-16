@@ -6,6 +6,7 @@
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
   "workspaces": [
+    "bad-bits",
     "indexer",
     "retriever"
   ],
