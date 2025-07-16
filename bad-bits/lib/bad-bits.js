@@ -16,7 +16,7 @@ export async function fetchAndStoreBadBits(
 
   const lastEtag = await getLastEtag(env)
   if (lastEtag) {
-    console.log('setting etag', lastEtag)
+    console.log(`Requesting version different from etag ${lastEtag}`)
     req.headers.set('if-none-match', lastEtag)
   }
 
