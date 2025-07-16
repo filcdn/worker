@@ -71,11 +71,8 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const {
-      ownerAddress,
-      pieceRetrievalUrl,
-      proofSetId,
-    } = await getOwnerAndValidateClient(env, clientWalletAddress, rootCid)
+    const { ownerAddress, pieceRetrievalUrl, proofSetId } =
+      await getOwnerAndValidateClient(env, clientWalletAddress, rootCid)
 
     httpAssert(
       ownerAddress,
