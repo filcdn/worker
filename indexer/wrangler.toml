@@ -31,3 +31,12 @@ PDP_VERIFIER_ADDRESS = "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC"
 binding = "DB"
 database_name = "filcdn-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
+
+[[queues.producers]]
+  queue = "retry-queue"
+  binding = "RETRY_QUEUE"
+
+[[queues.consumers]]
+  queue = "retry-queue"
+  max_batch_size = 100
+  max_batch_timeout = 30

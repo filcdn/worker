@@ -24,7 +24,8 @@ describe('isAddressSanctioned', () => {
     })
 
     // Execute
-    const result = await isAddressSanctioned(apiKey, address, {
+    const result = await isAddressSanctioned(address, {
+      CHAINALYSIS_API_KEY: apiKey,
       fetch: mockFetch,
     })
 
@@ -61,7 +62,8 @@ describe('isAddressSanctioned', () => {
     })
 
     // Execute
-    const result = await isAddressSanctioned(apiKey, sanctionedAddress, {
+    const result = await isAddressSanctioned(sanctionedAddress, {
+      CHAINALYSIS_API_KEY: apiKey,
       fetch: mockFetch,
     })
 
@@ -69,7 +71,7 @@ describe('isAddressSanctioned', () => {
     expect(result).toEqual(true)
   })
 
-  it('returns null on API errors', async () => {
+  it('throws assertion error on API errors', async () => {
     const address = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
 
     // Mock error response
@@ -79,27 +81,21 @@ describe('isAddressSanctioned', () => {
       statusText: 'Too Many Requests',
     })
 
-    // Execute
-    const result = await isAddressSanctioned(apiKey, address, {
-      fetch: mockFetch,
-    })
-
-    // Verify
-    expect(result).toBeNull()
+    // Execute & Verify
+    await expect(
+      isAddressSanctioned(apiKey, address, { fetch: mockFetch }),
+    ).rejects.toThrow()
   })
 
-  it('returns null on exception', async () => {
+  it('throws exception', async () => {
     const address = ['0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC']
 
     // Mock fetch throwing an exception
     mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-    // Execute
-    const result = await isAddressSanctioned(address, apiKey, {
-      fetch: mockFetch,
-    })
-
-    // Verify
-    expect(result).toBeNull()
+    // Execute & Verify
+    await expect(
+      isAddressSanctioned(address, apiKey, { fetch: mockFetch }),
+    ).rejects.toThrow()
   })
 })

@@ -4,6 +4,7 @@ import {
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 import { isAddressSanctioned as defaultIsAddressSanctioned } from '../lib/chainalysis.js'
+import { handleProofSetRailCreated } from '../lib/proof-set-handler.js'
 
 export default {
   /**
@@ -39,8 +40,6 @@ export default {
       SECRET_HEADER_KEY,
       // @ts-ignore
       SECRET_HEADER_VALUE,
-      // @ts-ignore
-      CHAINALYSIS_API_KEY,
     } = env
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
@@ -161,39 +160,18 @@ export default {
         console.error('Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
+
       console.log(
         `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
-      let isPayerSanctioned
-      if (payload.with_cdn) {
-        isPayerSanctioned = await isAddressSanctioned(
-          CHAINALYSIS_API_KEY,
-          payload.payer,
-        )
+
+      try {
+        await handleProofSetRailCreated(env, payload, { isAddressSanctioned })
+      } catch (err) {
+        // @ts-ignore
+        env.RETRY_QUEUE.send({ type: 'proof-set-rail-created', payload })
       }
-      await env.DB.prepare(
-        `
-          INSERT INTO indexer_proof_set_rails (
-            proof_set_id,
-            rail_id,
-            payer,
-            payee,
-            with_cdn,
-            is_payer_sanctioned
-          )
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT DO NOTHING
-        `,
-      )
-        .bind(
-          String(payload.proof_set_id),
-          String(payload.rail_id),
-          payload.payer,
-          payload.payee,
-          payload.with_cdn ?? null,
-          isPayerSanctioned ?? null,
-        )
-        .run()
+
       return new Response('OK', { status: 200 })
     } else if (pathname === '/provider-registered') {
       const { provider, piece_retrieval_url: pieceRetrievalUrl } = payload
@@ -203,6 +181,36 @@ export default {
       return await handleProviderRemoved(env, provider)
     } else {
       return new Response('Not Found', { status: 404 })
+    }
+  },
+  /**
+   * Handles incoming messages from the retry queue.
+   *
+   * @param {MessageBatch<{ type: string; payload: any }>} batch
+   * @param {Env} env
+   * @param {object} options
+   * @param {typeof defaultIsAddressSanctioned} [options.isAddressSanctioned]
+   */
+  async queue(
+    batch,
+    env,
+    { isAddressSanctioned = defaultIsAddressSanctioned } = {},
+  ) {
+    for (const message of batch.messages) {
+      if (message.body.type === 'proof-set-rail-created') {
+        try {
+          await handleProofSetRailCreated(env, message.body.payload, {
+            isAddressSanctioned,
+          })
+
+          message.ack()
+        } catch (err) {
+          message.retry({ delaySeconds: 10 })
+        }
+      } else {
+        console.error(`Unknown message type: ${message.body.type}.`)
+        message.ack() // Acknowledge unknown messages to avoid reprocessing
+      }
     }
   },
 }
