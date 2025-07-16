@@ -74,7 +74,7 @@ export default {
     const {
       ownerAddress,
       pieceRetrievalUrl,
-      proofSetId: setId,
+      proofSetId,
     } = await getOwnerAndValidateClient(env, clientWalletAddress, rootCid)
 
     httpAssert(
