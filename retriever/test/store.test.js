@@ -303,7 +303,7 @@ describe('getOwnerAndValidateClient', () => {
     // Should return owner1 because owner2 is not approved
     const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
     assert.deepStrictEqual(result, {
-      setId: setId1,
+      proofSetId: setId1,
       ownerAddress: owner1.toLowerCase(),
       pieceRetrievalUrl: 'https://pdp-provider-1.xyz',
     })
