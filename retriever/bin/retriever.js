@@ -157,7 +157,7 @@ export default {
       headers: originResponse.headers,
     })
     setContentSecurityPolicy(response)
-    response.headers.set('X-Proof-Set-ID', setId)
+    response.headers.set('X-Proof-Set-ID', proofSetId)
     return response
   },
 
