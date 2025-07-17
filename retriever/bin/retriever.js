@@ -7,6 +7,7 @@ import {
 import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
+import { assertNotInBadBits } from '../lib/bad-bits-util.js'
 
 export default {
   /**
@@ -71,8 +72,12 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const { ownerAddress, pieceRetrievalUrl, proofSetId } =
-      await getOwnerAndValidateClient(env, clientWalletAddress, rootCid)
+    const [{ ownerAddress, pieceRetrievalUrl, proofSetId }] = await Promise.all(
+      [
+        getOwnerAndValidateClient(env, clientWalletAddress, rootCid),
+        assertNotInBadBits(env, rootCid),
+      ],
+    )
 
     httpAssert(
       ownerAddress,
