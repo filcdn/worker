@@ -20,16 +20,25 @@ export async function handleProofSetRailCreated(
     CHAINALYSIS_API_KEY,
   } = env
 
-  let isPayerSanctioned
-  try {
-    if (payload.with_cdn) {
-      isPayerSanctioned = await isAddressSanctioned(payload.payer, {
+  if (payload.with_cdn) {
+    try {
+      const isPayerSanctioned = await isAddressSanctioned(payload.payer, {
         CHAINALYSIS_API_KEY,
       })
+
+      await env.DB.prepare(
+        `
+        INSERT INTO wallet_details (wallet_address, is_sanctioned)
+        VALUES (?, ?)
+        ON CONFLICT (wallet_address) DO UPDATE SET is_sanctioned = excluded.is_sanctioned
+      `,
+      )
+        .bind(payload.payer, isPayerSanctioned)
+        .run()
+    } catch (err) {
+      console.error(`Error checking if payer is sanctioned: ${err}`)
+      throw err // Let caller handle the error
     }
-  } catch (err) {
-    console.error(`Error checking if payer is sanctioned: ${err}`)
-    throw err // Let caller handle the error
   }
 
   await env.DB.prepare(
@@ -39,10 +48,9 @@ export async function handleProofSetRailCreated(
         rail_id,
         payer,
         payee,
-        with_cdn,
-        is_payer_sanctioned
+        with_cdn
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?)
       ON CONFLICT DO NOTHING
     `,
   )
@@ -52,7 +60,6 @@ export async function handleProofSetRailCreated(
       payload.payer,
       payload.payee,
       payload.with_cdn ?? null,
-      isPayerSanctioned ?? null,
     )
     .run()
 }

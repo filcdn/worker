@@ -362,13 +362,22 @@ describe('retriever.indexer', () => {
       )
         .bind(proofSetId)
         .all()
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE wallet_address = ?',
+      )
+        .bind('0xPayerAddress')
+        .all()
+
       expect(proofSetRails.length).toBe(1)
       expect(proofSetRails[0].proof_set_id).toBe(proofSetId)
       expect(proofSetRails[0].rail_id).toBe(railId)
       expect(proofSetRails[0].payer).toBe('0xPayerAddress')
       expect(proofSetRails[0].payee).toBe('0xPayeeAddress')
       expect(proofSetRails[0].with_cdn).toBe(1)
-      expect(proofSetRails[0].is_payer_sanctioned).toBe(0)
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].is_sanctioned).toBe(0)
     })
     it('does not insert duplicate proof set rails', async () => {
       const proofSetId = randomId()
@@ -387,6 +396,7 @@ describe('retriever.indexer', () => {
             with_cdn: true,
           }),
         })
+        mockIsAddressSanctioned.mockResolvedValueOnce(false)
         const res = await workerImpl.fetch(req, env, ctx, {
           isAddressSanctioned: mockIsAddressSanctioned,
         })
@@ -521,8 +531,19 @@ describe('retriever.indexer', () => {
       )
         .bind(proofSetId)
         .all()
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE wallet_address = ?',
+      )
+        .bind('0xPayerAddress')
+        .all()
+
       expect(proofSetRails.length).toBe(1)
-      expect(proofSetRails[0].is_payer_sanctioned).toBe(1)
+      expect(proofSetRails[0].payer).toBe('0xPayerAddress')
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].wallet_address).toBe('0xPayerAddress')
+      expect(walletDetails[0].is_sanctioned).toBe(1)
     })
 
     it('sends message to queue if sanction check fails', async () => {
