@@ -1,5 +1,3 @@
-import { httpAssert } from './http-assert'
-
 /**
  * @param {string} cid
  * @returns {Promise<string>} Bad Bits entry in the legacy double-hash format
@@ -16,17 +14,14 @@ export async function getBadBitsEntry(cid) {
 /**
  * @param {Env} env
  * @param {string} cid
+ * @returns {Promise<boolean>}
  */
-export async function assertNotInBadBits(env, cid) {
+export async function findInBadBits(env, cid) {
   const badBitsEntry = await getBadBitsEntry(cid)
 
   const result = await env.DB.prepare('SELECT * FROM bad_bits WHERE hash = ?')
     .bind(badBitsEntry)
     .all()
 
-  httpAssert(
-    result.results.length === 0,
-    404,
-    'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
-  )
+  return result.results.length > 0
 }
