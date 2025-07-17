@@ -25,20 +25,20 @@ export async function withProofSetRoots(
       INSERT INTO indexer_proof_sets (set_id, owner)
       VALUES (?, ?)
     `,
-    ).bind(proofSetId, owner),
+    ).bind(String(proofSetId), owner),
 
     env.DB.prepare(
       `
       INSERT INTO indexer_roots (root_id, set_id, root_cid)
       VALUES (?, ?, ?)
     `,
-    ).bind(rootId, proofSetId, rootCid),
+    ).bind(String(rootId), String(proofSetId), rootCid),
     env.DB.prepare(
       `
       INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
       VALUES (?, ?, ?, ?, ?)
     `,
-    ).bind(proofSetId, railId, clientAddress, owner, withCDN),
+    ).bind(String(proofSetId), String(railId), clientAddress, owner, withCDN),
   ])
 }
 

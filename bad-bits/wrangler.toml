@@ -2,6 +2,7 @@ name = "filcdn-bad-bits"
 main = "bin/scheduler.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
+logpush = true
 
 [observability]
 enabled = true
@@ -19,7 +20,6 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 
 [env.calibration.vars]
 ENVIRONMENT = "calibration"
-SECRET_HEADER_KEY = "Authorization"
 
 [[env.calibration.d1_databases]]
 binding = "DB"

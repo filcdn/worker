@@ -16,7 +16,7 @@ export async function fetchAndStoreBadBits(
 
   const lastEtag = await getLastEtag(env)
   if (lastEtag) {
-    console.log('setting etag', lastEtag)
+    console.log(`Requesting version different from etag ${lastEtag}`)
     req.headers.set('if-none-match', lastEtag)
   }
 
@@ -49,5 +49,18 @@ export async function fetchAndStoreBadBits(
       }
     }
   }
-  await updateBadBitsDatabase(env, currentBadHashes, etag)
+
+  console.log({
+    message: 'New bad bits version',
+    etag,
+    lineCount: lines.length,
+    hashCount: currentBadHashes.size,
+  })
+
+  try {
+    await updateBadBitsDatabase(env, currentBadHashes, etag)
+  } catch (error) {
+    console.error('Error updating bad bits:', error)
+    throw error
+  }
 }
