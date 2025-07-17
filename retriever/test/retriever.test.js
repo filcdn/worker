@@ -147,7 +147,7 @@ describe('retriever.fetch', () => {
     const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     const csp = res.headers.get('Content-Security-Policy')
-    expect(csp).toMatch(/^default-src: 'self'/)
+    expect(csp).toMatch(/^default-src 'self'/)
     expect(csp).toContain('https://*.filcdn.io')
   })
 
