@@ -13,6 +13,9 @@ binding = "DB"
 database_name = "test-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf100"
 
+[env.dev.vars]
+ENVIRONMENT = "dev"
+
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "dev-db"
