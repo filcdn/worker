@@ -21,7 +21,7 @@ export async function handleProviderRegistered(
     typeof pieceRetrievalUrl !== 'string' ||
     !isValidEthereumAddress(provider)
   ) {
-    console.error('Invalid provider registered payload', {
+    console.error('ProviderRegistered: Invalid payload', {
       provider,
       pieceRetrievalUrl,
     })
@@ -29,7 +29,9 @@ export async function handleProviderRegistered(
   }
 
   if (!validator.isURL(pieceRetrievalUrl)) {
-    console.error('Invalid Piece Retrieval URL', { pieceRetrievalUrl })
+    console.error('ProviderRegistered: Invalid Piece Retrieval URL', {
+      pieceRetrievalUrl,
+    })
     return new Response('Bad Request', { status: 400 })
   }
 
@@ -66,7 +68,7 @@ export async function handleProviderRemoved(env, provider) {
     typeof provider !== 'string' ||
     !isValidEthereumAddress(provider)
   ) {
-    console.error('Invalid provider removed payload', { provider })
+    console.error('ProviderRemoved: Invalid payload', { provider })
     return new Response('Bad Request', { status: 400 })
   }
 
