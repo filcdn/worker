@@ -40,6 +40,6 @@ export function setContentSecurityPolicy(response) {
   // - `navigate-to 'self'`: restricts which URLs the document can navigate to. Docs: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/navigate-to
   response.headers.set(
     'content-security-policy',
-    `default-src: ${defaultSrc}; form-action 'self'; navigate-to 'self';`,
+    `default-src ${defaultSrc}; form-action 'self'; navigate-to 'self';`,
   )
 }
