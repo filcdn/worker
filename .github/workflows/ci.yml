@@ -58,13 +58,13 @@ jobs:
           payload: |
             {
               "channel": "alerts",
-              "text": "Deployment of `${{ github.event.repository.name }}` failed",
+              "text": "Deployment of `${{ github.event.repository.name }}` to `${{ matrix.environment }}` failed",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": ":warning: *<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Deployment of `${{ github.event.repository.name }}` failed>*"
+                    "text": ":warning: *<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Deployment of `${{ github.event.repository.name }}` to `${{ matrix.environment }}` failed>*"
                   }
                 }
               ]
