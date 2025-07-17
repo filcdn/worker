@@ -7,7 +7,13 @@ CREATE TABLE IF NOT EXISTS wallet_details (
 INSERT OR IGNORE INTO wallet_details (wallet_address)
 SELECT DISTINCT address
 FROM (
-  SELECT payer AS address FROM indexer_proof_set_rails
+  SELECT payer AS address
+  FROM indexer_proof_set_rails
+  WHERE with_cdn = true
+
   UNION
-  SELECT payee AS address FROM indexer_proof_set_rails
+
+  SELECT payee AS address
+  FROM indexer_proof_set_rails
+  WHERE with_cdn = true
 );
