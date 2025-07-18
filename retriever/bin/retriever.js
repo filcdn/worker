@@ -7,6 +7,7 @@ import {
 import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
+import { findInBadBits } from '../lib/bad-bits-util.js'
 
 export default {
   /**
@@ -71,10 +72,16 @@ export default {
     // Timestamp to measure file retrieval performance (from cache and from SP)
     const fetchStartedAt = performance.now()
 
-    const { ownerAddress, pieceRetrievalUrl } = await getOwnerAndValidateClient(
-      env,
-      clientWalletAddress,
-      rootCid,
+    const [{ ownerAddress, pieceRetrievalUrl, proofSetId }, isBadBit] =
+      await Promise.all([
+        getOwnerAndValidateClient(env, clientWalletAddress, rootCid),
+        findInBadBits(env, rootCid),
+      ])
+
+    httpAssert(
+      !isBadBit,
+      404,
+      'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
     )
 
     httpAssert(
@@ -123,6 +130,7 @@ export default {
       )
       const response = new Response(originResponse.body, originResponse)
       setContentSecurityPolicy(response)
+      response.headers.set('X-Proof-Set-ID', proofSetId)
       return response
     }
 
@@ -156,6 +164,7 @@ export default {
       headers: originResponse.headers,
     })
     setContentSecurityPolicy(response)
+    response.headers.set('X-Proof-Set-ID', proofSetId)
     return response
   },
 

@@ -1,3 +1,5 @@
+import { getBadBitsEntry } from '../lib/bad-bits-util'
+
 /**
  * @param {Env} env
  * @param {Object} options
@@ -25,20 +27,20 @@ export async function withProofSetRoots(
       INSERT INTO indexer_proof_sets (set_id, owner)
       VALUES (?, ?)
     `,
-    ).bind(proofSetId, owner),
+    ).bind(String(proofSetId), owner),
 
     env.DB.prepare(
       `
       INSERT INTO indexer_roots (root_id, set_id, root_cid)
       VALUES (?, ?, ?)
     `,
-    ).bind(rootId, proofSetId, rootCid),
+    ).bind(String(rootId), String(proofSetId), rootCid),
     env.DB.prepare(
       `
       INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
       VALUES (?, ?, ?, ?, ?)
     `,
-    ).bind(proofSetId, railId, clientAddress, owner, withCDN),
+    ).bind(String(proofSetId), String(railId), clientAddress, owner, withCDN),
   ])
 }
 
@@ -60,4 +62,16 @@ export async function withApprovedProvider(
   )
     .bind(ownerAddress.toLowerCase(), pieceRetrievalUrl)
     .run()
+}
+
+/**
+ * @param {Env} env
+ * @param {...string} cids
+ */
+export async function withBadBits(env, ...cids) {
+  const stmt = await env.DB.prepare(
+    'INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, CURRENT_TIME)',
+  )
+  const entries = await Promise.all(cids.map(getBadBitsEntry))
+  await env.DB.batch(entries.map((it) => stmt.bind(it)))
 }

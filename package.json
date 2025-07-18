@@ -21,12 +21,12 @@
   "prettier": "@checkernetwork/prettier-config",
   "devDependencies": {
     "@checkernetwork/prettier-config": "^1.0.1",
-    "@cloudflare/vitest-pool-workers": "^0.8.53",
+    "@cloudflare/vitest-pool-workers": "^0.8.54",
     "@types/node": "^22.16.4",
     "neostandard": "^0.12.1",
     "prettier": "^3.6.2",
     "typescript": "^5.8.3",
     "vitest": "3.1.4",
-    "wrangler": "^4.24.3"
+    "wrangler": "^4.24.4"
   }
 }
