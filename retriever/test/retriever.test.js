@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 import {
   withProofSetRoots,
   withApprovedProvider,
+  withBadBits,
 } from './test-data-builders.js'
 import { CONTENT_STORED_ON_CALIBRATION } from './test-data.js'
 
@@ -49,6 +50,7 @@ describe('retriever.fetch', () => {
       env.DB.prepare('DELETE FROM indexer_roots'),
       env.DB.prepare('DELETE FROM indexer_proof_sets'),
       env.DB.prepare('DELETE FROM indexer_proof_set_rails'),
+      env.DB.prepare('DELETE FROM bad_bits'),
     ])
 
     let i = 1
@@ -481,6 +483,25 @@ describe('retriever.fetch', () => {
     const req = withRequest(defaultClientAddress, realRootCid, 'HEAD')
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
     expect(res.status).toBe(200)
+  })
+
+  it('rejects retrieval requests for CIDs found in the Bad Bits denylist', async () => {
+    await withBadBits(env, realRootCid)
+
+    const fakeResponse = new Response('hello')
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: true,
+    })
+
+    const req = withRequest(defaultClientAddress, realRootCid)
+    const res = await worker.fetch(req, env, {
+      retrieveFile: mockRetrieveFile,
+    })
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe(
+      'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
+    )
   })
 })
 

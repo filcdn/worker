@@ -1,3 +1,5 @@
+import { getBadBitsEntry } from '../lib/bad-bits-util'
+
 /**
  * @param {Env} env
  * @param {Object} options
@@ -60,4 +62,16 @@ export async function withApprovedProvider(
   )
     .bind(ownerAddress.toLowerCase(), pieceRetrievalUrl)
     .run()
+}
+
+/**
+ * @param {Env} env
+ * @param {...string} cids
+ */
+export async function withBadBits(env, ...cids) {
+  const stmt = await env.DB.prepare(
+    'INSERT INTO bad_bits (hash, last_modified_at) VALUES (?, CURRENT_TIME)',
+  )
+  const entries = await Promise.all(cids.map(getBadBitsEntry))
+  await env.DB.batch(entries.map((it) => stmt.bind(it)))
 }
