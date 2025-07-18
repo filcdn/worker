@@ -20,7 +20,7 @@
     "validator": "^13.15.15"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.54",
+    "@cloudflare/vitest-pool-workers": "^0.8.55",
     "@types/validator": "^13.15.2"
   }
 }
