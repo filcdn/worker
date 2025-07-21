@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { isAddressSanctioned } from '../lib/chainalysis.js'
+import { checkIfAddressIsSanctioned } from '../lib/chainalysis.js'
 
-describe('isAddressSanctioned', () => {
+describe('checkIfAddressIsSanctioned', () => {
   const apiKey = 'test-api-key'
   let mockFetch
 
@@ -24,7 +24,7 @@ describe('isAddressSanctioned', () => {
     })
 
     // Execute
-    const result = await isAddressSanctioned(address, {
+    const result = await checkIfAddressIsSanctioned(address, {
       CHAINALYSIS_API_KEY: apiKey,
       fetch: mockFetch,
     })
@@ -62,7 +62,7 @@ describe('isAddressSanctioned', () => {
     })
 
     // Execute
-    const result = await isAddressSanctioned(sanctionedAddress, {
+    const result = await checkIfAddressIsSanctioned(sanctionedAddress, {
       CHAINALYSIS_API_KEY: apiKey,
       fetch: mockFetch,
     })
@@ -83,7 +83,7 @@ describe('isAddressSanctioned', () => {
 
     // Execute & Verify
     await expect(
-      isAddressSanctioned(apiKey, address, { fetch: mockFetch }),
+      checkIfAddressIsSanctioned(apiKey, address, { fetch: mockFetch }),
     ).rejects.toThrow()
   })
 
@@ -95,7 +95,7 @@ describe('isAddressSanctioned', () => {
 
     // Execute & Verify
     await expect(
-      isAddressSanctioned(address, apiKey, { fetch: mockFetch }),
+      checkIfAddressIsSanctioned(address, apiKey, { fetch: mockFetch }),
     ).rejects.toThrow()
   })
 })

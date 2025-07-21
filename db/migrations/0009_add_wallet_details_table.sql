@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS wallet_details (
-  wallet_address TEXT PRIMARY KEY,
-  is_sanctioned BOOLEAN NOT NULL DEFAULT FALSE
+  address TEXT PRIMARY KEY,
+  is_sanctioned BOOLEAN
 );
 
 -- Backfill existing wallet addresses
-INSERT OR IGNORE INTO wallet_details (wallet_address)
+INSERT OR IGNORE INTO wallet_details (address)
 SELECT DISTINCT address
 FROM (
   SELECT payer AS address

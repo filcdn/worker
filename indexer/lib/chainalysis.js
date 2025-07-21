@@ -9,7 +9,7 @@ import { assertOkResponse } from 'assert-ok-response'
  * @param {Function} [options.CHAINALYSIS_API_KEY] - Chainalysis API key
  * @returns {Promise<boolean | null>}
  */
-export async function isAddressSanctioned(
+export async function checkIfAddressIsSanctioned(
   address,
   { CHAINALYSIS_API_KEY, fetch = globalThis.fetch } = {},
 ) {

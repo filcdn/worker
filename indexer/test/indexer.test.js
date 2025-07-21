@@ -312,7 +312,7 @@ describe('retriever.indexer', () => {
       send: vi.fn(),
       retry: vi.fn(),
     }
-    const mockIsAddressSanctioned = vi.fn()
+    const mockCheckIfAddressIsSanctioned = vi.fn()
 
     beforeEach(() => {
       // Reset mocks before each test
@@ -328,7 +328,7 @@ describe('retriever.indexer', () => {
         body: JSON.stringify({}),
       })
       const res = await workerImpl.fetch(req, env, ctx, {
-        isAddressSanctioned: mockIsAddressSanctioned,
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
@@ -350,9 +350,9 @@ describe('retriever.indexer', () => {
         }),
       })
 
-      mockIsAddressSanctioned.mockResolvedValueOnce(false)
+      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
       const res = await workerImpl.fetch(req, env, ctx, {
-        isAddressSanctioned: mockIsAddressSanctioned,
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
@@ -364,7 +364,7 @@ describe('retriever.indexer', () => {
         .all()
 
       const { results: walletDetails } = await env.DB.prepare(
-        'SELECT * FROM wallet_details WHERE wallet_address = ?',
+        'SELECT * FROM wallet_details WHERE address = ?',
       )
         .bind('0xPayerAddress')
         .all()
@@ -396,9 +396,9 @@ describe('retriever.indexer', () => {
             with_cdn: true,
           }),
         })
-        mockIsAddressSanctioned.mockResolvedValueOnce(false)
+        mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
         const res = await workerImpl.fetch(req, env, ctx, {
-          isAddressSanctioned: mockIsAddressSanctioned,
+          checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
         })
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
@@ -427,7 +427,7 @@ describe('retriever.indexer', () => {
         }),
       })
       const res = await workerImpl.fetch(req, env, ctx, {
-        isAddressSanctioned: mockIsAddressSanctioned,
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
@@ -457,9 +457,9 @@ describe('retriever.indexer', () => {
           with_cdn: true,
         }),
       })
-      mockIsAddressSanctioned.mockResolvedValueOnce(false)
+      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
       const res = await workerImpl.fetch(req, env, ctx, {
-        isAddressSanctioned: mockIsAddressSanctioned,
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
@@ -493,9 +493,9 @@ describe('retriever.indexer', () => {
         }),
       })
 
-      mockIsAddressSanctioned.mockResolvedValue(true)
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
       let res = await workerImpl.fetch(req, env, ctx, {
-        isAddressSanctioned: mockIsAddressSanctioned,
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
@@ -515,16 +515,19 @@ describe('retriever.indexer', () => {
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
-        isAddressSanctioned: mockIsAddressSanctioned,
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
       // Verify that the sanction check was called only once
-      expect(mockIsAddressSanctioned).toHaveBeenCalledTimes(1)
-      expect(mockIsAddressSanctioned).toHaveBeenCalledWith('0xPayerAddress', {
-        CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
-      })
+      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledTimes(1)
+      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledWith(
+        '0xPayerAddress',
+        {
+          CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
+        },
+      )
 
       const { results: proofSetRails } = await env.DB.prepare(
         'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
@@ -533,7 +536,7 @@ describe('retriever.indexer', () => {
         .all()
 
       const { results: walletDetails } = await env.DB.prepare(
-        'SELECT * FROM wallet_details WHERE wallet_address = ?',
+        'SELECT * FROM wallet_details WHERE address = ?',
       )
         .bind('0xPayerAddress')
         .all()
@@ -542,7 +545,7 @@ describe('retriever.indexer', () => {
       expect(proofSetRails[0].payer).toBe('0xPayerAddress')
 
       expect(walletDetails.length).toBe(1)
-      expect(walletDetails[0].wallet_address).toBe('0xPayerAddress')
+      expect(walletDetails[0].address).toBe('0xPayerAddress')
       expect(walletDetails[0].is_sanctioned).toBe(1)
     })
 
@@ -564,7 +567,7 @@ describe('retriever.indexer', () => {
         body: JSON.stringify(payload),
       })
       const res = await workerImpl.fetch(req, env, ctx, {
-        isAddressSanctioned: async (apiKey, address) => {
+        checkIfAddressIsSanctioneded: async (apiKey, address) => {
           throw Error('fail')
         },
       })

@@ -3,7 +3,7 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
-import { isAddressSanctioned as defaultIsAddressSanctioned } from '../lib/chainalysis.js'
+import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import { handleProofSetRailCreated } from '../lib/proof-set-handler.js'
 
 export default {
@@ -13,7 +13,7 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
-   * @param {typeof defaultIsAddressSanctioned} [options.isAddressSanctioned]
+   * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
    * @returns {Promise<Response>}
    */
   async fetch(
@@ -22,7 +22,7 @@ export default {
     ctx,
     {
       createPdpVerifierClient = defaultCreatePdpVerifierClient,
-      isAddressSanctioned = defaultIsAddressSanctioned,
+      checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
     } = {},
   ) {
     // TypeScript setup is broken in our monorepo
@@ -166,8 +166,13 @@ export default {
       )
 
       try {
-        await handleProofSetRailCreated(env, payload, { isAddressSanctioned })
+        await handleProofSetRailCreated(env, payload, {
+          checkIfAddressIsSanctioned,
+        })
       } catch (err) {
+        console.log(
+          `Error handling proof set rail creation: ${err}. Retrying...`,
+        )
         // @ts-ignore
         env.RETRY_QUEUE.send({ type: 'proof-set-rail-created', payload })
       }
@@ -189,22 +194,25 @@ export default {
    * @param {MessageBatch<{ type: string; payload: any }>} batch
    * @param {Env} env
    * @param {object} options
-   * @param {typeof defaultIsAddressSanctioned} [options.isAddressSanctioned]
+   * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
    */
   async queue(
     batch,
     env,
-    { isAddressSanctioned = defaultIsAddressSanctioned } = {},
+    { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned } = {},
   ) {
     for (const message of batch.messages) {
       if (message.body.type === 'proof-set-rail-created') {
         try {
           await handleProofSetRailCreated(env, message.body.payload, {
-            isAddressSanctioned,
+            checkIfAddressIsSanctioned,
           })
 
           message.ack()
         } catch (err) {
+          console.log(
+            `Error handling proof set rail creation: ${err}. Retrying...`,
+          )
           message.retry({ delaySeconds: 10 })
         }
       } else {
