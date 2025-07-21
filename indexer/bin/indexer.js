@@ -58,7 +58,7 @@ export default {
         ) ||
         !payload.owner
       ) {
-        console.error('Invalid payload', payload)
+        console.error('ProofSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
       console.log(
@@ -86,7 +86,7 @@ export default {
         !payload.root_ids ||
         typeof payload.root_ids !== 'string'
       ) {
-        console.error('Invalid payload', payload)
+        console.error('RootsAdded: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
@@ -109,7 +109,7 @@ export default {
                 return await pdpVerifier.getRootCid(setId, BigInt(rootId))
               } catch (/** @type {any} */ err) {
                 console.error(
-                  `Cannot get root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
+                  `RootsAdded: Cannot resolve root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
                 )
                 throw err
               }
@@ -157,7 +157,7 @@ export default {
         !payload.payer ||
         !payload.payee
       ) {
-        console.error('Invalid payload', payload)
+        console.error('ProofSetRailCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
