@@ -446,6 +446,30 @@ describe('retriever.fetch', () => {
     )
   })
 
+  it('returns ProofSet ID in the X-Proof-Set-ID response header', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response('hello'),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(await res.text()).toBe('hello')
+    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+  })
+
+  it('returns ProofSet ID in the X-ProofSet-ID response header when the response body is empty', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response(null, { status: 404 }),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.body).toBeNull()
+    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+  })
+
   it('supports HEAD requests', async () => {
     const fakeResponse = new Response('file content', {
       status: 200,
