@@ -63,6 +63,9 @@ export default {
     }
 
     try {
+      // Timestamp to measure file retrieval performance (from cache and from SP)
+      const fetchStartedAt = performance.now()
+
       const ownerAddress = await getOwnerAndValidateClient(
         env,
         clientWalletAddress,
@@ -80,7 +83,6 @@ export default {
       )
 
       retrievalResultEntry.ownerAddress = ownerAddress
-      const fetchStartedAt = performance.now()
 
       const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
       const { response, cacheMiss } = await retrieveFile(
