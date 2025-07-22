@@ -5,6 +5,9 @@
  * @param {string} pieceCid - The CID of the piece to retrieve.
  * @param {number} [cacheTtl=86400] - Cache TTL in seconds (default: 86400).
  *   Default is `86400`
+ * @param {object} [options] - Optional parameters.
+ * @param {AbortSignal} [options.signal] - An optional AbortSignal to cancel the
+ *   fetch request.
  * @returns {Promise<{
  *   response: Response
  *   cacheMiss: boolean
@@ -12,8 +15,13 @@
  *
  *   - The response from the fetch request, the cache miss and the content length.
  */
-export async function retrieveFile(baseUrl, pieceCid, cacheTtl = 86400) {
-  const url = `${baseUrl}/piece/${pieceCid}`
+export async function retrieveFile(
+  baseUrl,
+  pieceCid,
+  cacheTtl = 86400,
+  { signal } = {},
+) {
+  const url = getRetrievalUrl(baseUrl, pieceCid)
   const response = await fetch(url, {
     cf: {
       cacheTtlByStatus: {
@@ -23,6 +31,7 @@ export async function retrieveFile(baseUrl, pieceCid, cacheTtl = 86400) {
       },
       cacheEverything: true,
     },
+    signal,
   })
   const cacheStatus = response.headers.get('CF-Cache-Status')
   if (!cacheStatus) {
@@ -51,4 +60,16 @@ export async function measureStreamedEgress(reader) {
     total += value.length
   }
   return total
+}
+
+/**
+ * @param {string} pieceRetrievalBaseUrl
+ * @param {string} pieceCid
+ * @returns {string}
+ */
+export function getRetrievalUrl(pieceRetrievalBaseUrl, pieceCid) {
+  if (!pieceRetrievalBaseUrl.endsWith('/')) {
+    pieceRetrievalBaseUrl += '/'
+  }
+  return `${pieceRetrievalBaseUrl}piece/${pieceCid}`
 }

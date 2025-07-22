@@ -1,4 +1,3 @@
-import { OWNER_TO_RETRIEVAL_URL_MAPPING } from './constants.js'
 import { httpAssert } from './http-assert.js'
 
 /**
@@ -76,26 +75,27 @@ export async function logRetrievalResult(env, params) {
 }
 
 /**
- * Retrieves the approved owner address for a given root CID.
+ * Retrieves the owner address for a given root CID.
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} rootCid - The root CID to look up
- * @returns {Promise<string>} - The result containing either the approved owner
- *   address or a descriptive error
+ * @returns {Promise<{
+ *   ownerAddress: string
+ *   pieceRetrievalUrl: string
+ *   proofSetId: string
+ * }>}
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
-  const approvedOwners = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
-    (owner) => owner.toLowerCase(),
-  )
-
   const query = `
-   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn
+   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn, pu.piece_retrieval_url
    FROM indexer_roots ir
    LEFT OUTER JOIN indexer_proof_sets ips
      ON ir.set_id = ips.set_id
    LEFT OUTER JOIN indexer_proof_set_rails ipsr
      ON ir.set_id = ipsr.proof_set_id
+   LEFT OUTER JOIN provider_urls as pu
+     ON lower(ips.owner) = pu.address
    WHERE ir.root_cid = ?
  `
 
@@ -105,6 +105,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
    *   set_id: string
    *   payer: string | undefined
    *   with_cdn: number | undefined
+   *   piece_retrieval_url: string | undefined
    * }[]}
    */ (
     /** @type {any[]} */ (
@@ -124,14 +125,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `Root_cid '${rootCid}' exists but has no associated owner.`,
   )
 
-  const approved = withOwner.filter((row) => approvedOwners.includes(row.owner))
-  httpAssert(
-    approved.length > 0,
-    404,
-    `Root_cid '${rootCid}' exists but has no approved owner.`,
-  )
-
-  const withPaymentRail = approved.filter(
+  const withPaymentRail = withOwner.filter(
     (row) => row.payer && row.payer.toLowerCase() === clientAddress,
   )
   httpAssert(
@@ -149,11 +143,26 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `The Filecoin Services deal for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
   )
 
-  const { set_id: setId, owner } = withCDN[0]
-
-  console.log(
-    `Looked up set_id '${setId}' and owner '${owner}' for root_cid '${rootCid}' and client '${clientAddress}'`,
+  const withApprovedProvider = withCDN.filter((row) => row.piece_retrieval_url)
+  httpAssert(
+    withApprovedProvider.length > 0,
+    404,
+    `No approved storage provider found for client '${clientAddress}' and root_cid '${rootCid}'.`,
   )
 
-  return owner
+  const {
+    set_id: proofSetId,
+    owner: ownerAddress,
+    piece_retrieval_url: pieceRetrievalUrl,
+  } = withApprovedProvider[0]
+
+  // We need this assertion to supress TypeScript error. The compiler is not able to infer that
+  // `withCDN.filter()` above returns only rows with `piece_retrieval_url` defined.
+  httpAssert(pieceRetrievalUrl, 500, 'should never happen')
+
+  console.log(
+    `Looked up ProofSet ID '${proofSetId}' and owner '${ownerAddress}' for root_cid '${rootCid}' and client '${clientAddress}'. Piece retrieval URL: ${pieceRetrievalUrl}`,
+  )
+
+  return { ownerAddress, pieceRetrievalUrl, proofSetId }
 }

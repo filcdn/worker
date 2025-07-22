@@ -1,22 +1,44 @@
-name = "filcdn-db"
-compatibility_date = "2024-12-05"
+name = "filcdn-bad-bits"
+main = "bin/scheduler.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+logpush = true
+
+[observability]
+enabled = true
+head_sampling_rate = 1
 
 [[d1_databases]]
 binding = "DB"
 database_name = "test-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf100"
 
+[env.dev.vars]
+ENVIRONMENT = "dev"
+
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "dev-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
+
+[env.calibration.vars]
+ENVIRONMENT = "calibration"
 
 [[env.calibration.d1_databases]]
 binding = "DB"
 database_name = "filcdn-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
 
+[env.calibration.triggers]
+crons = ["*/5 * * * *"]  # Run every 5 minutes
+
+[env.mainnet.vars]
+ENVIRONMENT = "mainnet"
+
 [[env.mainnet.d1_databases]]
 binding = "DB"
 database_name = "filcdn-mainnet-db"
 database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"
+
+[env.mainnet.triggers]
+crons = ["*/5 * * * *"]  # Run every 5 minutes

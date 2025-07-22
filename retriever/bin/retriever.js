@@ -1,5 +1,4 @@
 import { isValidEthereumAddress } from '../lib/address.js'
-import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
 import { parseRequest } from '../lib/request.js'
 import {
   retrieveFile as defaultRetrieveFile,
@@ -7,6 +6,8 @@ import {
 } from '../lib/retrieval.js'
 import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
+import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
+import { findInBadBits } from '../lib/bad-bits-util.js'
 
 export default {
   /**
@@ -15,11 +16,17 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
+   * @param {AbortSignal} [options.signal]
    * @returns
    */
-  async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
+  async fetch(
+    request,
+    env,
+    ctx,
+    { retrieveFile = defaultRetrieveFile, signal } = {},
+  ) {
     try {
-      return await this._fetch(request, env, ctx, retrieveFile)
+      return await this._fetch(request, env, ctx, { retrieveFile, signal })
     } catch (error) {
       return this._handleError(error)
     }
@@ -29,14 +36,29 @@ export default {
    * @param {Request} request
    * @param {Env} env
    * @param {ExecutionContext} ctx
-   * @param {typeof defaultRetrieveFile} retrieveFile
+   * @param {object} options
+   * @param {AbortSignal} [options.signal]
+   * @param {typeof defaultRetrieveFile} [options.retrieveFile]
    * @returns
    */
-  async _fetch(request, env, ctx, retrieveFile) {
+  async _fetch(
+    request,
+    env,
+    ctx,
+    { retrieveFile = defaultRetrieveFile, signal } = {},
+  ) {
+    httpAssert(
+      ['GET', 'HEAD'].includes(request.method),
+      405,
+      'Method Not Allowed',
+    )
+    if (URL.parse(request.url)?.pathname === '/') {
+      return Response.redirect('https://filcdn.com/', 302)
+    }
+
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
-    httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
 
     const { clientWalletAddress, rootCid } = parseRequest(request, env)
 
@@ -51,45 +73,51 @@ export default {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
 
-      const ownerAddress = await getOwnerAndValidateClient(
-        env,
-        clientWalletAddress,
-        rootCid,
+      const [{ ownerAddress, pieceRetrievalUrl, proofSetId }, isBadBit] =
+        await Promise.all([
+          getOwnerAndValidateClient(env, clientWalletAddress, rootCid),
+          findInBadBits(env, rootCid),
+        ])
+
+      httpAssert(
+        !isBadBit,
+        404,
+        'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
       )
 
       httpAssert(
-        ownerAddress &&
-          Object.prototype.hasOwnProperty.call(
-            OWNER_TO_RETRIEVAL_URL_MAPPING,
-            ownerAddress,
-          ),
+        ownerAddress,
         404,
         `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
       )
 
-      const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
-      const { response, cacheMiss } = await retrieveFile(
-        spURL,
+      const { response: originResponse, cacheMiss } = await retrieveFile(
+        pieceRetrievalUrl,
         rootCid,
         env.CACHE_TTL,
+        { signal },
       )
 
-      if (!response.body) {
+      if (!originResponse.body) {
         ctx.waitUntil(
           logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
             ownerAddress,
             cacheMiss,
-            responseStatus: response.status,
+            responseStatus: originResponse.status,
             egressBytes: 0,
             requestCountryCode,
             timestamp: requestTimestamp,
           }),
         )
+        const response = new Response(originResponse.body, originResponse)
+        setContentSecurityPolicy(response)
+        response.headers.set('X-Proof-Set-ID', proofSetId)
         return response
       }
 
-      const [returnedStream, egressMeasurementStream] = response.body.tee()
+      const [returnedStream, egressMeasurementStream] =
+        originResponse.body.tee()
       const reader = egressMeasurementStream.getReader()
       const firstByteAt = performance.now()
 
@@ -102,7 +130,7 @@ export default {
             clientAddress: clientWalletAddress,
             ownerAddress,
             cacheMiss,
-            responseStatus: response.status,
+            responseStatus: originResponse.status,
             egressBytes,
             requestCountryCode,
             timestamp: requestTimestamp,
@@ -115,11 +143,15 @@ export default {
         })(),
       )
 
-      return new Response(returnedStream, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
+      // Return immediately, proxying the transformed response
+      const response = new Response(returnedStream, {
+        status: originResponse.status,
+        statusText: originResponse.statusText,
+        headers: originResponse.headers,
       })
+      setContentSecurityPolicy(response)
+      response.headers.set('X-Proof-Set-ID', proofSetId)
+      return response
     } catch (error) {
       const { status } = getErrorHttpStatusMessage(error)
 

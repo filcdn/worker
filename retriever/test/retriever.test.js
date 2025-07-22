@@ -7,7 +7,12 @@ import {
 } from '../lib/retrieval.js'
 import { env } from 'cloudflare:test'
 import assert from 'node:assert/strict'
-import { OWNER_TO_RETRIEVAL_URL_MAPPING } from '../lib/constants.js'
+import {
+  withProofSetRoots,
+  withApprovedProvider,
+  withBadBits,
+} from './test-data-builders.js'
+import { CONTENT_STORED_ON_CALIBRATION } from './test-data.js'
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -18,13 +23,12 @@ env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
   const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-  const realRootCid =
-    'baga6ea4seaqntcagzjqzor3qxjba2mybegc6d2jxiewxinkd72ecll6xqicqcfa'
+  const realRootCid = CONTENT_STORED_ON_CALIBRATION[0].rootCid
   const worker = {
     fetch: async (
       request,
       env,
-      { retrieveFile = defaultRetrieveFile } = {},
+      { retrieveFile = defaultRetrieveFile, signal } = {},
     ) => {
       const waitUntilCalls = []
       const ctx = {
@@ -34,6 +38,7 @@ describe('retriever.fetch', () => {
       }
       const response = await workerImpl.fetch(request, env, ctx, {
         retrieveFile,
+        signal,
       })
       await Promise.all(waitUntilCalls)
       return response
@@ -45,45 +50,50 @@ describe('retriever.fetch', () => {
       env.DB.prepare('DELETE FROM indexer_roots'),
       env.DB.prepare('DELETE FROM indexer_proof_sets'),
       env.DB.prepare('DELETE FROM indexer_proof_set_rails'),
+      env.DB.prepare('DELETE FROM bad_bits'),
     ])
 
     let i = 1
-    for (const [
+    for (const {
       owner,
-      {
-        sample: { rootCid, proofSetId },
-      },
-    ] of Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING)) {
+      pieceRetrievalUrl,
+      rootCid,
+      proofSetId,
+    } of CONTENT_STORED_ON_CALIBRATION) {
       const rootId = `root-${i}`
       const railId = `rail-${i}`
-
-      await env.DB.batch([
-        env.DB.prepare(
-          `
-          INSERT INTO indexer_proof_sets (set_id, owner)
-          VALUES (?, ?)
-        `,
-        ).bind(proofSetId, owner),
-
-        env.DB.prepare(
-          `
-          INSERT INTO indexer_roots (root_id, set_id, root_cid)
-          VALUES (?, ?, ?)
-        `,
-        ).bind(rootId, proofSetId, rootCid),
-        env.DB.prepare(
-          `
-          INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
-          VALUES (?, ?, ?, ?, ?)
-        `,
-        ).bind(proofSetId, railId, defaultClientAddress, owner, true),
-      ])
-
+      await withProofSetRoots(env, {
+        owner,
+        rootCid,
+        clientAddress: defaultClientAddress,
+        withCDN: true,
+        proofSetId,
+        railId,
+        rootId,
+      })
+      await withApprovedProvider(env, {
+        ownerAddress: owner,
+        pieceRetrievalUrl,
+      })
       i++
     }
   })
 
-  it('returns 405 for non-GET requests', async () => {
+  it('redirects to https://filcdn.com when no CID was provided', async () => {
+    const req = new Request(`https://${defaultClientAddress}${DNS_ROOT}/`)
+    const res = await worker.fetch(req, env)
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toBe('https://filcdn.com/')
+  })
+
+  it('redirects to https://filcdn.com when no CID and no wallet address were provided', async () => {
+    const req = new Request(`https://${DNS_ROOT.slice(1)}/`)
+    const res = await worker.fetch(req, env)
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toBe('https://filcdn.com/')
+  })
+
+  it('returns 405 for unsupported request methods', async () => {
     const req = withRequest(1, 'foo', 'POST')
     const res = await worker.fetch(req, env)
     expect(res.status).toBe(405)
@@ -126,9 +136,26 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('X-Test')).toBe('yes')
   })
 
+  it('sets Content-Security-Policy response header', async () => {
+    const originResponse = new Response('hello', {
+      headers: {
+        'Content-Security-Policy': 'report-uri: https://endpoint.example.com',
+      },
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: originResponse,
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, realRootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const csp = res.headers.get('Content-Security-Policy')
+    expect(csp).toMatch(/^default-src 'self'/)
+    expect(csp).toContain('https://*.filcdn.io')
+  })
+
   it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
-      '358f5611998981d5c5584ca2457f5b87afdf7b69650e1919f6e28f0f76943491'
+      '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
     const req = withRequest(defaultClientAddress, realRootCid)
     const res = await worker.fetch(req, env, { retrieveFile })
     expect(res.status).toBe(200)
@@ -298,15 +325,13 @@ describe('retriever.fetch', () => {
     'measures egress correctly from real storage provider',
     { timeout: 10000 },
     async () => {
-      const owners = Object.entries(OWNER_TO_RETRIEVAL_URL_MAPPING).map(
-        ([owner, val]) => ({ owner, ...val }),
-      )
-
-      const fetchTasks = owners.map(({ owner, sample: { rootCid } }) => {
+      const controller = new AbortController()
+      const { signal } = controller
+      const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ owner, rootCid }) => {
         return (async () => {
           try {
             const req = withRequest(defaultClientAddress, rootCid)
-            const res = await worker.fetch(req, env, { retrieveFile })
+            const res = await worker.fetch(req, env, { retrieveFile, signal })
 
             assert.strictEqual(res.status, 200)
 
@@ -334,39 +359,57 @@ describe('retriever.fetch', () => {
       })
 
       try {
-        await Promise.any(fetchTasks)
+        await Promise.any(tasks)
+        controller.abort() // Abort remaining tasks if one succeeds
       } catch (err) {
+        const ownersChecked = CONTENT_STORED_ON_CALIBRATION.map((o) => o.owner)
         throw new Error(
-          `❌ All owners failed to fetch. Owners attempted: ${owners
-            .map((o) => o.owner)
-            .join(', ')}`,
+          `❌ All owners failed to fetch. Owners checked: ${ownersChecked.join(', ')}`,
         )
       }
     },
   )
 
-  it('matches retrieval URL for owner address case-insensitively', async () => {
-    const body = 'file content'
+  it('requests payment if withCDN=false', async () => {
+    const proofSetId = 'test-proof-set-no-cdn'
+    const railId = 'rail-no-cdn'
+    const rootId = 'root-no-cdn'
     const rootCid =
-      'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipi'
-    const mixedCaseOwner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8' // mixed case
-    const expectedNormalizedOwner = mixedCaseOwner.toLowerCase()
+      'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
+    const owner = '0xOWNER'
+    await withProofSetRoots(env, {
+      owner,
+      rootCid,
+      proofSetId,
+      railId,
+      withCDN: false,
+      rootId,
+    })
 
-    // Insert proof set and root into DB
-    const proofSetId = 'test-proof-set-case'
-    await env.DB.prepare(
-      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-    )
-      .bind(proofSetId, mixedCaseOwner)
-      .run()
+    const req = withRequest(defaultClientAddress, rootCid, 'GET')
+    const res = await worker.fetch(req, env)
 
-    await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-    )
-      .bind('root-case-test', proofSetId, rootCid)
-      .run()
+    assert.strictEqual(res.status, 402)
+  })
+  it('reads the provider URL from the database, comparing owner address case-insensitively', async () => {
+    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
+    const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
+    const rootCid = 'bagaTest'
+    const body = 'file content'
 
-    // Simulate file retrieval
+    expect(providerAddress.toLowerCase()).not.toEqual(providerAddress)
+
+    await withProofSetRoots(env, {
+      owner: providerAddress,
+      rootCid,
+      clientAddress,
+    })
+
+    await withApprovedProvider(env, {
+      ownerAddress: providerAddress,
+      pieceRetrievalUrl: 'https://mock-pdp-url.com',
+    })
+
     const mockRetrieveFile = async () => {
       return {
         response: new Response(body, {
@@ -376,64 +419,89 @@ describe('retriever.fetch', () => {
       }
     }
 
-    const req = withRequest(defaultClientAddress, rootCid, 'GET')
+    const req = withRequest(clientAddress, rootCid)
     const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
 
-    assert.strictEqual(res.status, 200)
-
-    // Verify that request logged with correct (normalized) owner
-    const { results } = await env.DB.prepare(
-      'SELECT owner FROM indexer_proof_sets WHERE set_id = ?',
-    )
-      .bind(proofSetId)
-      .all()
-
-    assert.deepStrictEqual(results, [
-      {
-        owner: mixedCaseOwner, // Stored as mixed case
-      },
-    ])
-
-    // Now verify that retrieval still worked based on case-insensitive matching
-    const lookupKey = expectedNormalizedOwner
-    const mappingEntry = OWNER_TO_RETRIEVAL_URL_MAPPING[lookupKey]
-    assert.ok(mappingEntry)
-    assert.strictEqual(mappingEntry.sample.rootCid, rootCid)
+    // Check if the URL fetched is from the database
+    expect(await res.text()).toBe(body)
+    expect(res.status).toBe(200)
   })
-  it('requests payment if withCDN=false', async () => {
-    const proofSetId = 'test-proof-set-no-cdn'
-    const railId = 'rail-no-cdn'
-    const rootId = 'root-no-cdn'
-    const rootCid =
-      'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const owner = Object.keys(OWNER_TO_RETRIEVAL_URL_MAPPING)[0]
 
-    await env.DB.batch([
-      env.DB.prepare(
-        `
-        INSERT INTO indexer_proof_sets (set_id, owner)
-        VALUES (?, ?)
-      `,
-      ).bind(proofSetId, owner),
+  it('throws an error if the providerAddress is not found in the database', async () => {
+    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
+    const clientAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
+    const rootCid = 'bagaTest'
 
-      env.DB.prepare(
-        `
-        INSERT INTO indexer_roots (root_id, set_id, root_cid)
-        VALUES (?, ?, ?)
-      `,
-      ).bind(rootId, proofSetId, rootCid),
-      env.DB.prepare(
-        `
-        INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn)
-        VALUES (?, ?, ?, ?, ?)
-      `,
-      ).bind(proofSetId, railId, defaultClientAddress, owner, false),
-    ])
+    await withProofSetRoots(env, {
+      owner: providerAddress,
+      rootCid,
+      clientAddress,
+    })
 
-    const req = withRequest(defaultClientAddress, rootCid, 'GET')
+    const req = withRequest(clientAddress, rootCid)
     const res = await worker.fetch(req, env)
 
-    assert.strictEqual(res.status, 402)
+    // Expect an error because no URL was found
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe(
+      `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and root_cid 'bagaTest'.`,
+    )
+  })
+
+  it('returns ProofSet ID in the X-Proof-Set-ID response header', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response('hello'),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(await res.text()).toBe('hello')
+    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+  })
+
+  it('returns ProofSet ID in the X-ProofSet-ID response header when the response body is empty', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response(null, { status: 404 }),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.body).toBeNull()
+    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+  })
+
+  it('supports HEAD requests', async () => {
+    const fakeResponse = new Response('file content', {
+      status: 200,
+    })
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, realRootCid, 'HEAD')
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(res.status).toBe(200)
+  })
+
+  it('rejects retrieval requests for CIDs found in the Bad Bits denylist', async () => {
+    await withBadBits(env, realRootCid)
+
+    const fakeResponse = new Response('hello')
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: fakeResponse,
+      cacheMiss: true,
+    })
+
+    const req = withRequest(defaultClientAddress, realRootCid)
+    const res = await worker.fetch(req, env, {
+      retrieveFile: mockRetrieveFile,
+    })
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe(
+      'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
+    )
   })
   it('does not log to retrieval_logs on method not allowed (405)', async () => {
     const req = withRequest(defaultClientAddress, realRootCid, 'POST')
@@ -522,7 +590,7 @@ function withRequest(
 ) {
   let url = 'http://'
   if (clientWalletAddress) url += `${clientWalletAddress}.`
-  url += DNS_ROOT.slice(1) // remove the trailing '.'
+  url += DNS_ROOT.slice(1) // remove the leading '.'
   if (rootCid) url += `/${rootCid}`
 
   return new Request(url, { method, headers })
