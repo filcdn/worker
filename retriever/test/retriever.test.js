@@ -324,13 +324,11 @@ describe('retriever.fetch', () => {
     'measures egress correctly from real storage provider',
     { timeout: 10000 },
     async () => {
-      const controller = new AbortController()
-      const { signal } = controller
       const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ owner, rootCid }) => {
         return (async () => {
           try {
             const req = withRequest(defaultClientAddress, rootCid)
-            const res = await worker.fetch(req, env, { retrieveFile, signal })
+            const res = await worker.fetch(req, env, { retrieveFile })
 
             assert.strictEqual(res.status, 200)
 
@@ -358,8 +356,10 @@ describe('retriever.fetch', () => {
       })
 
       try {
-        await Promise.any(tasks)
-        controller.abort() // Abort remaining tasks if one succeeds
+        const res = await Promise.allSettled(tasks)
+        if (!res.some((r) => r.status === 'fulfilled')) {
+          throw new Error('All tasks failed')
+        }
       } catch (err) {
         const ownersChecked = CONTENT_STORED_ON_CALIBRATION.map((o) => o.owner)
         throw new Error(
