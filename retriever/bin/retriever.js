@@ -97,7 +97,12 @@ export default {
       if (!response.body) {
         retrievalResultEntry.egressBytes = 0
 
-        ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
+        ctx.waitUntil(
+          logRetrievalResult(env, {
+            ...retrievalResultEntry,
+            responseStatus: response.status,
+          }),
+        )
         return response
       }
 
@@ -117,7 +122,10 @@ export default {
             workerTtfb: firstByteAt - workerStartedAt,
           }
 
-          await logRetrievalResult(env, retrievalResultEntry)
+          await logRetrievalResult(env, {
+            ...retrievalResultEntry,
+            responseStatus: response.status,
+          })
         })(),
       )
 
@@ -133,7 +141,12 @@ export default {
       retrievalResultEntry.performanceStats.workerTtfb =
         performance.now() - workerStartedAt
 
-      ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
+      ctx.waitUntil(
+        logRetrievalResult(env, {
+          ...retrievalResultEntry,
+          responseStatus: status,
+        }),
+      )
 
       throw error
     }
