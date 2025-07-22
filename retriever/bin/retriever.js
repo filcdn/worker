@@ -95,13 +95,7 @@ export default {
       retrievalResultEntry.responseStatus = response.status
 
       if (!response.body) {
-        const firstByteAt = performance.now()
         retrievalResultEntry.egressBytes = 0
-        retrievalResultEntry.performanceStats = {
-          fetchTtfb: firstByteAt - fetchStartedAt,
-          fetchTtlb: firstByteAt - fetchStartedAt,
-          workerTtfb: firstByteAt - workerStartedAt,
-        }
 
         ctx.waitUntil(logRetrievalResult(env, retrievalResultEntry))
         return response
