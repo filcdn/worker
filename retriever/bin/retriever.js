@@ -110,6 +110,7 @@ export default {
         workerTtfb: null, // Will be populated later
       },
       requestCountryCode,
+      proofSetId,
     }
 
     if (!originResponse.body) {

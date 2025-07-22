@@ -19,10 +19,20 @@ describe('logRetrievalResult', () => {
       responseStatus: 200,
       timestamp: new Date().toISOString(),
       requestCountryCode: 'US',
+      proofSetId: '1',
     })
 
     const readOutput = await env.DB.prepare(
-      `SELECT owner_address,client_address,response_status,egress_bytes,cache_miss,request_country_code FROM retrieval_logs WHERE owner_address = '${OWNER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`,
+      `SELECT 
+        owner_address,
+        client_address,
+        response_status,
+        egress_bytes,
+        cache_miss,
+        request_country_code,
+        proof_set_id 
+      FROM retrieval_logs 
+      WHERE owner_address = '${OWNER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`,
     ).all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
@@ -33,6 +43,7 @@ describe('logRetrievalResult', () => {
         egress_bytes: 1234,
         cache_miss: 0,
         request_country_code: 'US',
+        proof_set_id: '1',
       },
     ])
   })
