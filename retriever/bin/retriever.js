@@ -39,6 +39,7 @@ export default {
     httpAssert(request.method === 'GET', 405, 'Method Not Allowed')
 
     const { clientWalletAddress, rootCid } = parseRequest(request, env)
+
     httpAssert(clientWalletAddress && rootCid, 400, 'Missing required fields')
     httpAssert(
       isValidEthereumAddress(clientWalletAddress),
