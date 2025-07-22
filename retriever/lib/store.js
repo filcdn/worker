@@ -13,10 +13,10 @@ import { httpAssert } from './http-assert.js'
  * @param {boolean | null} params.cacheMiss - Whether the retrieval was a cache
  *   miss.
  * @param {{
- *   fetchTtfb: number | null
- *   fetchTtlb: number | null
- *   workerTtfb: number | null
- * }} [params.performanceStats]
+ *   fetchTtfb: number
+ *   fetchTtlb: number
+ *   workerTtfb: number
+ * } | null} [params.performanceStats]
  *   - Performance statistics.
  *
  * @param {string} params.timestamp - The timestamp of the retrieval.

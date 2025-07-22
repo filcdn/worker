@@ -47,21 +47,6 @@ export default {
       `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
     )
 
-    const retrievalResultEntry = {
-      clientAddress: clientWalletAddress,
-      ownerAddress: /** @type {string | null} */ (null),
-      cacheMiss: /** @type {boolean | null} */ (null),
-      responseStatus: /** @type {number | null} */ (null),
-      egressBytes: /** @type {number | null} */ (null),
-      requestCountryCode,
-      timestamp: requestTimestamp,
-      performanceStats: {
-        fetchTtfb: /** @type {number | null} */ (null),
-        fetchTtlb: /** @type {number | null} */ (null),
-        workerTtfb: /** @type {number | null} */ (null),
-      },
-    }
-
     try {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
@@ -82,8 +67,6 @@ export default {
         `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
       )
 
-      retrievalResultEntry.ownerAddress = ownerAddress
-
       const spURL = OWNER_TO_RETRIEVAL_URL_MAPPING[ownerAddress].url
       const { response, cacheMiss } = await retrieveFile(
         spURL,
@@ -91,16 +74,16 @@ export default {
         env.CACHE_TTL,
       )
 
-      retrievalResultEntry.cacheMiss = cacheMiss
-      retrievalResultEntry.responseStatus = response.status
-
       if (!response.body) {
-        retrievalResultEntry.egressBytes = 0
-
         ctx.waitUntil(
           logRetrievalResult(env, {
-            ...retrievalResultEntry,
+            clientAddress: clientWalletAddress,
+            ownerAddress,
+            cacheMiss,
             responseStatus: response.status,
+            egressBytes: 0,
+            requestCountryCode,
+            timestamp: requestTimestamp,
           }),
         )
         return response
@@ -115,16 +98,19 @@ export default {
           const egressBytes = await measureStreamedEgress(reader)
           const lastByteFetchedAt = performance.now()
 
-          retrievalResultEntry.egressBytes = egressBytes
-          retrievalResultEntry.performanceStats = {
-            fetchTtfb: firstByteAt - fetchStartedAt,
-            fetchTtlb: lastByteFetchedAt - fetchStartedAt,
-            workerTtfb: firstByteAt - workerStartedAt,
-          }
-
           await logRetrievalResult(env, {
-            ...retrievalResultEntry,
+            clientAddress: clientWalletAddress,
+            ownerAddress,
+            cacheMiss,
             responseStatus: response.status,
+            egressBytes,
+            requestCountryCode,
+            timestamp: requestTimestamp,
+            performanceStats: {
+              fetchTtfb: firstByteAt - fetchStartedAt,
+              fetchTtlb: lastByteFetchedAt - fetchStartedAt,
+              workerTtfb: firstByteAt - workerStartedAt,
+            },
           })
         })(),
       )
@@ -137,14 +123,15 @@ export default {
     } catch (error) {
       const { status } = getErrorHttpStatusMessage(error)
 
-      retrievalResultEntry.responseStatus = status
-      retrievalResultEntry.performanceStats.workerTtfb =
-        performance.now() - workerStartedAt
-
       ctx.waitUntil(
         logRetrievalResult(env, {
-          ...retrievalResultEntry,
+          clientAddress: clientWalletAddress,
+          ownerAddress: null,
+          cacheMiss: null,
           responseStatus: status,
+          egressBytes: null,
+          requestCountryCode,
+          timestamp: requestTimestamp,
         }),
       )
 
