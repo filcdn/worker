@@ -6,10 +6,10 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {Env} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the retrieval log.
- * @param {string} params.ownerAddress - The owner's address.
+ * @param {string | null} params.ownerAddress - The owner's address.
  * @param {string} params.clientAddress - The client's address.
  * @param {number | null} params.egressBytes - The egress bytes of the response.
- * @param {number} params.responseStatus - The HTTP response status code.
+ * @param {number | null} params.responseStatus - The HTTP response status code.
  * @param {boolean | null} params.cacheMiss - Whether the retrieval was a cache
  *   miss.
  * @param {{

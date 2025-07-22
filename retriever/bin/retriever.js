@@ -49,16 +49,16 @@ export default {
 
     const retrievalResultEntry = {
       clientAddress: clientWalletAddress,
-      ownerAddress: '', // Will be populated later
-      cacheMiss: false, // Default to false until we know the cache status
-      responseStatus: 500, // Default to 500 until we know the actual status
-      egressBytes: /** @type {number | null} */ (null), // Will be populated later
+      ownerAddress: /** @type {string | null} */ (null),
+      cacheMiss: /** @type {boolean | null} */ (null),
+      responseStatus: /** @type {number | null} */ (null),
+      egressBytes: /** @type {number | null} */ (null),
       requestCountryCode,
       timestamp: requestTimestamp,
       performanceStats: {
-        fetchTtfb: /** @type {number | null} */ (null), // Will be populated later
-        fetchTtlb: /** @type {number | null} */ (null), // Will be populated later
-        workerTtfb: /** @type {number | null} */ (null), // Will be populated later
+        fetchTtfb: /** @type {number | null} */ (null),
+        fetchTtlb: /** @type {number | null} */ (null),
+        workerTtfb: /** @type {number | null} */ (null),
       },
     }
 
