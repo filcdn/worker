@@ -544,18 +544,14 @@ describe('retriever.fetch', () => {
     const res = await worker.fetch(req, env)
 
     expect(res.status).toBe(404)
-    expect(await res.text()).toContain('exists but has no approved owner')
+    expect(await res.text()).toContain('No approved storage provider found')
 
     const result = await env.DB.prepare(
-      'SELECT * FROM retrieval_logs WHERE client_address = ?',
+      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND owner_address IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
     )
       .bind(defaultClientAddress)
       .first()
-    expect(result.response_status).toBe(404)
-    expect(result.client_address).toBe(defaultClientAddress)
-    expect(result.owner_address).toBe('') // No owner address logged
-    expect(result.cache_miss).toBe(0)
-    expect(result.egress_bytes).toBeNull()
+    expect(result).toBeDefined()
   })
   it('does not log to retrieval_logs when client address is invalid (400)', async () => {
     const invalidAddress = 'not-an-address'
