@@ -47,34 +47,18 @@ export default {
       `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
     )
 
-    /**
-     * @type {{
-     *   clientAddress: string
-     *   ownerAddress: string
-     *   cacheMiss: boolean | null
-     *   responseStatus: number
-     *   egressBytes: number | null
-     *   requestCountryCode: string | null
-     *   timestamp: string
-     *   performanceStats: {
-     *     fetchTtfb: number | null
-     *     fetchTtlb: number | null
-     *     workerTtfb: number | null
-     *   }
-     * }}
-     */
     const retrievalResultEntry = {
       clientAddress: clientWalletAddress,
       ownerAddress: '', // Will be populated later
       cacheMiss: false, // Default to false until we know the cache status
       responseStatus: 500, // Default to 500 until we know the actual status
-      egressBytes: null, // Will be populated later
+      egressBytes: /** @type {number | null} */ (null), // Will be populated later
       requestCountryCode,
       timestamp: requestTimestamp,
       performanceStats: {
-        fetchTtfb: null, // Will be populated later
-        fetchTtlb: null, // Will be populated later
-        workerTtfb: null, // Will be populated later
+        fetchTtfb: /** @type {number | null} */ (null), // Will be populated later
+        fetchTtlb: /** @type {number | null} */ (null), // Will be populated later
+        workerTtfb: /** @type {number | null} */ (null), // Will be populated later
       },
     }
 
