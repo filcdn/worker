@@ -16,17 +16,11 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
-   * @param {AbortSignal} [options.signal]
    * @returns
    */
-  async fetch(
-    request,
-    env,
-    ctx,
-    { retrieveFile = defaultRetrieveFile, signal } = {},
-  ) {
+  async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     try {
-      return await this._fetch(request, env, ctx, { retrieveFile, signal })
+      return await this._fetch(request, env, ctx, { retrieveFile })
     } catch (error) {
       return this._handleError(error)
     }
@@ -37,16 +31,10 @@ export default {
    * @param {Env} env
    * @param {ExecutionContext} ctx
    * @param {object} options
-   * @param {AbortSignal} [options.signal]
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
    * @returns
    */
-  async _fetch(
-    request,
-    env,
-    ctx,
-    { retrieveFile = defaultRetrieveFile, signal } = {},
-  ) {
+  async _fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     httpAssert(
       ['GET', 'HEAD'].includes(request.method),
       405,
@@ -95,7 +83,7 @@ export default {
         pieceRetrievalUrl,
         rootCid,
         env.CACHE_TTL,
-        { signal },
+        { signal: request.signal },
       )
 
       if (!originResponse.body) {

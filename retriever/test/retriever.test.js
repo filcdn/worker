@@ -28,7 +28,7 @@ describe('retriever.fetch', () => {
     fetch: async (
       request,
       env,
-      { retrieveFile = defaultRetrieveFile, signal } = {},
+      { retrieveFile = defaultRetrieveFile } = {},
     ) => {
       const waitUntilCalls = []
       const ctx = {
@@ -38,7 +38,6 @@ describe('retriever.fetch', () => {
       }
       const response = await workerImpl.fetch(request, env, ctx, {
         retrieveFile,
-        signal,
       })
       await Promise.all(waitUntilCalls)
       return response
