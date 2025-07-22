@@ -116,6 +116,8 @@ export default {
         return response
       }
 
+      // Stream and count bytes
+      // We create two identical streams, one for the egress measurement and the other for returning the response as soon as possible
       const [returnedStream, egressMeasurementStream] =
         originResponse.body.tee()
       const reader = egressMeasurementStream.getReader()
