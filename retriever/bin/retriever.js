@@ -99,6 +99,9 @@ export default {
       )
 
       if (!originResponse.body) {
+        // The upstream response does not have any readable body
+        // There is no need to measure response body size, we can
+        // return the original response object.
         ctx.waitUntil(
           logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
