@@ -99,6 +99,7 @@ export default {
             egressBytes: 0,
             requestCountryCode,
             timestamp: requestTimestamp,
+            proofSetId,
           }),
         )
         const response = new Response(originResponse.body, originResponse)
@@ -132,6 +133,7 @@ export default {
               fetchTtlb: lastByteFetchedAt - fetchStartedAt,
               workerTtfb: firstByteAt - workerStartedAt,
             },
+            proofSetId,
           })
         })(),
       )
@@ -157,6 +159,7 @@ export default {
           egressBytes: null,
           requestCountryCode,
           timestamp: requestTimestamp,
+          proofSetId: null,
         }),
       )
 

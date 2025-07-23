@@ -10,7 +10,8 @@ CREATE TABLE retrieval_logs (
   fetch_ttfb INTEGER,
   worker_ttfb INTEGER,
   request_country_code TEXT,
-  fetch_ttlb INTEGER
+  fetch_ttlb INTEGER,
+  proof_set_id TEXT
 );
 INSERT INTO retrieval_logs SELECT * from retrieval_logs_old;
 DROP TABLE retrieval_logs_old;
