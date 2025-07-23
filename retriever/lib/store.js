@@ -150,7 +150,6 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   const withClientNotSanctioned = withPaymentRail.filter(
     (row) => !row.is_sanctioned,
   )
-  console.log(`With not sanctioned`, withClientNotSanctioned)
   httpAssert(
     withClientNotSanctioned.length > 0,
     403,

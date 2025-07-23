@@ -79,7 +79,6 @@ describe('retriever.fetch', () => {
       })
       i++
     }
-    await withWalletDetails(env, defaultClientAddress, false)
   })
 
   it('redirects to https://filcdn.com when no CID was provided', async () => {
