@@ -16,17 +16,11 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
-   * @param {AbortSignal} [options.signal]
    * @returns
    */
-  async fetch(
-    request,
-    env,
-    ctx,
-    { retrieveFile = defaultRetrieveFile, signal } = {},
-  ) {
+  async fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     try {
-      return await this._fetch(request, env, ctx, { retrieveFile, signal })
+      return await this._fetch(request, env, ctx, { retrieveFile })
     } catch (error) {
       return this._handleError(error)
     }
@@ -37,16 +31,10 @@ export default {
    * @param {Env} env
    * @param {ExecutionContext} ctx
    * @param {object} options
-   * @param {AbortSignal} [options.signal]
    * @param {typeof defaultRetrieveFile} [options.retrieveFile]
    * @returns
    */
-  async _fetch(
-    request,
-    env,
-    ctx,
-    { retrieveFile = defaultRetrieveFile, signal } = {},
-  ) {
+  async _fetch(request, env, ctx, { retrieveFile = defaultRetrieveFile } = {}) {
     httpAssert(
       ['GET', 'HEAD'].includes(request.method),
       405,
@@ -69,104 +57,114 @@ export default {
       `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
     )
 
-    // Timestamp to measure file retrieval performance (from cache and from SP)
-    const fetchStartedAt = performance.now()
+    try {
+      // Timestamp to measure file retrieval performance (from cache and from SP)
+      const fetchStartedAt = performance.now()
 
-    const [{ ownerAddress, pieceRetrievalUrl, proofSetId }, isBadBit] =
-      await Promise.all([
-        getOwnerAndValidateClient(env, clientWalletAddress, rootCid),
-        findInBadBits(env, rootCid),
-      ])
+      const [{ ownerAddress, pieceRetrievalUrl, proofSetId }, isBadBit] =
+        await Promise.all([
+          getOwnerAndValidateClient(env, clientWalletAddress, rootCid),
+          findInBadBits(env, rootCid),
+        ])
 
-    httpAssert(
-      !isBadBit,
-      404,
-      'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
-    )
-
-    httpAssert(
-      ownerAddress,
-      404,
-      `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
-    )
-
-    const { response: originResponse, cacheMiss } = await retrieveFile(
-      pieceRetrievalUrl,
-      rootCid,
-      env.CACHE_TTL,
-      { signal },
-    )
-
-    const retrievalResultEntry = {
-      ownerAddress,
-      clientAddress: clientWalletAddress,
-      cacheMiss,
-      egressBytes: null, // Will be populated later
-      responseStatus: originResponse.status,
-      timestamp: requestTimestamp,
-      performanceStats: {
-        fetchTtfb: null, // Will be populated later
-        fetchTtlb: null, // Will be populated later
-        workerTtfb: null, // Will be populated later
-      },
-      requestCountryCode,
-      proofSetId,
-    }
-
-    if (!originResponse.body) {
-      // The upstream response does not have any readable body
-      // There is no need to measure response body size, we can
-      // return the original response object.
-      const firstByteAt = performance.now()
-      ctx.waitUntil(
-        logRetrievalResult(env, {
-          ...retrievalResultEntry,
-          egressBytes: 0, // No body to measure
-          performanceStats: {
-            fetchTtfb: firstByteAt - fetchStartedAt,
-            fetchTtlb: firstByteAt - fetchStartedAt,
-            workerTtfb: firstByteAt - workerStartedAt,
-          },
-        }),
+      httpAssert(
+        !isBadBit,
+        404,
+        'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
       )
-      const response = new Response(originResponse.body, originResponse)
+
+      httpAssert(
+        ownerAddress,
+        404,
+        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
+      )
+
+      const { response: originResponse, cacheMiss } = await retrieveFile(
+        pieceRetrievalUrl,
+        rootCid,
+        env.CACHE_TTL,
+        { signal: request.signal },
+      )
+
+      if (!originResponse.body) {
+        // The upstream response does not have any readable body
+        // There is no need to measure response body size, we can
+        // return the original response object.
+        ctx.waitUntil(
+          logRetrievalResult(env, {
+            clientAddress: clientWalletAddress,
+            ownerAddress,
+            cacheMiss,
+            responseStatus: originResponse.status,
+            egressBytes: 0,
+            requestCountryCode,
+            timestamp: requestTimestamp,
+            proofSetId,
+          }),
+        )
+        const response = new Response(originResponse.body, originResponse)
+        setContentSecurityPolicy(response)
+        response.headers.set('X-Proof-Set-ID', proofSetId)
+        return response
+      }
+
+      // Stream and count bytes
+      // We create two identical streams, one for the egress measurement and the other for returning the response as soon as possible
+      const [returnedStream, egressMeasurementStream] =
+        originResponse.body.tee()
+      const reader = egressMeasurementStream.getReader()
+      const firstByteAt = performance.now()
+
+      ctx.waitUntil(
+        (async () => {
+          const egressBytes = await measureStreamedEgress(reader)
+          const lastByteFetchedAt = performance.now()
+
+          await logRetrievalResult(env, {
+            clientAddress: clientWalletAddress,
+            ownerAddress,
+            cacheMiss,
+            responseStatus: originResponse.status,
+            egressBytes,
+            requestCountryCode,
+            timestamp: requestTimestamp,
+            performanceStats: {
+              fetchTtfb: firstByteAt - fetchStartedAt,
+              fetchTtlb: lastByteFetchedAt - fetchStartedAt,
+              workerTtfb: firstByteAt - workerStartedAt,
+            },
+            proofSetId,
+          })
+        })(),
+      )
+
+      // Return immediately, proxying the transformed response
+      const response = new Response(returnedStream, {
+        status: originResponse.status,
+        statusText: originResponse.statusText,
+        headers: originResponse.headers,
+      })
       setContentSecurityPolicy(response)
       response.headers.set('X-Proof-Set-ID', proofSetId)
       return response
+    } catch (error) {
+      const { status } = getErrorHttpStatusMessage(error)
+
+      ctx.waitUntil(
+        logRetrievalResult(env, {
+          clientAddress: clientWalletAddress,
+          ownerAddress: null,
+          cacheMiss: null,
+          responseStatus: status,
+          egressBytes: null,
+          requestCountryCode,
+          timestamp: requestTimestamp,
+          proofSetId: null,
+        }),
+      )
+
+      throw error
     }
-
-    // Stream and count bytes
-    // We create two identical streams, one for the egress measurement and the other for returning the response as soon as possible
-    const [returnedStream, egressMeasurementStream] = originResponse.body.tee()
-    const reader = egressMeasurementStream.getReader()
-    const firstByteAt = performance.now()
-
-    ctx.waitUntil(
-      (async () => {
-        const egressBytes = await measureStreamedEgress(reader)
-        const lastByteFetchedAt = performance.now()
-
-        await logRetrievalResult(env, {
-          ...retrievalResultEntry,
-          egressBytes,
-          performanceStats: {
-            fetchTtfb: firstByteAt - fetchStartedAt,
-            fetchTtlb: lastByteFetchedAt - fetchStartedAt,
-            workerTtfb: firstByteAt - workerStartedAt,
-          },
-        })
-      })(),
-    )
-
-    // Return immediately, proxying the transformed response
-    const response = new Response(returnedStream, {
-      status: originResponse.status,
-      statusText: originResponse.statusText,
-      headers: originResponse.headers,
-    })
-    setContentSecurityPolicy(response)
-    response.headers.set('X-Proof-Set-ID', proofSetId)
-    return response
   },
 
   /**
@@ -174,24 +172,39 @@ export default {
    * @returns
    */
   _handleError(error) {
-    const errHasStatus =
-      typeof error === 'object' &&
-      error !== null &&
-      'status' in error &&
-      typeof error.status === 'number'
+    const { status, message } = getErrorHttpStatusMessage(error)
 
-    const status = errHasStatus ? /** @type {number} */ (error.status) : 500
-
-    const message =
-      errHasStatus &&
-      status < 500 &&
-      'message' in error &&
-      typeof error.message === 'string'
-        ? error.message
-        : 'Internal Server Error'
     if (status >= 500) {
       console.error(error)
     }
     return new Response(message, { status })
   },
+}
+
+/**
+ * Extracts status and message from an error object.
+ *
+ * - If the error has a numeric `status`, it is used; otherwise, defaults to 500.
+ * - If the status is < 500 and a string `message` exists, it's used; otherwise, a
+ *   generic message is returned.
+ *
+ * @param {unknown} error - The error object to extract from.
+ * @returns {{ status: number; message: string }}
+ */
+function getErrorHttpStatusMessage(error) {
+  const isObject = typeof error === 'object' && error !== null
+  const status =
+    isObject && 'status' in error && typeof error.status === 'number'
+      ? error.status
+      : 500
+
+  const message =
+    isObject &&
+    status < 500 &&
+    'message' in error &&
+    typeof error.message === 'string'
+      ? error.message
+      : 'Internal Server Error'
+
+  return { status, message }
 }
