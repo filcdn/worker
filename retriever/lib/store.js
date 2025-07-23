@@ -17,6 +17,8 @@ import { httpAssert } from './http-assert.js'
  * @param {string} params.timestamp - The timestamp of the retrieval.
  * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
+ * @param {string} params.proofSetId - The proof set ID associated with the
+ *   retrieval
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
 export async function logRetrievalResult(env, params) {
@@ -30,6 +32,7 @@ export async function logRetrievalResult(env, params) {
     timestamp,
     performanceStats,
     requestCountryCode,
+    proofSetId,
   } = params
 
   try {
@@ -45,9 +48,10 @@ export async function logRetrievalResult(env, params) {
         fetch_ttfb,
         fetch_ttlb,
         worker_ttfb,
-        request_country_code
+        request_country_code,
+        proof_set_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
       .bind(
@@ -61,6 +65,7 @@ export async function logRetrievalResult(env, params) {
         performanceStats?.fetchTtlb ?? null,
         performanceStats?.workerTtfb ?? null,
         requestCountryCode,
+        proofSetId,
       )
       .run()
   } catch (error) {

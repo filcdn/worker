@@ -460,6 +460,35 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
   })
 
+  it('stores ProofSet ID in retrieval logs', async () => {
+    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: new Response('hello'),
+      cacheMiss: true,
+    })
+    const req = withRequest(defaultClientAddress, rootCid)
+    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    expect(await res.text()).toBe('hello')
+
+    assert.strictEqual(res.status, 200)
+    const { results } = await env.DB.prepare(
+      `SELECT id, response_status, proof_set_id, cache_miss, client_address
+       FROM retrieval_logs
+       WHERE client_address = ?`,
+    )
+      .bind(defaultClientAddress)
+      .all()
+    assert.deepStrictEqual(results, [
+      {
+        id: 1, // Assuming this is the first log entry
+        client_address: defaultClientAddress,
+        response_status: 200,
+        proof_set_id: proofSetId.toString(),
+        cache_miss: 1, // 1 for true, 0 for false
+      },
+    ])
+  })
+
   it('returns ProofSet ID in the X-ProofSet-ID response header when the response body is empty', async () => {
     const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
