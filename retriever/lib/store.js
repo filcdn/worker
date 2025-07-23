@@ -89,7 +89,7 @@ export async function logRetrievalResult(env, params) {
  */
 export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   const query = `
-   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn, pu.piece_retrieval_url
+   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn, pu.piece_retrieval_url, wd.is_sanctioned
    FROM indexer_roots ir
    LEFT OUTER JOIN indexer_proof_sets ips
      ON ir.set_id = ips.set_id
@@ -97,6 +97,8 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
      ON ir.set_id = ipsr.proof_set_id
    LEFT OUTER JOIN provider_urls as pu
      ON lower(ips.owner) = pu.address
+   LEFT OUTER JOIN wallet_details as wd
+     ON lower (ipsr.payer) = wd.address
    WHERE ir.root_cid = ?
  `
 
@@ -107,6 +109,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
    *   payer: string | undefined
    *   with_cdn: number | undefined
    *   piece_retrieval_url: string | undefined
+   *   is_sanctioned: number | undefined
    * }[]}
    */ (
     /** @type {any[]} */ (
@@ -142,6 +145,16 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     withCDN.length > 0,
     402,
     `The Filecoin Services deal for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
+  )
+
+  const withClientNotSanctioned = withPaymentRail.filter(
+    (row) => !row.is_sanctioned,
+  )
+  console.log(`With not sanctioned`, withClientNotSanctioned)
+  httpAssert(
+    withClientNotSanctioned.length > 0,
+    403,
+    `Wallet '${clientAddress}' is sanctioned and cannot retrieve root_cid '${rootCid}'.`,
   )
 
   const withApprovedProvider = withCDN.filter((row) => row.piece_retrieval_url)
