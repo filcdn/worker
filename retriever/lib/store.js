@@ -5,20 +5,24 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {Env} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the retrieval log.
- * @param {string} params.ownerAddress - The owner's address.
+ * @param {string | null} params.ownerAddress - The owner's address.
  * @param {string} params.clientAddress - The client's address.
  * @param {number | null} params.egressBytes - The egress bytes of the response.
  * @param {number} params.responseStatus - The HTTP response status code.
  * @param {boolean | null} params.cacheMiss - Whether the retrieval was a cache
  *   miss.
- * @param {{ fetchTtfb: number; fetchTtlb: number; workerTtfb: number }} [params.performanceStats]
+ * @param {{
+ *   fetchTtfb: number
+ *   fetchTtlb: number
+ *   workerTtfb: number
+ * } | null} [params.performanceStats]
  *   - Performance statistics.
  *
  * @param {string} params.timestamp - The timestamp of the retrieval.
  * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
- * @param {string} params.proofSetId - The proof set ID associated with the
- *   retrieval
+ * @param {string | null} params.proofSetId - The proof set ID associated with
+ *   the retrieval
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
 export async function logRetrievalResult(env, params) {
