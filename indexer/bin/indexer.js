@@ -121,23 +121,26 @@ export default {
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
       )
 
-      // @ts-ignore
       const { addedCids, addedRoots, deletedRoots } = rootIds.reduce(
         (acc, rootId, i) => {
           const cid = rootCids[i]
           if (!cid) {
-            // @ts-ignore
             acc.deletedRoots.push(rootId)
           } else {
-            // @ts-ignore
             acc.addedRoots.push(rootId)
-            // @ts-ignore
             acc.addedCids.push(cid)
           }
 
           return acc
         },
-        { addedRoots: [], addedCids: [], deletedRoots: [] },
+        /**
+         * @type {{
+         *   addedRoots: string[]
+         *   addedCids: any[]
+         *   deletedRoots: string[]
+         * }}
+         */
+        ({ addedRoots: [], addedCids: [], deletedRoots: [] }),
       )
 
       if (addedRoots.length && addedCids.length) {
