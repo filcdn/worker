@@ -3,6 +3,8 @@ import {
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
+import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
+import { handleProofSetRailCreated } from '../lib/proof-set-handler.js'
 
 export default {
   /**
@@ -11,13 +13,17 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
+   * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
    * @returns {Promise<Response>}
    */
   async fetch(
     request,
     env,
     ctx,
-    { createPdpVerifierClient = defaultCreatePdpVerifierClient } = {},
+    {
+      createPdpVerifierClient = defaultCreatePdpVerifierClient,
+      checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
+    } = {},
   ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
@@ -154,30 +160,23 @@ export default {
         console.error('ProofSetRailCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
+
       console.log(
         `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
-      await env.DB.prepare(
-        `
-          INSERT INTO indexer_proof_set_rails (
-            proof_set_id,
-            rail_id,
-            payer,
-            payee,
-            with_cdn
-          )
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT DO NOTHING
-        `,
-      )
-        .bind(
-          String(payload.proof_set_id),
-          String(payload.rail_id),
-          payload.payer,
-          payload.payee,
-          payload.with_cdn ?? null,
+
+      try {
+        await handleProofSetRailCreated(env, payload, {
+          checkIfAddressIsSanctioned,
+        })
+      } catch (err) {
+        console.log(
+          `Error handling proof set rail creation: ${err}. Retrying...`,
         )
-        .run()
+        // @ts-ignore
+        env.RETRY_QUEUE.send({ type: 'proof-set-rail-created', payload })
+      }
+
       return new Response('OK', { status: 200 })
     } else if (pathname === '/provider-registered') {
       const { provider, piece_retrieval_url: pieceRetrievalUrl } = payload
@@ -187,6 +186,39 @@ export default {
       return await handleProviderRemoved(env, provider)
     } else {
       return new Response('Not Found', { status: 404 })
+    }
+  },
+  /**
+   * Handles incoming messages from the retry queue.
+   *
+   * @param {MessageBatch<{ type: string; payload: any }>} batch
+   * @param {Env} env
+   * @param {object} options
+   * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
+   */
+  async queue(
+    batch,
+    env,
+    { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned } = {},
+  ) {
+    for (const message of batch.messages) {
+      if (message.body.type === 'proof-set-rail-created') {
+        try {
+          await handleProofSetRailCreated(env, message.body.payload, {
+            checkIfAddressIsSanctioned,
+          })
+
+          message.ack()
+        } catch (err) {
+          console.log(
+            `Error handling proof set rail creation: ${err}. Retrying...`,
+          )
+          message.retry({ delaySeconds: 10 })
+        }
+      } else {
+        console.error(`Unknown message type: ${message.body.type}.`)
+        message.ack() // Acknowledge unknown messages to avoid reprocessing
+      }
     }
   },
 }

@@ -11,6 +11,7 @@ import {
   withProofSetRoots,
   withApprovedProvider,
   withBadBits,
+  withWalletDetails,
 } from './test-data-builders.js'
 import { CONTENT_STORED_ON_CALIBRATION } from './test-data.js'
 
@@ -50,6 +51,7 @@ describe('retriever.fetch', () => {
       env.DB.prepare('DELETE FROM indexer_proof_sets'),
       env.DB.prepare('DELETE FROM indexer_proof_set_rails'),
       env.DB.prepare('DELETE FROM bad_bits'),
+      env.DB.prepare('DELETE FROM wallet_details'),
     ])
 
     let i = 1
@@ -530,6 +532,35 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toBe(
       'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
     )
+  })
+
+  it('reject retrieval request if client is sanctioned', async () => {
+    const proofSetId = 'test-proof-set-client-sanctioned'
+    const railId = 'rail-proof-set-client-sanctioned'
+    const rootId = 'root-proof-set-client-sanctioned'
+    const rootCid =
+      'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
+    const owner = '0xOWNER'
+    const clientAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
+    await withProofSetRoots(env, {
+      owner,
+      clientAddress,
+      rootCid,
+      proofSetId,
+      railId,
+      withCDN: true,
+      rootId,
+    })
+
+    await withWalletDetails(
+      env,
+      clientAddress,
+      true, // Sanctioned
+    )
+    const req = withRequest(clientAddress, rootCid, 'GET')
+    const res = await worker.fetch(req, env)
+
+    assert.strictEqual(res.status, 403)
   })
   it('does not log to retrieval_logs on method not allowed (405)', async () => {
     const req = withRequest(defaultClientAddress, realRootCid, 'POST')

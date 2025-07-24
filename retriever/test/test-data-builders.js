@@ -75,3 +75,22 @@ export async function withBadBits(env, ...cids) {
   const entries = await Promise.all(cids.map(getBadBitsEntry))
   await env.DB.batch(entries.map((it) => stmt.bind(it)))
 }
+
+/**
+ * Inserts an address into the database with an optional sanctioned flag.
+ *
+ * @param {Env} env
+ * @param {string} address
+ * @param {boolean} [isSanctioned=false] Default is `false`
+ * @returns {Promise<void>}
+ */
+export async function withWalletDetails(env, address, isSanctioned = false) {
+  await env.DB.prepare(
+    `
+    INSERT INTO wallet_details (address, is_sanctioned)
+    VALUES (?, ?)
+  `,
+  )
+    .bind(address.toLowerCase(), isSanctioned ? 1 : 0)
+    .run()
+}

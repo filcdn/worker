@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import workerImpl from '../bin/indexer.js'
 import { env } from 'cloudflare:test'
 import {
@@ -12,6 +12,7 @@ const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
 env.SECRET_HEADER_KEY = 'secret-header-key'
 env.SECRET_HEADER_VALUE = 'secret-header-value'
+env.CHAINALYSIS_API_KEY = 'mock-chainalysis-api-key'
 
 describe('retriever.indexer', () => {
   it('requires authentication', async () => {
@@ -306,6 +307,18 @@ describe('retriever.indexer', () => {
   })
 
   describe('POST /proof-set-rail-created', () => {
+    const ctx = {}
+    env.RETRY_QUEUE = {
+      send: vi.fn(),
+      retry: vi.fn(),
+    }
+    const mockCheckIfAddressIsSanctioned = vi.fn()
+
+    beforeEach(() => {
+      // Reset mocks before each test
+      vi.resetAllMocks()
+    })
+
     it('returns 400 if property is missing', async () => {
       const req = new Request('https://host/proof-set-rail-created', {
         method: 'POST',
@@ -314,7 +327,9 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({}),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
@@ -334,7 +349,11 @@ describe('retriever.indexer', () => {
           with_cdn: true,
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -343,12 +362,22 @@ describe('retriever.indexer', () => {
       )
         .bind(proofSetId)
         .all()
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress')
+        .all()
+
       expect(proofSetRails.length).toBe(1)
       expect(proofSetRails[0].proof_set_id).toBe(proofSetId)
       expect(proofSetRails[0].rail_id).toBe(railId)
       expect(proofSetRails[0].payer).toBe('0xPayerAddress')
       expect(proofSetRails[0].payee).toBe('0xPayeeAddress')
       expect(proofSetRails[0].with_cdn).toBe(1)
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].is_sanctioned).toBe(0)
     })
     it('does not insert duplicate proof set rails', async () => {
       const proofSetId = randomId()
@@ -367,7 +396,10 @@ describe('retriever.indexer', () => {
             with_cdn: true,
           }),
         })
-        const res = await workerImpl.fetch(req, env)
+        mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
+        const res = await workerImpl.fetch(req, env, ctx, {
+          checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+        })
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
       }
@@ -394,7 +426,9 @@ describe('retriever.indexer', () => {
           payee: '0xPayeeAddress',
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -423,7 +457,10 @@ describe('retriever.indexer', () => {
           with_cdn: true,
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -432,8 +469,123 @@ describe('retriever.indexer', () => {
       )
         .bind(String(proofSetId), String(railId))
         .all()
+      expect(proofSetRails.length).toBe(1)
       expect(proofSetRails[0]?.proof_set_id).toMatch(/^\d+$/)
       expect(proofSetRails[0]?.rail_id).toMatch(/^\d+$/)
+    })
+
+    it('checks if payer address is sanctioned when with_cdn = true', async () => {
+      const proofSetId = randomId()
+      const railId = randomId()
+
+      // send first request with with_cdn = true
+      let req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          proof_set_id: proofSetId,
+          rail_id: railId,
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: true,
+        }),
+      })
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
+      let res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      // send second request with with_cdn = false
+      req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          proof_set_id: randomId(),
+          rail_id: randomId(),
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: false,
+        }),
+      })
+      res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      // Verify that the sanction check was called only once
+      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledTimes(1)
+      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledWith(
+        '0xPayerAddress',
+        {
+          CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
+        },
+      )
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      )
+        .bind(proofSetId)
+        .all()
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress')
+        .all()
+
+      expect(proofSetRails.length).toBe(1)
+      expect(proofSetRails[0].payer).toBe('0xPayerAddress')
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].address).toBe('0xPayerAddress')
+      expect(walletDetails[0].is_sanctioned).toBe(1)
+    })
+
+    it('sends message to queue if sanction check fails', async () => {
+      const proofSetId = randomId()
+      const railId = randomId()
+      const payload = {
+        proof_set_id: proofSetId,
+        rail_id: railId,
+        payer: '0xPayerAddress',
+        payee: '0xPayeeAddress',
+        with_cdn: true,
+      }
+      const req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify(payload),
+      })
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioneded: async (apiKey, address) => {
+          throw Error('fail')
+        },
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      expect(env.RETRY_QUEUE.send).toHaveBeenCalledTimes(1)
+      expect(env.RETRY_QUEUE.send).toHaveBeenCalledWith({
+        type: 'proof-set-rail-created',
+        payload,
+      })
+
+      const { results: proofSetRails } = await env.DB.prepare(
+        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      )
+        .bind(proofSetId)
+        .all()
+      expect(proofSetRails.length).toBe(0)
     })
   })
   describe('POST /provider-registered', () => {
