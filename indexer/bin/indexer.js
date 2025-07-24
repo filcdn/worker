@@ -5,6 +5,7 @@ import {
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import { handleProofSetRailCreated } from '../lib/proof-set-handler.js'
+import { deleteProofSetRoots, insertProofSetRoots } from '../lib/store.js'
 
 export default {
   /**
@@ -119,28 +120,56 @@ export default {
       console.log(
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
       )
-      await env.DB.prepare(
-        `
-          INSERT INTO indexer_roots (
-            root_id,
-            set_id,
-            root_cid
-          )
-          VALUES ${new Array(rootIds.length)
-            .fill(null)
-            .map(() => '(?, ?, ?)')
-            .join(', ')}
-          ON CONFLICT DO NOTHING
-        `,
+
+      // @ts-ignore
+      const { addedCids, addedRoots, deletedRoots } = rootIds.reduce(
+        (acc, rootId, i) => {
+          const cid = rootCids[i]
+          if (!cid) {
+            // @ts-ignore
+            acc.deletedRoots.push(rootId)
+          } else {
+            // @ts-ignore
+            acc.addedRoots.push(rootId)
+            // @ts-ignore
+            acc.addedCids.push(cid)
+          }
+
+          return acc
+        },
+        { addedRoots: [], addedCids: [], deletedRoots: [] },
       )
-        .bind(
-          ...rootIds.flatMap((rootId, i) => [
-            String(rootId),
-            String(payload.set_id),
-            rootCids[i],
-          ]),
-        )
-        .run()
+
+      if (addedRoots.length && addedCids.length) {
+        await insertProofSetRoots(env, payload.set_id, rootIds, rootCids)
+      }
+
+      if (deletedRoots.length) {
+        await deleteProofSetRoots(env, payload.set_id, deletedRoots)
+      }
+
+      return new Response('OK', { status: 200 })
+    } else if (pathname === '/roots-removed') {
+      if (
+        !(
+          typeof payload.set_id === 'number' ||
+          typeof payload.set_id === 'string'
+        ) ||
+        !payload.root_ids ||
+        typeof payload.root_ids !== 'string'
+      ) {
+        console.error('RootsRemoved: Invalid payload', payload)
+        return new Response('Bad Request', { status: 400 })
+      }
+
+      /** @type {string[]} */
+      const rootIds = payload.root_ids.split(',')
+
+      console.log(
+        `Removing roots (root_ids=[${rootIds.join(', ')}], set_id=${payload.set_id})`,
+      )
+
+      await deleteProofSetRoots(env, payload.set_id, rootIds)
       return new Response('OK', { status: 200 })
     } else if (pathname === '/proof-set-rail-created') {
       if (
