@@ -5,7 +5,7 @@ import {
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import { handleProofSetRailCreated } from '../lib/proof-set-handler.js'
-import { deleteProofSetRoots, insertProofSetRoots } from '../lib/store.js'
+import { removeProofSetRoots, insertProofSetRoots } from '../lib/store.js'
 
 export default {
   /**
@@ -121,11 +121,11 @@ export default {
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
       )
 
-      const { addedCids, addedRoots, deletedRoots } = rootIds.reduce(
+      const { addedCids, addedRoots, removedRoots } = rootIds.reduce(
         (acc, rootId, i) => {
           const cid = rootCids[i]
           if (!cid) {
-            acc.deletedRoots.push(rootId)
+            acc.removedRoots.push(rootId)
           } else {
             acc.addedRoots.push(rootId)
             acc.addedCids.push(cid)
@@ -137,18 +137,22 @@ export default {
          * @type {{
          *   addedRoots: string[]
          *   addedCids: any[]
-         *   deletedRoots: string[]
+         *   removedRoots: string[]
          * }}
          */
-        ({ addedRoots: [], addedCids: [], deletedRoots: [] }),
+        ({ addedRoots: [], addedCids: [], removedRoots: [] }),
       )
 
-      if (addedRoots.length && addedCids.length) {
+      if (
+        addedRoots.length &&
+        addedCids.length &&
+        addedCids.length === addedRoots.length
+      ) {
         await insertProofSetRoots(env, payload.set_id, rootIds, rootCids)
       }
 
-      if (deletedRoots.length) {
-        await deleteProofSetRoots(env, payload.set_id, deletedRoots)
+      if (removedRoots.length) {
+        await removeProofSetRoots(env, payload.set_id, removedRoots)
       }
 
       return new Response('OK', { status: 200 })
@@ -172,7 +176,7 @@ export default {
         `Removing roots (root_ids=[${rootIds.join(', ')}], set_id=${payload.set_id})`,
       )
 
-      await deleteProofSetRoots(env, payload.set_id, rootIds)
+      await removeProofSetRoots(env, payload.set_id, rootIds)
       return new Response('OK', { status: 200 })
     } else if (pathname === '/proof-set-rail-created') {
       if (

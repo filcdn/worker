@@ -278,7 +278,7 @@ describe('retriever.indexer', () => {
       ])
     })
 
-    it('deletes root when on-chain state does not have a live root', async () => {
+    it('removes root when on-chain state does not have a live root', async () => {
       const req = new Request('https://host/roots-added', {
         method: 'POST',
         headers: {

@@ -32,7 +32,7 @@ export async function insertProofSetRoots(env, proofSetId, rootIds, rootCids) {
  * @param {number | string} proofSetId
  * @param {(number | string)[]} rootIds
  */
-export async function deleteProofSetRoots(env, proofSetId, rootIds) {
+export async function removeProofSetRoots(env, proofSetId, rootIds) {
   await env.DB.prepare(
     `
     DELETE FROM indexer_roots
