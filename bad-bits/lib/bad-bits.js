@@ -30,11 +30,9 @@ export async function fetchAndStoreBadBits(
   }
 
   if (!response.ok) {
-    const error = new Error(
+    throw new Error(
       `Failed to fetch bad bits: ${response.status} ${response.statusText}`,
     )
-    error.noAlert = response.status === 525
-    throw error
   }
 
   const text = await response.text()
