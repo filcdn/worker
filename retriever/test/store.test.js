@@ -326,7 +326,7 @@ describe('getOwnerAndValidateClient', () => {
   })
 })
 
-describe('updateProofSetEgressStats', () => {
+describe('updateProofSetStats', () => {
   it('inserts and updates egress stats', async () => {
     const PROOF_SET_ID = 'test-proof-set-1'
     const EGRESS_BYTES = 123456
