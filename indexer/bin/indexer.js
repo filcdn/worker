@@ -250,4 +250,65 @@ export default {
       }
     }
   },
+
+  /**
+   * @param {any} _controller
+   * @param {Env} _env
+   * @param {ExecutionContext} _ctx
+   * @param {object} [options]
+   * @param {typeof globalThis.fetch} [options.fetch]
+   */
+  async scheduled(_controller, _env, _ctx, { fetch = globalThis.fetch } = {}) {
+    const [subgraph, chainHead] = await Promise.all([
+      (async () => {
+        const res = await fetch(
+          'https://api.goldsky.com/api/public/project_cmb91qc80slyu01wca6e2eupl/subgraphs/pdp-verifier/1.0.0/gn',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              query: `
+              query {
+                _meta {
+                  hasIndexingErrors
+                  block {
+                    number
+                  }
+                }
+              }
+            `,
+            }),
+          },
+        )
+        const { data } = await res.json()
+        return data
+      })(),
+      (async () => {
+        const res = await fetch(
+          'https://calibration.filecoin.chain.love/rpc/v0',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'Filecoin.ChainHead',
+              params: [],
+              id: 1,
+            }),
+          },
+        )
+        const { result } = await res.json()
+        return result
+      })(),
+    ])
+    const alerts = []
+    if (subgraph._meta.hasIndexingErrors) {
+      alerts.push('Goldsky has indexing errors')
+    }
+    const lag = chainHead.Height - subgraph._meta.block.number
+    if (lag > 1) {
+      alerts.push(`Goldsky is ${lag} blocks behind`)
+    }
+    if (alerts.length) {
+      throw new Error(alerts.join(' & '))
+    }
+  },
 }
