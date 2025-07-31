@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
-import workerImpl from '../bin/retriever.js'
+import worker from '../bin/retriever.js'
 import { createHash } from 'node:crypto'
 import {
   retrieveFile,
   retrieveFile as defaultRetrieveFile,
 } from '../lib/retrieval.js'
-import { env } from 'cloudflare:test'
+import { env, createExecutionContext, waitOnExecutionContext } from 'cloudflare:test'
 import assert from 'node:assert/strict'
 import {
   withProofSetRoots,
@@ -25,25 +25,6 @@ env.DNS_ROOT = DNS_ROOT
 describe('retriever.fetch', () => {
   const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
   const realRootCid = CONTENT_STORED_ON_CALIBRATION[0].rootCid
-  const worker = {
-    fetch: async (
-      request,
-      env,
-      { retrieveFile = defaultRetrieveFile } = {},
-    ) => {
-      const waitUntilCalls = []
-      const ctx = {
-        waitUntil: (promise) => {
-          waitUntilCalls.push(promise)
-        },
-      }
-      const response = await workerImpl.fetch(request, env, ctx, {
-        retrieveFile,
-      })
-      await Promise.all(waitUntilCalls)
-      return response
-    },
-  }
 
   beforeAll(async () => {
     await env.DB.batch([
@@ -81,30 +62,38 @@ describe('retriever.fetch', () => {
   })
 
   it('redirects to https://filcdn.com when no CID was provided', async () => {
+    const ctx = createExecutionContext()
     const req = new Request(`https://${defaultClientAddress}${DNS_ROOT}/`)
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toBe('https://filcdn.com/')
   })
 
   it('redirects to https://filcdn.com when no CID and no wallet address were provided', async () => {
+    const ctx = createExecutionContext()
     const req = new Request(`https://${DNS_ROOT.slice(1)}/`)
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toBe('https://filcdn.com/')
   })
 
   it('returns 405 for unsupported request methods', async () => {
+    const ctx = createExecutionContext()
     const req = withRequest(1, 'foo', 'POST')
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
   })
 
   it('returns 400 if required fields are missing', async () => {
+    const ctx = createExecutionContext()
     const mockRetrieveFile = vi.fn()
     const req = withRequest(undefined, 'foo')
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(400)
     expect(await res.text()).toBe(
       'Invalid hostname: filcdn.io. It must end with .filcdn.io.',
@@ -112,9 +101,11 @@ describe('retriever.fetch', () => {
   })
 
   it('returns 400 if provided client address is invalid', async () => {
+    const ctx = createExecutionContext()
     const mockRetrieveFile = vi.fn()
     const req = withRequest('bar', realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(400)
     expect(await res.text()).toBe(
       'Invalid address: bar. Address must be a valid ethereum address.',
@@ -130,8 +121,10 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(201)
     expect(await res.text()).toBe('hello')
     expect(res.headers.get('X-Test')).toBe('yes')
@@ -147,8 +140,10 @@ describe('retriever.fetch', () => {
       response: originResponse,
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     const csp = res.headers.get('Content-Security-Policy')
     expect(csp).toMatch(/^default-src 'self'/)
     expect(csp).toContain('https://*.filcdn.io')
@@ -157,8 +152,10 @@ describe('retriever.fetch', () => {
   it('fetches the file from calibration storage provider', async () => {
     const expectedHash =
       '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(200)
     // get the sha256 hash of the content
     const content = await res.bytes()
@@ -178,8 +175,10 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
       `SELECT id, response_status, egress_bytes, cache_miss, client_address
@@ -212,8 +211,10 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: false,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
       `SELECT id, response_status, egress_bytes, cache_miss, client_address
@@ -248,8 +249,10 @@ describe('retriever.fetch', () => {
         cacheMiss: true,
       }
     }
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
       `SELECT
@@ -282,10 +285,12 @@ describe('retriever.fetch', () => {
         cacheMiss: true,
       }
     }
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid, 'GET', {
       'CF-IPCountry': 'US',
     })
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const { results } = await env.DB.prepare(
       `SELECT request_country_code
@@ -311,8 +316,10 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
       'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ?',
@@ -329,8 +336,10 @@ describe('retriever.fetch', () => {
       const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ owner, rootCid }) => {
         return (async () => {
           try {
+            const ctx = createExecutionContext()
             const req = withRequest(defaultClientAddress, rootCid)
-            const res = await worker.fetch(req, env, { retrieveFile })
+            const res = await worker.fetch(req, env, ctx, { retrieveFile })
+            await waitOnExecutionContext(ctx)
 
             assert.strictEqual(res.status, 200)
 
@@ -387,8 +396,10 @@ describe('retriever.fetch', () => {
       rootId,
     })
 
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, rootCid, 'GET')
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
 
     assert.strictEqual(res.status, 402)
   })
@@ -420,8 +431,10 @@ describe('retriever.fetch', () => {
       }
     }
 
+    const ctx = createExecutionContext()
     const req = withRequest(clientAddress, rootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
 
     // Check if the URL fetched is from the database
     expect(await res.text()).toBe(body)
@@ -439,8 +452,10 @@ describe('retriever.fetch', () => {
       clientAddress,
     })
 
+    const ctx = createExecutionContext()
     const req = withRequest(clientAddress, rootCid)
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
 
     // Expect an error because no URL was found
     expect(res.status).toBe(404)
@@ -455,8 +470,10 @@ describe('retriever.fetch', () => {
       response: new Response('hello'),
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, rootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(await res.text()).toBe('hello')
     expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
   })
@@ -467,8 +484,10 @@ describe('retriever.fetch', () => {
       response: new Response('hello'),
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, rootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(await res.text()).toBe('hello')
 
     assert.strictEqual(res.status, 200)
@@ -496,8 +515,10 @@ describe('retriever.fetch', () => {
       response: new Response(null, { status: 404 }),
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, rootCid)
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(res.body).toBeNull()
     expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
   })
@@ -510,8 +531,10 @@ describe('retriever.fetch', () => {
       response: fakeResponse,
       cacheMiss: true,
     })
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid, 'HEAD')
-    const res = await worker.fetch(req, env, { retrieveFile: mockRetrieveFile })
+    const res = await worker.fetch(req, env, ctx, { retrieveFile: mockRetrieveFile })
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(200)
   })
 
@@ -524,10 +547,12 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
 
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid)
-    const res = await worker.fetch(req, env, {
+    const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
+    await waitOnExecutionContext(ctx)
     expect(res.status).toBe(404)
     expect(await res.text()).toBe(
       'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
@@ -557,14 +582,18 @@ describe('retriever.fetch', () => {
       clientAddress,
       true, // Sanctioned
     )
+    const ctx = createExecutionContext()
     const req = withRequest(clientAddress, rootCid, 'GET')
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
 
     assert.strictEqual(res.status, 403)
   })
   it('does not log to retrieval_logs on method not allowed (405)', async () => {
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, realRootCid, 'POST')
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
 
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
@@ -599,8 +628,10 @@ describe('retriever.fetch', () => {
       ),
     ])
 
+    const ctx = createExecutionContext()
     const req = withRequest(defaultClientAddress, invalidRootCid)
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
 
     expect(res.status).toBe(404)
     expect(await res.text()).toContain('No approved storage provider found')
@@ -614,8 +645,10 @@ describe('retriever.fetch', () => {
   })
   it('does not log to retrieval_logs when client address is invalid (400)', async () => {
     const invalidAddress = 'not-an-address'
+    const ctx = createExecutionContext()
     const req = withRequest(invalidAddress, realRootCid)
-    const res = await worker.fetch(req, env)
+    const res = await worker.fetch(req, env, ctx)
+    await waitOnExecutionContext(ctx)
 
     expect(res.status).toBe(400)
     expect(await res.text()).toContain('Invalid address')
