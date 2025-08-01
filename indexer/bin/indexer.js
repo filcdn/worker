@@ -275,7 +275,7 @@ export default {
       alerts.push('Goldsky has indexing errors')
     }
     const lag = chainHead.Height - subgraph._meta.block.number
-    if (lag > 1) {
+    if (lag > 2) { // TODO: Even 2 blocks is too much, but this is where Goldksy is at
       alerts.push(`Goldsky is ${lag} blocks behind`)
     }
     if (alerts.length) {
