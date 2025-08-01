@@ -183,3 +183,21 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
 
   return { ownerAddress, pieceRetrievalUrl, proofSetId }
 }
+
+/**
+ * @param {Env} env - Worker environment (contains D1 binding).
+ * @param {object} params - Parameters for the proof set update.
+ * @param {string} params.proofSetId - The ID of the proof set to update.
+ * @param {number} params.egressBytes - The egress bytes used for the response.
+ */
+export async function updateProofSetSats(env, { proofSetId, egressBytes }) {
+  await env.DB.prepare(
+    `
+    INSERT INTO proof_set_stats (set_id, total_egress_bytes_used)
+    VALUES (?, ?)
+    ON CONFLICT(set_id) DO UPDATE SET total_egress_bytes_used = COALESCE(proof_set_stats.total_egress_bytes_used, 0) + excluded.total_egress_bytes_used
+    `,
+  )
+    .bind(proofSetId, egressBytes)
+    .run()
+}

@@ -1,11 +1,16 @@
 import { describe, it, beforeAll } from 'vitest'
 import assert from 'node:assert/strict'
-import { logRetrievalResult, getOwnerAndValidateClient } from '../lib/store.js'
+import {
+  logRetrievalResult,
+  getOwnerAndValidateClient,
+  updateProofSetSats,
+} from '../lib/store.js'
 import { env } from 'cloudflare:test'
 import {
   withProofSetRoots,
   withApprovedProvider,
 } from './test-data-builders.js'
+
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
     const OWNER_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
@@ -318,5 +323,53 @@ describe('getOwnerAndValidateClient', () => {
       ownerAddress: owner1.toLowerCase(),
       pieceRetrievalUrl: 'https://pdp-provider-1.xyz',
     })
+  })
+})
+
+describe('updateProofSetStats', () => {
+  it('inserts and updates egress stats', async () => {
+    const PROOF_SET_ID = 'test-proof-set-1'
+    const EGRESS_BYTES = 123456
+
+    await updateProofSetSats(env, {
+      proofSetId: PROOF_SET_ID,
+      egressBytes: EGRESS_BYTES,
+    })
+
+    const { results: insertResults } = await env.DB.prepare(
+      `SELECT set_id, total_egress_bytes_used 
+       FROM proof_set_stats 
+       WHERE set_id = ?`,
+    )
+      .bind(PROOF_SET_ID)
+      .all()
+
+    assert.deepStrictEqual(insertResults, [
+      {
+        set_id: PROOF_SET_ID,
+        total_egress_bytes_used: EGRESS_BYTES,
+      },
+    ])
+
+    // Update the egress stats
+    await updateProofSetSats(env, {
+      proofSetId: PROOF_SET_ID,
+      egressBytes: 1000,
+    })
+
+    const { results: updateResults } = await env.DB.prepare(
+      `SELECT set_id, total_egress_bytes_used 
+       FROM proof_set_stats 
+       WHERE set_id = ?`,
+    )
+      .bind(PROOF_SET_ID)
+      .all()
+
+    assert.deepStrictEqual(updateResults, [
+      {
+        set_id: PROOF_SET_ID,
+        total_egress_bytes_used: EGRESS_BYTES + 1000,
+      },
+    ])
   })
 })
