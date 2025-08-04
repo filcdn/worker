@@ -149,8 +149,7 @@ describe('retriever.fetch', () => {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
-    const cacheControlHeaders = res.headers.get('Content-Control')
-    console.log(cacheControlHeaders)
+    const cacheControlHeaders = res.headers.get('Cache-Control')
     expect(cacheControlHeaders).toContain('public')
     expect(cacheControlHeaders).toContain(`max-age=${env.BROWSER_CACHE_TTL}`)
   })
@@ -167,7 +166,7 @@ describe('retriever.fetch', () => {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
-    const cacheControlHeaders = res.headers.get('Content-Control')
+    const cacheControlHeaders = res.headers.get('Cache-Control')
     expect(cacheControlHeaders).toContain('public')
     expect(cacheControlHeaders).toContain(`max-age=${env.BROWSER_CACHE_TTL}`)
   })
