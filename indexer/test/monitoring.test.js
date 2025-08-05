@@ -69,7 +69,7 @@ describe('monitoring', () => {
     ).rejects.toThrow('Goldsky has indexing errors')
     expect(mockFetch).toHaveBeenCalledTimes(2)
   })
-  it('fails when goldsky is more than 1 blocks behind', async () => {
+  it('fails when goldsky is lagging behind', async () => {
     const mockFetch = vi.fn()
     mockFetch.mockImplementationOnce((url, opts) => {
       expect(url).toMatch('goldsky')
@@ -79,7 +79,7 @@ describe('monitoring', () => {
             _meta: {
               hasIndexingErrors: false,
               block: {
-                number: 98,
+                number: 0,
               },
             },
           },
@@ -98,7 +98,7 @@ describe('monitoring', () => {
     })
     await expect(
       workerImpl.scheduled(null, null, null, { fetch: mockFetch }),
-    ).rejects.toThrow('Goldsky is 2 blocks behind')
+    ).rejects.toThrow('Goldsky is 100 blocks behind')
     expect(mockFetch).toHaveBeenCalledTimes(2)
   })
   it('passes when goldsky is just 1 block behind', async () => {
@@ -141,7 +141,7 @@ describe('monitoring', () => {
             _meta: {
               hasIndexingErrors: true,
               block: {
-                number: 98,
+                number: 0,
               },
             },
           },
@@ -161,7 +161,7 @@ describe('monitoring', () => {
     await expect(
       workerImpl.scheduled(null, null, null, { fetch: mockFetch }),
     ).rejects.toThrow(
-      'Goldsky has indexing errors & Goldsky is 2 blocks behind',
+      'Goldsky has indexing errors & Goldsky is 100 blocks behind',
     )
     expect(mockFetch).toHaveBeenCalledTimes(2)
   })
