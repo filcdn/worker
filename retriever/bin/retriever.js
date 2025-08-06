@@ -4,7 +4,11 @@ import {
   retrieveFile as defaultRetrieveFile,
   measureStreamedEgress,
 } from '../lib/retrieval.js'
-import { getOwnerAndValidateClient, logRetrievalResult } from '../lib/store.js'
+import {
+  getOwnerAndValidateClient,
+  logRetrievalResult,
+  updateProofSetSats,
+} from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
 import { findInBadBits } from '../lib/bad-bits-util.js'
@@ -139,6 +143,8 @@ export default {
             },
             proofSetId,
           })
+
+          await updateProofSetSats(env, { proofSetId, egressBytes })
         })(),
       )
 
