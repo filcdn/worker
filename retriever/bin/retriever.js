@@ -86,7 +86,7 @@ export default {
       const { response: originResponse, cacheMiss } = await retrieveFile(
         pieceRetrievalUrl,
         rootCid,
-        env.CACHE_TTL,
+        env.ORIGIN_CACHE_TTL,
         { signal: request.signal },
       )
 
@@ -109,6 +109,10 @@ export default {
         const response = new Response(originResponse.body, originResponse)
         setContentSecurityPolicy(response)
         response.headers.set('X-Proof-Set-ID', proofSetId)
+        response.headers.set(
+          'Cache-Control',
+          `public, max-age=${env.CLIENT_CACHE_TTL}`,
+        )
         return response
       }
 
@@ -152,6 +156,10 @@ export default {
       })
       setContentSecurityPolicy(response)
       response.headers.set('X-Proof-Set-ID', proofSetId)
+      response.headers.set(
+        'Cache-Control',
+        `public, max-age=${env.CLIENT_CACHE_TTL}`,
+      )
       return response
     } catch (error) {
       const { status } = getErrorHttpStatusMessage(error)

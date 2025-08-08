@@ -11,7 +11,8 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf100"
 
 [env.dev.vars]
 ENVIRONMENT = "dev"
-CACHE_TTL = 86400
+ORIGIN_CACHE_TTL = 86400
+CLIENT_CACHE_TTL = 31536000 
 DNS_ROOT = ".localhost"
 
 [[env.dev.d1_databases]]
@@ -21,7 +22,8 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 
 [env.calibration.vars]
 ENVIRONMENT = "calibration "
-CACHE_TTL = 86400
+ORIGIN_CACHE_TTL = 86400
+CLIENT_CACHE_TTL = 31536000 
 DNS_ROOT = ".calibration.filcdn.io"
 
 [[env.calibration.d1_databases]]
@@ -31,7 +33,8 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
 
 [env.mainnet.vars]
 ENVIRONMENT = "mainnet"
-CACHE_TTL = 86400
+ORIGIN_CACHE_TTL = 86400
+CLIENT_CACHE_TTL = 31536000 
 DNS_ROOT = ".filcdn.io"
 
 [[env.mainnet.d1_databases]]
