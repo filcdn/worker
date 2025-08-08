@@ -151,7 +151,7 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
     const cacheControlHeaders = res.headers.get('Cache-Control')
     expect(cacheControlHeaders).toContain('public')
-    expect(cacheControlHeaders).toContain(`max-age=${env.BROWSER_CACHE_TTL}`)
+    expect(cacheControlHeaders).toContain(`max-age=${env.CLIENT_CACHE_TTL}`)
   })
 
   it('sets Content-Control response on empty body', async () => {
@@ -168,7 +168,7 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
     const cacheControlHeaders = res.headers.get('Cache-Control')
     expect(cacheControlHeaders).toContain('public')
-    expect(cacheControlHeaders).toContain(`max-age=${env.BROWSER_CACHE_TTL}`)
+    expect(cacheControlHeaders).toContain(`max-age=${env.CLIENT_CACHE_TTL}`)
   })
 
   it('sets Content-Security-Policy response header', async () => {
