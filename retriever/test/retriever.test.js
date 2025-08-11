@@ -137,6 +137,40 @@ describe('retriever.fetch', () => {
     expect(res.headers.get('X-Test')).toBe('yes')
   })
 
+  it('sets Content-Control response header', async () => {
+    const originResponse = new Response('hello')
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: originResponse,
+      cacheMiss: true,
+    })
+    const ctx = createExecutionContext()
+    const req = withRequest(defaultClientAddress, realRootCid)
+    const res = await worker.fetch(req, env, ctx, {
+      retrieveFile: mockRetrieveFile,
+    })
+    await waitOnExecutionContext(ctx)
+    const cacheControlHeaders = res.headers.get('Cache-Control')
+    expect(cacheControlHeaders).toContain('public')
+    expect(cacheControlHeaders).toContain(`max-age=${env.CLIENT_CACHE_TTL}`)
+  })
+
+  it('sets Content-Control response on empty body', async () => {
+    const originResponse = new Response(null)
+    const mockRetrieveFile = vi.fn().mockResolvedValue({
+      response: originResponse,
+      cacheMiss: false,
+    })
+    const ctx = createExecutionContext()
+    const req = withRequest(defaultClientAddress, realRootCid)
+    const res = await worker.fetch(req, env, ctx, {
+      retrieveFile: mockRetrieveFile,
+    })
+    await waitOnExecutionContext(ctx)
+    const cacheControlHeaders = res.headers.get('Cache-Control')
+    expect(cacheControlHeaders).toContain('public')
+    expect(cacheControlHeaders).toContain(`max-age=${env.CLIENT_CACHE_TTL}`)
+  })
+
   it('sets Content-Security-Policy response header', async () => {
     const originResponse = new Response('hello', {
       headers: {
