@@ -12,11 +12,14 @@ export const pdpVerifierAbi = [
  * @param {string} params.rpcUrl
  * @param {string} [params.glifToken]
  * @param {string} params.pdpVerifierAddress
+ * @param {Function} [params.fetch=globalThis.fetch] Default is
+ *   `globalThis.fetch`
  */
 export function createPdpVerifierClient({
   rpcUrl,
   glifToken,
   pdpVerifierAddress,
+  fetch = globalThis.fetch,
 }) {
   const authorization = glifToken ? `Bearer ${glifToken}` : ''
   const pdpVerifierIface = new Interface(pdpVerifierAbi)
@@ -24,16 +27,22 @@ export function createPdpVerifierClient({
   /**
    * @param {BigInt} setId
    * @param {BigInt} rootId
+   * @param {number | 'latest' | 'earliest' | 'pending'} [blockNumber='latest']
+   *   Default is `'latest'`
    * @returns {Promise<string | null>} The CID in string format (`baga...`)
    */
-  const getRootCid = async (setId, rootId) => {
+  const getRootCid = async (setId, rootId, blockNumber = 'latest') => {
     const requestParams = {
       to: pdpVerifierAddress,
       data: pdpVerifierIface.encodeFunctionData('getRootCid', [setId, rootId]),
     }
 
-    // TODO: add p-retry
+    const blockNumberParam =
+      typeof blockNumber === 'number'
+        ? `0x${blockNumber.toString(16)}`
+        : blockNumber
 
+    // TODO: add p-retry
     const rpcResponse = await fetch(rpcUrl, {
       method: 'POST',
       headers: {
@@ -45,7 +54,7 @@ export function createPdpVerifierClient({
         jsonrpc: '2.0',
         id: 1,
         method: 'eth_call',
-        params: [requestParams, 'latest'],
+        params: [requestParams, blockNumberParam],
       }),
     })
     await assertOkResponse(rpcResponse)
