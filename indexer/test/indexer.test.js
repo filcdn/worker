@@ -278,7 +278,7 @@ describe('retriever.indexer', () => {
       ])
     })
 
-    it('removes root when on-chain state does not have a live root', async () => {
+    it('ignores root when on-chain state does not have a live root', async () => {
       const req = new Request('https://host/roots-added', {
         method: 'POST',
         headers: {
@@ -301,7 +301,12 @@ describe('retriever.indexer', () => {
         .bind(DELETED_PDP_FILE.setId.toString())
         .all()
 
-      expect(roots).toEqual([])
+      expect(roots).toEqual([
+        {
+          root_id: DELETED_PDP_FILE.rootId.toString(),
+          root_cid: DELETED_PDP_FILE.cid,
+        },
+      ])
     })
   })
 

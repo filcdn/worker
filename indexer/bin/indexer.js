@@ -107,7 +107,11 @@ export default {
         : await Promise.all(
             rootIds.map(async (rootId) => {
               try {
-                return await pdpVerifier.getRootCid(setId, BigInt(rootId))
+                return await pdpVerifier.getRootCid(
+                  setId,
+                  BigInt(rootId),
+                  payload.block_number,
+                )
               } catch (/** @type {any} */ err) {
                 console.error(
                   `RootsAdded: Cannot resolve root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
@@ -121,32 +125,7 @@ export default {
         `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
       )
 
-      const addedRoots = []
-      const addedCids = []
-      const removedRoots = []
-
-      for (let i = 0; i < rootIds.length; i++) {
-        const rootId = rootIds[i]
-        const cid = rootCids[i]
-        if (!cid) {
-          removedRoots.push(rootId)
-        } else {
-          addedRoots.push(rootId)
-          addedCids.push(cid)
-        }
-      }
-
-      if (
-        addedRoots.length &&
-        addedCids.length &&
-        addedCids.length === addedRoots.length
-      ) {
-        await insertProofSetRoots(env, payload.set_id, rootIds, rootCids)
-      }
-
-      if (removedRoots.length) {
-        await removeProofSetRoots(env, payload.set_id, removedRoots)
-      }
+      await insertProofSetRoots(env, payload.set_id, rootIds, rootCids)
 
       return new Response('OK', { status: 200 })
     } else if (pathname === '/roots-removed') {
