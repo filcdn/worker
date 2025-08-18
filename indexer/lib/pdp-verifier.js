@@ -27,7 +27,6 @@ export function createPdpVerifierClient({
    * @param {BigInt} setId
    * @param {BigInt} rootId
    * @param {number | 'latest' | 'earliest' | 'pending'} [blockNumber='latest']
-   *   Default is `'latest'`
    * @returns {Promise<string | null>} The CID in string format (`baga...`)
    */
   const getRootCid = async (setId, rootId, blockNumber = 'latest') => {
