@@ -12,8 +12,7 @@ export const pdpVerifierAbi = [
  * @param {string} params.rpcUrl
  * @param {string} [params.glifToken]
  * @param {string} params.pdpVerifierAddress
- * @param {Function} [params.fetch=globalThis.fetch] Default is
- *   `globalThis.fetch`
+ * @param {Function} [params.fetch=globalThis.fetch]
  */
 export function createPdpVerifierClient({
   rpcUrl,
