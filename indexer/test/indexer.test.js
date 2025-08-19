@@ -218,7 +218,11 @@ describe('retriever.indexer', () => {
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
-          body: JSON.stringify({ set_id: sid, root_ids: '0' }),
+          body: JSON.stringify({
+            set_id: sid,
+            root_ids: '0',
+            root_cids: randomId(),
+          }),
         })
         const res = await workerImpl.fetch(req, env, CTX, {
           createPdpVerifierClient: createMockPdpVerifierClient,
@@ -274,7 +278,7 @@ describe('retriever.indexer', () => {
       ])
     })
 
-    it('ignores when on-chain state does not have a live root', async () => {
+    it('ignores root when on-chain state does not have a live root', async () => {
       const req = new Request('https://host/roots-added', {
         method: 'POST',
         headers: {
@@ -303,6 +307,50 @@ describe('retriever.indexer', () => {
           root_cid: DELETED_PDP_FILE.cid,
         },
       ])
+    })
+  })
+
+  describe('POST /roots-removed', () => {
+    const CTX = {}
+    it('returns 400 if set_id or root_ids is missing', async () => {
+      const req = new Request('https://host/roots-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env, {})
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+
+    it('deletes roots for a proof set', async () => {
+      const setId = randomId()
+      const rootIds = [randomId(), randomId()]
+      const rootCids = [randomId(), randomId()]
+      const req = new Request('https://host/roots-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          set_id: setId,
+          root_ids: rootIds.join(','),
+        }),
+      })
+
+      await withRoots(env, setId, rootIds, rootCids)
+      const res = await workerImpl.fetch(req, env, CTX, {})
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: roots } = await env.DB.prepare(
+        'SELECT * FROM indexer_roots WHERE set_id = ?',
+      )
+        .bind(setId)
+        .all()
+      expect(roots.length).toBe(0)
     })
   })
 
@@ -857,4 +905,29 @@ async function testInvalidValidEthereumAddress(route, providerUrl) {
     )
     expect(await res.text()).toBe('Bad Request')
   }
+}
+
+async function withRoots(env, setId, rootIds, rootCids) {
+  await env.DB.prepare(
+    `
+    INSERT INTO indexer_roots (
+      root_id,
+      set_id,
+      root_cid
+    )
+    VALUES ${new Array(rootIds.length)
+      .fill(null)
+      .map(() => '(?, ?, ?)')
+      .join(', ')}
+    ON CONFLICT DO NOTHING
+  `,
+  )
+    .bind(
+      ...rootIds.flatMap((rootId, i) => [
+        String(rootId),
+        String(setId),
+        rootCids[i],
+      ]),
+    )
+    .run()
 }
