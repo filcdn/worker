@@ -56,15 +56,17 @@ describe('fetchAndStoreBadBits', () => {
   })
 
   it('retries on 5xx server errors and eventually succeeds', async () => {
+    vi.useRealTimers()
     const text = testData
 
     let fetchCallCount = 0
     await fetchAndStoreBadBits(env, {
       fetch: () => {
+        console.log(`Fetch attempt #${fetchCallCount + 1}`)
         fetchCallCount++
         // Return 500 error for first 2 attempts, then succeed
         if (fetchCallCount <= 2) {
-          return new Response('Internal Server Error', { status: 500 })
+          return new Response('Test Server Error', { status: 500 })
         }
         return new Response(text, {
           headers: { 'Content-Type': 'text/plain' },
