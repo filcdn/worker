@@ -1,3 +1,4 @@
+import assertOkResponse from 'assert-ok-response'
 import pRetry from 'p-retry'
 import { getLastEtag, updateBadBitsDatabase } from './store.js'
 
@@ -40,11 +41,7 @@ export async function fetchAndStoreBadBits(
     return
   }
 
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch bad bits: ${response.status} ${response.statusText}`,
-    )
-  }
+  await assertOkResponse(response, 'Failed to fetch bad bits')
 
   const text = await response.text()
   const etag = response.headers.get('etag')
