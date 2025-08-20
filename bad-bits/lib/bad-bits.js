@@ -1,3 +1,4 @@
+import pRetry from 'p-retry'
 import { getLastEtag, updateBadBitsDatabase } from './store.js'
 
 export const BAD_BITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
@@ -20,7 +21,17 @@ export async function fetchAndStoreBadBits(
     req.headers.set('if-none-match', lastEtag)
   }
 
-  const response = await fetch(req)
+  const response = await pRetry(() => fetch(req), {
+    retries: 5,
+    shouldRetry: (error) => {
+      return error.statusCode && error.statusCode >= 500
+    },
+    onFailedAttempt: (error) => {
+      if (!error.statusCode || error.statusCode < 500) return
+      console.error(error)
+      console.error('Bad-bits query failed, retrying...')
+    },
+  })
 
   if (response.status === 304) {
     console.log(
