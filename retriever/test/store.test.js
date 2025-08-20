@@ -2,372 +2,347 @@ import { describe, it, beforeAll } from 'vitest'
 import assert from 'node:assert/strict'
 import {
   logRetrievalResult,
-  getOwnerAndValidateClient,
-  updateProofSetSats,
+  getStorageProviderAndValidateClient,
+  updateDataSetSats,
 } from '../lib/store.js'
 import { env } from 'cloudflare:test'
 import {
-  withProofSetRoots,
+  withDataSetPieces,
   withApprovedProvider,
 } from './test-data-builders.js'
 
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
-    const OWNER_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
+    const STORAGE_PROVIDER = '0x1234567890abcdef1234567890abcdef12345678'
     const CLIENT_ADDRESS = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await logRetrievalResult(env, {
-      ownerAddress: OWNER_ADDRESS,
+      storageProvider: STORAGE_PROVIDER,
       clientAddress: CLIENT_ADDRESS,
       cacheMiss: false,
       egressBytes: 1234,
       responseStatus: 200,
       timestamp: new Date().toISOString(),
       requestCountryCode: 'US',
-      proofSetId: '1',
+      dataSetId: '1',
     })
 
     const readOutput = await env.DB.prepare(
       `SELECT 
-        owner_address,
+        storage_provider,
         client_address,
         response_status,
         egress_bytes,
         cache_miss,
         request_country_code,
-        proof_set_id 
+        data_set_id 
       FROM retrieval_logs 
-      WHERE owner_address = '${OWNER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`,
+      WHERE storage_provider = '${STORAGE_PROVIDER}' AND client_address = '${CLIENT_ADDRESS}'`,
     ).all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
       {
-        owner_address: OWNER_ADDRESS,
+        storage_provider: STORAGE_PROVIDER,
         client_address: CLIENT_ADDRESS,
         response_status: 200,
         egress_bytes: 1234,
         cache_miss: 0,
         request_country_code: 'US',
-        proof_set_id: '1',
+        data_set_id: '1',
       },
     ])
   })
 })
 
-describe('getOwnerAndValidateClient', () => {
-  const APPROVED_OWNER_ADDRESS = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
+describe('getStorageProviderAndValidateClient', () => {
+  const APPROVED_STORAGE_PROVIDER = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   beforeAll(async () => {
     await withApprovedProvider(env, {
-      ownerAddress: APPROVED_OWNER_ADDRESS,
-      pieceRetrievalUrl: 'https://approved-provider.xyz',
+      storageProvider: APPROVED_STORAGE_PROVIDER,
+      serviceUrl: 'https://approved-provider.xyz',
     })
   })
 
-  it('returns owner for valid rootCid', async () => {
-    const setId = 'test-set-1'
-    const rootCid = 'test-cid-1'
-    const railId = 'test-rail-1'
+  it('returns storage provider for valid pieceCid', async () => {
+    const dataSetId = 'test-set-1'
+    const pieceCid = 'test-cid-1'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await env.DB.prepare(
-      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(setId, APPROVED_OWNER_ADDRESS)
+      .bind(
+        dataSetId,
+        APPROVED_STORAGE_PROVIDER,
+        clientAddress,
+        APPROVED_STORAGE_PROVIDER,
+        true,
+      )
       .run()
     await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
     )
-      .bind('root-1', setId, rootCid)
-      .run()
-    await env.DB.prepare(
-      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-    )
-      .bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true)
+      .bind('piece-1', dataSetId, pieceCid)
       .run()
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.strictEqual(result.ownerAddress, APPROVED_OWNER_ADDRESS)
+    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
+    assert.strictEqual(result.storageProvider, APPROVED_STORAGE_PROVIDER)
   })
 
-  it('throws error if rootCid not found', async () => {
+  it('throws error if pieceCid not found', async () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     await assert.rejects(
       async () =>
-        await getOwnerAndValidateClient(env, clientAddress, 'nonexistent-cid'),
+        await getStorageProviderAndValidateClient(env, clientAddress, 'nonexistent-cid'),
       /does not exist/,
     )
   })
 
-  it('throws error if set_id exists but has no associated owner', async () => {
+  it('throws error if data_set_id exists but has no associated owner', async () => {
     const cid = 'cid-no-owner'
-    const setId = 'set-no-owner'
+    const dataSetId = 'data-set-no-owner'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await env.DB.prepare(
       `
-      INSERT INTO indexer_roots (root_id, set_id, root_cid)
+      INSERT INTO pieces (id, data_set_id, cid)
       VALUES (?, ?, ?)
     `,
     )
-      .bind('root-1', setId, cid)
+      .bind('piece-1', dataSetId, cid)
       .run()
 
     await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      async () => await getStorageProviderAndValidateClient(env, clientAddress, cid),
       /no associated owner/,
     )
   })
 
   it('returns error if no payment rail', async () => {
     const cid = 'cid-unapproved'
-    const setId = 'set-unapproved'
-    const railId = 'rail-id'
-    const owner = APPROVED_OWNER_ADDRESS
+    const dataSetId = 'data-set-unapproved'
+    const storageProvider = APPROVED_STORAGE_PROVIDER
     const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-      ).bind(setId, owner),
-      env.DB.prepare(
-        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-      ).bind('root-2', setId, cid),
-      env.DB.prepare(
-        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
-        setId,
-        railId,
+        dataSetId,
+        storageProvider,
         clientAddress.replace('a', 'b'),
-        APPROVED_OWNER_ADDRESS,
+        APPROVED_STORAGE_PROVIDER,
         true,
       ),
+      env.DB.prepare(
+        'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
+      ).bind('piece-2', dataSetId, cid),
     ])
 
     await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
-      /There is no Filecoin Services deal for client/,
+      async () => await getStorageProviderAndValidateClient(env, clientAddress, cid),
+      /There is no Filecoin Warm Storage Service deal for client/,
     )
   })
 
   it('returns error if withCDN=false', async () => {
     const cid = 'cid-unapproved'
-    const setId = 'set-unapproved'
-    const railId = 'rail-id'
-    const owner = APPROVED_OWNER_ADDRESS
+    const dataSetId = 'data-set-unapproved'
+    const owner = APPROVED_STORAGE_PROVIDER
     const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-      ).bind(setId, owner),
+        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(
+        dataSetId,
+        owner,
+        clientAddress,
+        APPROVED_STORAGE_PROVIDER,
+        false,
+      ),
       env.DB.prepare(
-        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-      ).bind('root-2', setId, cid),
-      env.DB.prepare(
-        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-      ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, false),
+        'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
+      ).bind('piece-2', dataSetId, cid),
     ])
 
     await assert.rejects(
-      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      async () => await getStorageProviderAndValidateClient(env, clientAddress, cid),
       /withCDN=false/,
     )
   })
 
-  it('returns ownerAddress for approved owner', async () => {
+  it('returns storageProvider for approved owner', async () => {
     const cid = 'cid-approved'
-    const setId = 'set-approved'
-    const railId = 'rail'
+    const dataSetId = 'data-set-approved'
     const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-      ).bind(setId, APPROVED_OWNER_ADDRESS),
+        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(dataSetId, APPROVED_STORAGE_PROVIDER, clientAddress, APPROVED_STORAGE_PROVIDER, true),
       env.DB.prepare(
-        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-      ).bind('root-3', setId, cid),
-      env.DB.prepare(
-        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-      ).bind(setId, railId, clientAddress, APPROVED_OWNER_ADDRESS, true),
+        'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
+      ).bind('piece-3', dataSetId, cid),
     ])
 
-    const result = await getOwnerAndValidateClient(env, clientAddress, cid)
+    const result = await getStorageProviderAndValidateClient(env, clientAddress, cid)
 
-    assert.strictEqual(result.ownerAddress, APPROVED_OWNER_ADDRESS)
+    assert.strictEqual(result.storageProvider, APPROVED_STORAGE_PROVIDER)
   })
-  it('returns owner for valid rootCid with mixed-case owner (case insensitive)', async () => {
-    const setId = 'test-set-1'
-    const rootCid = 'test-cid-1'
-    const railId = 'test-rail-1'
-    const mixedCaseOwner = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
-    const expectedOwner = mixedCaseOwner.toLowerCase()
+  it('returns owner for valid pieceCid with mixed-case owner (case insensitive)', async () => {
+    const dataSetId = 'data-set-1'
+    const pieceCid = 'piece-cid-1'
+    const mixedCaseStorageProvider = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
+    const expectedStorageProvider = mixedCaseStorageProvider.toLowerCase()
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
-    await withApprovedProvider(env, { ownerAddress: mixedCaseOwner })
+    await withApprovedProvider(env, { storageProvider: mixedCaseStorageProvider })
 
     // Insert a proof set with a mixed-case owner
     await env.DB.prepare(
-      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(setId, mixedCaseOwner)
+      .bind(dataSetId, mixedCaseStorageProvider, clientAddress, mixedCaseStorageProvider, true)
       .run()
 
     // Insert a root CID linked to the proof set
     await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
     )
-      .bind('root-1', setId, rootCid)
-      .run()
-    await env.DB.prepare(
-      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-    )
-      .bind(setId, railId, clientAddress, mixedCaseOwner, true)
+      .bind('piece-1', dataSetId, pieceCid)
       .run()
 
-    // Lookup by rootCid and assert returned owner is normalized to lowercase
-    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.strictEqual(result.ownerAddress, expectedOwner)
+    // Lookup by pieceCid and assert returned owner is normalized to lowercase
+    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
+    assert.strictEqual(result.storageProvider, expectedStorageProvider)
   })
-  it('returns the owner first in the ordering when multiple owners share the same rootCid', async () => {
-    const setId1 = 'set-a'
-    const setId2 = 'set-b'
-    const rootCid = 'shared-root-cid'
+  it('returns the storage provider first in the ordering when multiple storage providers share the same pieceCid', async () => {
+    const dataSetId1 = 'data-set-a'
+    const dataSetId2 = 'data-set-b'
+    const pieceCid = 'shared-piece-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-    const owner1 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e7'
-    const owner2 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
+    const storageProvider1 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e7'
+    const storageProvider2 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
 
-    withApprovedProvider(env, { ownerAddress: owner1 })
-    withApprovedProvider(env, { ownerAddress: owner2 })
+    withApprovedProvider(env, { storageProvider: storageProvider1 })
+    withApprovedProvider(env, { storageProvider: storageProvider2 })
 
-    // Insert both owners into separate sets with the same rootCid
+    // Insert both owners into separate sets with the same pieceCid
     await env.DB.prepare(
-      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(setId1, owner1)
+      .bind(dataSetId1, storageProvider1,  clientAddress, storageProvider1, true)
       .run()
 
     await env.DB.prepare(
-      'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(setId2, owner2)
+      .bind(dataSetId2, storageProvider2, clientAddress, storageProvider2, true)
       .run()
 
-    // Insert same rootCid for both sets
+    // Insert same pieceCid for both sets
     await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
     )
-      .bind('root-a', setId1, rootCid)
+      .bind('piece-a', dataSetId1, pieceCid)
       .run()
 
     await env.DB.prepare(
-      'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
     )
-      .bind('root-b', setId2, rootCid)
-      .run()
-    // Insert same payment rail for both sets
-    await env.DB.prepare(
-      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-    )
-      .bind(setId2, 'rail-b', clientAddress, owner1, true)
-      .run()
-    await env.DB.prepare(
-      'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-    )
-      .bind(setId1, 'rail-a', clientAddress, owner2, true)
+      .bind('piece-b', dataSetId2, pieceCid)
       .run()
 
-    // Should return only the owner1 which is the first in the ordering
-    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
-    assert.strictEqual(result.ownerAddress, owner1.toLowerCase())
+    // Should return only the storageProvider1 which is the first in the ordering
+    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
+    assert.strictEqual(result.storageProvider, storageProvider1.toLowerCase())
   })
 
-  it('ignores owners that are not approved by Pandora', async () => {
-    const proofSetId1 = 'set-a'
-    const proofSetId2 = 'set-b'
-    const rootCid = 'shared-root-cid'
+  it('ignores owners that are not approved by Filecoin Warm Storage Service', async () => {
+    const dataSetId1 = 'data-set-a'
+    const dataSetId2 = 'data-set-b'
+    const pieceCid = 'shared-piece-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-    const owner1 = '0x1006D234246eD18b6C91de8349fF34C22C726801'
-    const owner2 = '0x2006D234246eD18b6C91de8349fF34C22C726802'
+    const storageProvider1 = '0x1006D234246eD18b6C91de8349fF34C22C726801'
+    const storageProvider2 = '0x2006D234246eD18b6C91de8349fF34C22C726802'
 
     withApprovedProvider(env, {
-      ownerAddress: owner1,
-      pieceRetrievalUrl: 'https://pdp-provider-1.xyz',
+      storageProvider: storageProvider1,
+      serviceUrl: 'https://pdp-provider-1.xyz',
     })
 
     // NOTE: the second owner is not registered as an approved provider
 
     // Important: we must insert the unapproved provider first!
-    withProofSetRoots(env, {
+    withDataSetPieces(env, {
       clientAddress,
-      owner: owner2,
-      proofSetId: proofSetId2,
-      railId: 'rail-b',
+      storageProvider: storageProvider2,
+      dataSetId: dataSetId2,
       withCDN: true,
-      rootCid,
+      pieceCid,
     })
 
-    withProofSetRoots(env, {
+    withDataSetPieces(env, {
       clientAddress,
-      owner: owner1,
-      proofSetId: proofSetId1,
-      railId: 'rail-a',
+      storageProvider: storageProvider1,
+      dataSetId: dataSetId1,
       withCDN: true,
-      rootCid,
+      pieceCid,
     })
 
-    // Should return owner1 because owner2 is not approved
-    const result = await getOwnerAndValidateClient(env, clientAddress, rootCid)
+    // Should return storageProvider1 because storageProvider2 is not approved
+    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
     assert.deepStrictEqual(result, {
-      proofSetId: proofSetId1,
-      ownerAddress: owner1.toLowerCase(),
-      pieceRetrievalUrl: 'https://pdp-provider-1.xyz',
+      dataSetId: dataSetId1,
+      storageProvider: storageProvider1.toLowerCase(),
+      serviceUrl: 'https://pdp-provider-1.xyz',
     })
   })
 })
 
-describe('updateProofSetStats', () => {
+describe('updateDataSetStats', () => {
   it('inserts and updates egress stats', async () => {
-    const PROOF_SET_ID = 'test-proof-set-1'
+    const DATA_SET_ID = 'test-data-set-1'
     const EGRESS_BYTES = 123456
 
-    await updateProofSetSats(env, {
-      proofSetId: PROOF_SET_ID,
+    await updateDataSetSats(env, {
+      dataSetId: DATA_SET_ID,
       egressBytes: EGRESS_BYTES,
     })
 
     const { results: insertResults } = await env.DB.prepare(
-      `SELECT set_id, total_egress_bytes_used 
-       FROM proof_set_stats 
-       WHERE set_id = ?`,
+      `SELECT id, total_egress_bytes_used 
+       FROM data_sets
+       WHERE id = ?`,
     )
-      .bind(PROOF_SET_ID)
+      .bind(DATA_SET_ID)
       .all()
 
     assert.deepStrictEqual(insertResults, [
       {
-        set_id: PROOF_SET_ID,
+        id: DATA_SET_ID,
         total_egress_bytes_used: EGRESS_BYTES,
       },
     ])
 
     // Update the egress stats
-    await updateProofSetSats(env, {
-      proofSetId: PROOF_SET_ID,
+    await updateDataSetSats(env, {
+      dataSetId: DATA_SET_ID,
       egressBytes: 1000,
     })
 
     const { results: updateResults } = await env.DB.prepare(
-      `SELECT set_id, total_egress_bytes_used 
-       FROM proof_set_stats 
-       WHERE set_id = ?`,
+      `SELECT id, total_egress_bytes_used 
+       FROM data_sets 
+       WHERE id = ?`,
     )
-      .bind(PROOF_SET_ID)
+      .bind(DATA_SET_ID)
       .all()
 
     assert.deepStrictEqual(updateResults, [
       {
-        set_id: PROOF_SET_ID,
+        id: DATA_SET_ID,
         total_egress_bytes_used: EGRESS_BYTES + 1000,
       },
     ])

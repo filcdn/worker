@@ -4,7 +4,7 @@ import { env } from 'cloudflare:test'
 import {
   LIVE_PDP_FILE,
   DELETED_PDP_FILE,
-  PDP_FILES_BY_SET_ID,
+  PDP_FILES_BY_DATA_SET_ID,
 } from './test-data.js'
 import { assertOkResponse } from 'assert-ok-response'
 
@@ -32,9 +32,9 @@ describe('retriever.indexer', () => {
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
   })
-  describe('POST /proof-set-created', () => {
+  describe('POST /pdp-verifier/data-set-created', () => {
     it('returns 400 if set_id or owner is missing', async () => {
-      const req = new Request('https://host/proof-set-created', {
+      const req = new Request('https://host/pdp-verifier/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -45,90 +45,90 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
-    it('inserts a proof set', async () => {
-      const setId = randomId()
-      const req = new Request('https://host/proof-set-created', {
+    it('inserts a data set', async () => {
+      const dataSetId = randomId()
+      const req = new Request('https://host/pdp-verifier/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
-        body: JSON.stringify({ set_id: setId, owner: '0xOwnerAddress' }),
+        body: JSON.stringify({ set_id: dataSetId, storage_provider: '0xAddress' }),
       })
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: proofSets } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_sets WHERE set_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(setId)
+        .bind(dataSetId)
         .all()
-      expect(proofSets.length).toBe(1)
-      expect(proofSets[0].set_id).toBe(setId)
-      expect(proofSets[0].owner).toBe('0xOwnerAddress'.toLowerCase())
+      expect(dataSets.length).toBe(1)
+      expect(dataSets[0].id).toBe(dataSetId)
+      expect(dataSets[0].storage_provider).toBe('0xAddress'.toLowerCase())
     })
-    it('does not insert duplicate proof sets', async () => {
-      const setId = randomId()
+    it('does not insert duplicate data sets', async () => {
+      const dataSetId = randomId()
       for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/proof-set-created', {
+        const req = new Request('https://host/pdp-verifier/data-set-created', {
           method: 'POST',
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
-          body: JSON.stringify({ set_id: setId, owner: '0xOwnerAddress' }),
+          body: JSON.stringify({ set_id: dataSetId, storage_provider: '0xAddress' }),
         })
         const res = await workerImpl.fetch(req, env)
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
       }
 
-      const { results: proofSets } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_sets WHERE set_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(setId)
+        .bind(dataSetId)
         .all()
-      expect(proofSets.length).toBe(1)
+      expect(dataSets.length).toBe(1)
     })
-    it('handles set_id as a number', async () => {
-      const setId = randomId()
-      const req = new Request('https://host/proof-set-created', {
+    it('handles data set id as a number', async () => {
+      const dataSetId = randomId()
+      const req = new Request('https://host/pdp-verifier/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: Number(setId),
-          owner: '0xOwnerAddress',
+          set_id: Number(dataSetId),
+          storage_provider: '0xAddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: proofSets } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_sets WHERE set_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(setId)
+        .bind(dataSetId)
         .all()
-      expect(proofSets.length).toBe(1)
-      expect(proofSets[0].set_id).toBe(setId)
-      expect(proofSets[0].owner).toBe('0xOwnerAddress'.toLowerCase())
+      expect(dataSets.length).toBe(1)
+      expect(dataSets[0].id).toBe(dataSetId)
+      expect(dataSets[0].storage_provider).toBe('0xAddress'.toLowerCase())
     })
   })
 
-  describe('POST /roots-added', () => {
+  describe('POST /pdp-verifier/pieces-added', () => {
     const CTX = {}
 
     /** @type {typeof import('../lib/pdp-verifier.js').createPdpVerifierClient} */
     const createMockPdpVerifierClient = () => {
       return {
-        getRootCid(setId, rootId) {
-          return PDP_FILES_BY_SET_ID[setId]?.cid || null
+        getPieceCid(dataSetId, pieceId) {
+          return PDP_FILES_BY_DATA_SET_ID[dataSetId]?.cid || null
         },
       }
     }
-    it('returns 400 if set_id or root_ids is missing', async () => {
-      const req = new Request('https://host/roots-added', {
+    it('returns 400 if set_id or piece_ids is missing', async () => {
+      const req = new Request('https://host/pdp-verifier/pieces-added', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -142,19 +142,19 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
 
-    it('inserts roots for a proof set', async () => {
-      const setId = randomId()
-      const rootIds = [randomId(), randomId()]
-      const rootCids = [randomId(), randomId()]
-      const req = new Request('https://host/roots-added', {
+    it('inserts pieces for a data set', async () => {
+      const dataSetId = randomId()
+      const pieceIds = [randomId(), randomId()]
+      const pieceCids = [randomId(), randomId()]
+      const req = new Request('https://host/pdp-verifier/pieces-added', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: setId,
-          root_ids: rootIds.join(','),
-          root_cids: rootCids.join(','),
+          set_id: dataSetId,
+          piece_ids: pieceIds.join(','),
+          piece_cids: pieceCids.join(','),
         }),
       })
       const res = await workerImpl.fetch(req, env, CTX, {
@@ -163,34 +163,34 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: roots } = await env.DB.prepare(
-        'SELECT * FROM indexer_roots WHERE set_id = ?',
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT * FROM pieces WHERE data_set_id = ?',
       )
-        .bind(setId)
+        .bind(dataSetId)
         .all()
-      expect(roots.length).toBe(2)
-      expect(roots[0].root_id).toBe(rootIds[0])
-      expect(roots[0].set_id).toBe(setId)
-      expect(roots[0].root_cid).toBe(rootCids[0])
-      expect(roots[1].root_id).toBe(rootIds[1])
-      expect(roots[1].set_id).toBe(setId)
-      expect(roots[1].root_cid).toBe(rootCids[1])
+      expect(pieces.length).toBe(2)
+      expect(pieces[0].piece_id).toBe(pieceIds[0])
+      expect(pieces[0].data_set_id).toBe(dataSetId)
+      expect(pieces[0].piece_cid).toBe(pieceCids[0])
+      expect(pieces[1].piece_id).toBe(pieceIds[1])
+      expect(pieces[1].data_set_id).toBe(dataSetId)
+      expect(pieces[1].piece_cid).toBe(pieceCids[1])
     })
 
-    it('does not insert duplicate roots for the same proof set', async () => {
-      const setId = randomId()
-      const rootIds = [randomId(), randomId()]
-      const rootCids = [randomId(), randomId()]
+    it('does not insert duplicate pieces for the same data set', async () => {
+      const dataSetId = randomId()
+      const pieceIds = [randomId(), randomId()]
+      const pieceCids = [randomId(), randomId()]
       for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/roots-added', {
+        const req = new Request('https://host/pdp-verifier/pieces-added', {
           method: 'POST',
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
           body: JSON.stringify({
-            set_id: setId,
-            root_ids: rootIds.join(','),
-            root_cids: rootCids.join(','),
+            set_id: dataSetId,
+            piece_ids: pieceIds.join(','),
+            piece_cids: pieceCids.join(','),
           }),
         })
         const res = await workerImpl.fetch(req, env, CTX, {
@@ -200,28 +200,28 @@ describe('retriever.indexer', () => {
         expect(await res.text()).toBe('OK')
       }
 
-      const { results: roots } = await env.DB.prepare(
-        'SELECT * FROM indexer_roots WHERE set_id = ?',
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT * FROM pieces WHERE data_set_id = ?',
       )
-        .bind(setId)
+        .bind(dataSetId)
         .all()
-      expect(roots.length).toBe(2)
+      expect(pieces.length).toBe(2)
     })
 
-    it('allows multiple sets to have the same root id', async () => {
-      const setIds = [randomId(), randomId()]
-      setIds.sort()
+    it('allows multiple data sets to have the same piece id', async () => {
+      const dataSetIds = [randomId(), randomId()]
+      dataSetIds.sort()
 
-      for (const sid of setIds) {
-        const req = new Request('https://host/roots-added', {
+      for (const dataSetId of dataSetIds) {
+        const req = new Request('https://host/pdp-verifier/pieces-added', {
           method: 'POST',
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
           body: JSON.stringify({
-            set_id: sid,
-            root_ids: '0',
-            root_cids: randomId(),
+            set_id: dataSetId,
+            piece_ids: '0',
+            piece_cids: randomId(),
           }),
         })
         const res = await workerImpl.fetch(req, env, CTX, {
@@ -231,63 +231,63 @@ describe('retriever.indexer', () => {
         expect(`${res.status} ${body}`).toBe('200 OK')
       }
 
-      const { results: roots } = await env.DB.prepare(
-        'SELECT set_id, root_id FROM indexer_roots WHERE set_id = ? OR set_id = ? ORDER BY set_id',
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT data_set_id, id FROM pieces WHERE data_set_id = ? OR data_set_id = ? ORDER BY data_set_id',
       )
-        .bind(setIds[0], setIds[1])
+        .bind(dataSetIds[0], dataSetIds[1])
         .all()
 
-      expect(roots).toEqual([
+      expect(pieces).toEqual([
         {
-          set_id: setIds[0],
-          root_id: '0',
+          data_set_id: dataSetIds[0],
+          id: '0',
         },
         {
-          set_id: setIds[1],
-          root_id: '0',
+          data_set_id: dataSetIds[1],
+          id: '0',
         },
       ])
     })
 
-    it('adds a real live root and fetches the root CID from on-chain state', async () => {
-      const req = new Request('https://host/roots-added', {
+    it('adds a real live piece and fetches the piece CID from on-chain state', async () => {
+      const req = new Request('https://host/pdp-verifier/pieces-added', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: LIVE_PDP_FILE.setId.toString(),
-          root_ids: LIVE_PDP_FILE.rootId.toString(),
-          root_cids: undefined,
+          set_id: LIVE_PDP_FILE.dataSetId.toString(),
+          piece_ids: LIVE_PDP_FILE.pieceId.toString(),
+          piece_cids: undefined,
         }),
       })
       const res = await workerImpl.fetch(req, env)
       await assertOkResponse(res)
 
-      const { results: roots } = await env.DB.prepare(
-        'SELECT root_id, root_cid FROM indexer_roots WHERE set_id = ?',
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT id, cid FROM pieces WHERE data_set_id = ?',
       )
-        .bind(LIVE_PDP_FILE.setId.toString())
+        .bind(LIVE_PDP_FILE.dataSetId.toString())
         .all()
 
-      expect(roots).toEqual([
+      expect(pieces).toEqual([
         {
-          root_id: LIVE_PDP_FILE.rootId.toString(),
-          root_cid: LIVE_PDP_FILE.cid,
+          id: LIVE_PDP_FILE.pieceId.toString(),
+          cid: LIVE_PDP_FILE.cid,
         },
       ])
     })
 
-    it('ignores root when on-chain state does not have a live root', async () => {
-      const req = new Request('https://host/roots-added', {
+    it('ignores piece when on-chain state does not have a live piece', async () => {
+      const req = new Request('https://host/pdp-verifier/pieces-added', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: DELETED_PDP_FILE.setId.toString(),
-          root_ids: DELETED_PDP_FILE.rootId.toString(),
-          root_cids: undefined,
+          set_id: DELETED_PDP_FILE.dataSetId.toString(),
+          piece_ids: DELETED_PDP_FILE.pieceId.toString(),
+          piece_cids: undefined,
         }),
       })
       const res = await workerImpl.fetch(req, env, {
@@ -295,25 +295,25 @@ describe('retriever.indexer', () => {
       })
       await assertOkResponse(res)
 
-      const { results: roots } = await env.DB.prepare(
-        'SELECT root_id, root_cid FROM indexer_roots WHERE set_id = ?',
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT id, cid FROM pieces WHERE data_set_id = ?',
       )
-        .bind(DELETED_PDP_FILE.setId.toString())
+        .bind(DELETED_PDP_FILE.dataSetId.toString())
         .all()
 
-      expect(roots).toEqual([
+      expect(pieces).toEqual([
         {
-          root_id: DELETED_PDP_FILE.rootId.toString(),
-          root_cid: DELETED_PDP_FILE.cid,
+          id: DELETED_PDP_FILE.pieceId.toString(),
+          cid: DELETED_PDP_FILE.cid,
         },
       ])
     })
   })
 
-  describe('POST /roots-removed', () => {
+  describe('POST /pdp-verifier/pieces-removed', () => {
     const CTX = {}
-    it('returns 400 if set_id or root_ids is missing', async () => {
-      const req = new Request('https://host/roots-removed', {
+    it('returns 400 if set_id or piece_ids is missing', async () => {
+      const req = new Request('https://host/pdp-verifier/pieces-removed', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -325,36 +325,36 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
 
-    it('deletes roots for a proof set', async () => {
-      const setId = randomId()
-      const rootIds = [randomId(), randomId()]
-      const rootCids = [randomId(), randomId()]
-      const req = new Request('https://host/roots-removed', {
+    it('deletes pieces for a data set', async () => {
+      const dataSetId = randomId()
+      const pieceIds = [randomId(), randomId()]
+      const pieceCids = [randomId(), randomId()]
+      const req = new Request('https://host/pdp-verifier/pieces-removed', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: setId,
-          root_ids: rootIds.join(','),
+          set_id: dataSetId,
+          piece_ids: pieceIds.join(','),
         }),
       })
 
-      await withRoots(env, setId, rootIds, rootCids)
+      await withPieces(env, dataSetId, pieceIds, pieceCids)
       const res = await workerImpl.fetch(req, env, CTX, {})
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: roots } = await env.DB.prepare(
-        'SELECT * FROM indexer_roots WHERE set_id = ?',
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT * FROM pieces WHERE data_set_id = ?',
       )
-        .bind(setId)
+        .bind(dataSetId)
         .all()
-      expect(roots.length).toBe(0)
+      expect(pieces.length).toBe(0)
     })
   })
 
-  describe('POST /proof-set-rail-created', () => {
+  describe('POST /filecoin-warm-storage-service/data-set-created', () => {
     const ctx = {}
     env.RETRY_QUEUE = {
       send: vi.fn(),
@@ -368,7 +368,7 @@ describe('retriever.indexer', () => {
     })
 
     it('returns 400 if property is missing', async () => {
-      const req = new Request('https://host/proof-set-rail-created', {
+      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -381,17 +381,15 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
-    it('inserts a proof set rail', async () => {
-      const proofSetId = randomId()
-      const railId = randomId()
-      const req = new Request('https://host/proof-set-rail-created', {
+    it('inserts a data set', async () => {
+      const dataSetId = randomId()
+      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          proof_set_id: proofSetId,
-          rail_id: railId,
+          data_set_id: dataSetId,
           payer: '0xPayerAddress',
           payee: '0xPayeeAddress',
           with_cdn: true,
@@ -405,10 +403,10 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: proofSetRails } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(proofSetId)
+        .bind(dataSetId)
         .all()
 
       const { results: walletDetails } = await env.DB.prepare(
@@ -417,28 +415,25 @@ describe('retriever.indexer', () => {
         .bind('0xPayerAddress')
         .all()
 
-      expect(proofSetRails.length).toBe(1)
-      expect(proofSetRails[0].proof_set_id).toBe(proofSetId)
-      expect(proofSetRails[0].rail_id).toBe(railId)
-      expect(proofSetRails[0].payer).toBe('0xPayerAddress')
-      expect(proofSetRails[0].payee).toBe('0xPayeeAddress')
-      expect(proofSetRails[0].with_cdn).toBe(1)
+      expect(dataSets.length).toBe(1)
+      expect(dataSets[0].data_set_id).toBe(dataSetId)
+      expect(dataSets[0].payer).toBe('0xPayerAddress')
+      expect(dataSets[0].payee).toBe('0xPayeeAddress')
+      expect(dataSets[0].with_cdn).toBe(1)
 
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].is_sanctioned).toBe(0)
     })
-    it('does not insert duplicate proof set rails', async () => {
-      const proofSetId = randomId()
-      const railId = randomId()
+    it('does not insert duplicate data sets', async () => {
+      const dataSetId = randomId()
       for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/proof-set-rail-created', {
+        const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
           method: 'POST',
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
           body: JSON.stringify({
-            proof_set_id: proofSetId,
-            rail_id: railId,
+            data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
             with_cdn: true,
@@ -452,54 +447,23 @@ describe('retriever.indexer', () => {
         expect(await res.text()).toBe('OK')
       }
 
-      const { results: proofSetRails } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ? AND rail_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(proofSetId, railId)
+        .bind(dataSetId)
         .all()
-      expect(proofSetRails.length).toBe(1)
-    })
-    it('defaults to with_cdn = null if not provided', async () => {
-      const proofSetId = randomId()
-      const railId = randomId()
-      const req = new Request('https://host/proof-set-rail-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          proof_set_id: proofSetId,
-          rail_id: railId,
-          payer: '0xPayerAddress',
-          payee: '0xPayeeAddress',
-        }),
-      })
-      const res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: proofSetRails } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ? AND rail_id = ?',
-      )
-        .bind(proofSetId, railId)
-        .all()
-      expect(proofSetRails.length).toBe(1)
-      expect(proofSetRails[0].with_cdn).toBeNull()
+      expect(dataSets.length).toBe(1)
     })
 
     it('stores numeric ID values as integers', async () => {
-      const proofSetId = Number(randomId())
-      const railId = Number(randomId())
-      const req = new Request('https://host/proof-set-rail-created', {
+      const dataSetId = Number(randomId())
+      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          proof_set_id: proofSetId,
-          rail_id: railId,
+          data_set_id: dataSetId,
           payer: '0xPayerAddress',
           payee: '0xPayeeAddress',
           with_cdn: true,
@@ -512,29 +476,26 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: proofSetRails } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ? AND rail_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(String(proofSetId), String(railId))
+        .bind(String(dataSetId))
         .all()
-      expect(proofSetRails.length).toBe(1)
-      expect(proofSetRails[0]?.proof_set_id).toMatch(/^\d+$/)
-      expect(proofSetRails[0]?.rail_id).toMatch(/^\d+$/)
+      expect(dataSets.length).toBe(1)
+      expect(dataSets[0]?.id).toMatch(/^\d+$/)
     })
 
     it('checks if payer address is sanctioned when with_cdn = true', async () => {
-      const proofSetId = randomId()
-      const railId = randomId()
+      const dataSetId = randomId()
 
       // send first request with with_cdn = true
-      let req = new Request('https://host/proof-set-rail-created', {
+      let req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          proof_set_id: proofSetId,
-          rail_id: railId,
+          data_set_id: dataSetId,
           payer: '0xPayerAddress',
           payee: '0xPayeeAddress',
           with_cdn: true,
@@ -549,14 +510,13 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('OK')
 
       // send second request with with_cdn = false
-      req = new Request('https://host/proof-set-rail-created', {
+      req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          proof_set_id: randomId(),
-          rail_id: randomId(),
+          data_set_id: randomId(),
           payer: '0xPayerAddress',
           payee: '0xPayeeAddress',
           with_cdn: false,
@@ -577,10 +537,10 @@ describe('retriever.indexer', () => {
         },
       )
 
-      const { results: proofSetRails } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(proofSetId)
+        .bind(dataSetId)
         .all()
 
       const { results: walletDetails } = await env.DB.prepare(
@@ -589,8 +549,8 @@ describe('retriever.indexer', () => {
         .bind('0xPayerAddress')
         .all()
 
-      expect(proofSetRails.length).toBe(1)
-      expect(proofSetRails[0].payer).toBe('0xPayerAddress')
+      expect(dataSets.length).toBe(1)
+      expect(dataSets[0].payer).toBe('0xPayerAddress')
 
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].address).toBe('0xPayerAddress')
@@ -598,16 +558,14 @@ describe('retriever.indexer', () => {
     })
 
     it('sends message to queue if sanction check fails', async () => {
-      const proofSetId = randomId()
-      const railId = randomId()
+      const dataSetId = randomId()
       const payload = {
-        proof_set_id: proofSetId,
-        rail_id: railId,
+        data_set_id: dataSetId,
         payer: '0xPayerAddress',
         payee: '0xPayeeAddress',
         with_cdn: true,
       }
-      const req = new Request('https://host/proof-set-rail-created', {
+      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -624,16 +582,16 @@ describe('retriever.indexer', () => {
 
       expect(env.RETRY_QUEUE.send).toHaveBeenCalledTimes(1)
       expect(env.RETRY_QUEUE.send).toHaveBeenCalledWith({
-        type: 'proof-set-rail-created',
+        type: 'filecoin-warm-storage-service-data-set-created',
         payload,
       })
 
-      const { results: proofSetRails } = await env.DB.prepare(
-        'SELECT * FROM indexer_proof_set_rails WHERE proof_set_id = ?',
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(proofSetId)
+        .bind(dataSetId)
         .all()
-      expect(proofSetRails.length).toBe(0)
+      expect(dataSets.length).toBe(0)
     })
   })
   describe('POST /provider-registered', () => {
@@ -907,15 +865,15 @@ async function testInvalidValidEthereumAddress(route, providerUrl) {
   }
 }
 
-async function withRoots(env, setId, rootIds, rootCids) {
+async function withPieces(env, dataSetId, pieceIds, pieceCids) {
   await env.DB.prepare(
     `
-    INSERT INTO indexer_roots (
-      root_id,
-      set_id,
-      root_cid
+    INSERT INTO pieces (
+      id,
+      data_set_id,
+      cid
     )
-    VALUES ${new Array(rootIds.length)
+    VALUES ${new Array(pieceIds.length)
       .fill(null)
       .map(() => '(?, ?, ?)')
       .join(', ')}
@@ -923,10 +881,10 @@ async function withRoots(env, setId, rootIds, rootCids) {
   `,
   )
     .bind(
-      ...rootIds.flatMap((rootId, i) => [
-        String(rootId),
-        String(setId),
-        rootCids[i],
+      ...pieceIds.flatMap((pieceId, i) => [
+        String(pieceId),
+        String(dataSetId),
+        pieceCids[i],
       ]),
     )
     .run()

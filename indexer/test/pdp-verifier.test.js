@@ -12,14 +12,14 @@ describe('PDPVerifier client', () => {
       pdpVerifierAddress: '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC',
     })
 
-    const cid = await pdpVerifier.getRootCid(
-      LIVE_PDP_FILE.setId,
-      LIVE_PDP_FILE.rootId,
+    const cid = await pdpVerifier.getPieceCid(
+      LIVE_PDP_FILE.dataSetId,
+      LIVE_PDP_FILE.id,
     )
     expect(cid).toBe(LIVE_PDP_FILE.cid)
   })
 
-  it('handles removed root', async () => {
+  it('handles removed piece', async () => {
     const pdpVerifier = createPdpVerifierClient({
       rpcUrl: env.RPC_URL,
       glifToken: env.GLIF_TOKEN,
@@ -27,9 +27,9 @@ describe('PDPVerifier client', () => {
       pdpVerifierAddress: '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC',
     })
 
-    const cid = await pdpVerifier.getRootCid(
-      DELETED_PDP_FILE.setId,
-      DELETED_PDP_FILE.rootId,
+    const cid = await pdpVerifier.getPieceCid(
+      DELETED_PDP_FILE.dataSetId,
+      DELETED_PDP_FILE.id,
     )
     expect(cid).toBe(null)
   })
@@ -69,9 +69,9 @@ describe('PDPVerifier client', () => {
 
     for (let i = 0; i < tests.length; i++) {
       it(`encode block number ${tests[i].blockNumber}`, async () => {
-        await pdpVerifier.getRootCid(
-          DELETED_PDP_FILE.setId,
-          DELETED_PDP_FILE.rootId,
+        await pdpVerifier.getPieceCid(
+          DELETED_PDP_FILE.dataSetId,
+          DELETED_PDP_FILE.id,
           tests[i].blockNumber,
         )
 

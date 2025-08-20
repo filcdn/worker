@@ -4,8 +4,8 @@ import {
 } from '../lib/provider-events-handler.js'
 import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
-import { handleProofSetRailCreated } from '../lib/proof-set-handler.js'
-import { removeProofSetRoots, insertProofSetRoots } from '../lib/store.js'
+import { handleFilecoinWarmStorageServiceDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
+import { removeDataSetPieces, insertDataSetPieces } from '../lib/pdp-verifier-handlers.js'
 
 export default {
   /**
@@ -51,50 +51,51 @@ export default {
     }
     const payload = await request.json()
     const pathname = new URL(request.url).pathname
-    if (pathname === '/proof-set-created') {
+    if (pathname === '/pdp-verifier/data-set-created') {
       if (
         !(
           typeof payload.set_id === 'number' ||
           typeof payload.set_id === 'string'
         ) ||
-        !payload.owner
+        !payload.storage_provider
       ) {
-        console.error('ProofSetCreated: Invalid payload', payload)
+        console.error('PDPVerifier.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
       console.log(
-        `New proof set (set_id=${payload.set_id}, owner=${payload.owner})`,
+        `New PDPVerifier data set (data_set_id=${payload.set_id}, storage_provider=${payload.storage_provider})`,
       )
       await env.DB.prepare(
         `
-          INSERT INTO indexer_proof_sets (
-            set_id,
-            owner
+          INSERT INTO data_sets (
+            id,
+            storage_provider
           )
           VALUES (?, ?)
-          ON CONFLICT DO NOTHING
+          ON CONFLICT DO UPDATE SET
+            storage_provider=excluded.storage_provider
         `,
       )
-        .bind(String(payload.set_id), payload.owner?.toLowerCase())
+        .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
         .run()
       return new Response('OK', { status: 200 })
-    } else if (pathname === '/roots-added') {
+    } else if (pathname === '/pdp-verifier/pieces-added') {
       if (
         !(
           typeof payload.set_id === 'number' ||
           typeof payload.set_id === 'string'
         ) ||
-        !payload.root_ids ||
-        typeof payload.root_ids !== 'string'
+        !payload.piece_ids ||
+        typeof payload.piece_ids !== 'string'
       ) {
-        console.error('RootsAdded: Invalid payload', payload)
+        console.error('PDPVerifier.PiecesAdded: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       /** @type {string[]} */
-      const rootIds = payload.root_ids.split(',')
+      const pieceIds = payload.piece_ids.split(',')
 
-      const setId = BigInt(payload.set_id)
+      const dataSetId = BigInt(payload.set_id)
 
       const pdpVerifier = createPdpVerifierClient({
         rpcUrl: RPC_URL,
@@ -102,19 +103,19 @@ export default {
         pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
       })
 
-      const rootCids = payload.root_cids
-        ? payload.root_cids.split(',')
+      const pieceCids = payload.piece_cids
+        ? payload.piece_cids.split(',')
         : await Promise.all(
-            rootIds.map(async (rootId) => {
+            pieceIds.map(async (pieceId) => {
               try {
-                return await pdpVerifier.getRootCid(
-                  setId,
-                  BigInt(rootId),
+                return await pdpVerifier.getPieceCid(
+                  dataSetId,
+                  BigInt(pieceId),
                   payload.block_number,
                 )
               } catch (/** @type {any} */ err) {
                 console.error(
-                  `RootsAdded: Cannot resolve root CID for setId=${setId} rootId=${rootId}: ${err?.stack ?? err}`,
+                  `RootsAdded: Cannot resolve root CID for dataSetId=${dataSetId} pieceId=${pieceId}: ${err?.stack ?? err}`,
                 )
                 throw err
               }
@@ -122,67 +123,63 @@ export default {
           )
 
       console.log(
-        `New roots (root_ids=[${rootIds.join(', ')}], root_cids=[${rootCids.join(', ')}], set_id=${payload.set_id})`,
+        `New pieces (piece_ids=[${pieceIds.join(', ')}], piece_cids=[${pieceCids.join(', ')}], data_set_id=${payload.set_id})`,
       )
 
-      await insertProofSetRoots(env, payload.set_id, rootIds, rootCids)
+      await insertDataSetPieces(env, payload.set_id, pieceIds, pieceCids)
 
       return new Response('OK', { status: 200 })
-    } else if (pathname === '/roots-removed') {
+    } else if (pathname === '/pdp-verifier/pieces-removed') {
       if (
         !(
           typeof payload.set_id === 'number' ||
           typeof payload.set_id === 'string'
         ) ||
-        !payload.root_ids ||
-        typeof payload.root_ids !== 'string'
+        !payload.piece_ids ||
+        typeof payload.piece_ids !== 'string'
       ) {
-        console.error('RootsRemoved: Invalid payload', payload)
+        console.error('PDPVerifier.PiecesRemoved: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       /** @type {string[]} */
-      const rootIds = payload.root_ids.split(',')
+      const pieceIds = payload.piece_ids.split(',')
 
       console.log(
-        `Removing roots (root_ids=[${rootIds.join(', ')}], set_id=${payload.set_id})`,
+        `Removing pieces (piece_ids=[${pieceIds.join(', ')}], data_set_id=${payload.set_id})`,
       )
 
-      await removeProofSetRoots(env, payload.set_id, rootIds)
+      await removeDataSetPieces(env, payload.set_id, pieceIds)
       return new Response('OK', { status: 200 })
-    } else if (pathname === '/proof-set-rail-created') {
+    } else if (pathname === '/filecoin-warm-storage-service/data-set-created') {
       if (
-        !payload.proof_set_id ||
+        !payload.data_set_id ||
         !(
-          typeof payload.proof_set_id === 'number' ||
-          typeof payload.proof_set_id === 'string'
-        ) ||
-        !payload.rail_id ||
-        !(
-          typeof payload.rail_id === 'number' ||
-          typeof payload.rail_id === 'string'
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
         ) ||
         !payload.payer ||
-        !payload.payee
+        !payload.payee ||
+        typeof payload.with_cdn !== 'boolean'
       ) {
-        console.error('ProofSetRailCreated: Invalid payload', payload)
+        console.error('FilecoinWarmStorageService.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       console.log(
-        `New proof set rail (proof_set_id=${payload.proof_set_id}, rail_id=${payload.rail_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
+        `New FilecoinWarmStorageService data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
 
       try {
-        await handleProofSetRailCreated(env, payload, {
+        await handleFilecoinWarmStorageServiceDataSetCreated(env, payload, {
           checkIfAddressIsSanctioned,
         })
       } catch (err) {
         console.log(
-          `Error handling proof set rail creation: ${err}. Retrying...`,
+          `Error handling FilecoinWarmStorageService data set creation: ${err}. Retrying...`,
         )
         // @ts-ignore
-        env.RETRY_QUEUE.send({ type: 'proof-set-rail-created', payload })
+        env.RETRY_QUEUE.send({ type: 'filecoin-warm-storage-service-data-set-created', payload })
       }
 
       return new Response('OK', { status: 200 })
@@ -212,14 +209,14 @@ export default {
     for (const message of batch.messages) {
       if (message.body.type === 'proof-set-rail-created') {
         try {
-          await handleProofSetRailCreated(env, message.body.payload, {
+          await handleFilecoinWarmStorageServiceDataSetCreated(env, message.body.payload, {
             checkIfAddressIsSanctioned,
           })
 
           message.ack()
         } catch (err) {
           console.log(
-            `Error handling proof set rail creation: ${err}. Retrying...`,
+            `Error handling FilecoinWarmStorageService data set creation: ${err}. Retrying...`,
           )
           message.retry({ delaySeconds: 10 })
         }

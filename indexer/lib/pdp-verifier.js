@@ -3,8 +3,8 @@ import { Interface } from '@ethersproject/abi'
 import { CID } from 'multiformats/cid'
 
 export const pdpVerifierAbi = [
-  // Returns the root CID for a given proof set and root ID
-  'function getRootCid(uint256 setId, uint256 rootId) public view returns (tuple(bytes))',
+  // Returns the piece CID for a given data set and piece ID
+  'function getPieceCid(uint256 setId, uint256 pieceId) public view returns (tuple(bytes))',
 ]
 
 /**
@@ -25,16 +25,16 @@ export function createPdpVerifierClient({
   const pdpVerifierIface = new Interface(pdpVerifierAbi)
 
   /**
-   * @param {BigInt} setId
-   * @param {BigInt} rootId
+   * @param {BigInt} dataSetId
+   * @param {BigInt} pieceId
    * @param {number | 'latest' | 'earliest' | 'pending'} [blockNumber='latest']
    *   Default is `'latest'`
    * @returns {Promise<string | null>} The CID in string format (`baga...`)
    */
-  const getRootCid = async (setId, rootId, blockNumber = 'latest') => {
+  const getPieceCid = async (dataSetId, pieceId, blockNumber = 'latest') => {
     const requestParams = {
       to: pdpVerifierAddress,
-      data: pdpVerifierIface.encodeFunctionData('getRootCid', [setId, rootId]),
+      data: pdpVerifierIface.encodeFunctionData('getPieceCid', [dataSetId, pieceId]),
     }
 
     const blockNumberParam =
@@ -69,22 +69,22 @@ export function createPdpVerifierClient({
     }
 
     const returnValues = pdpVerifierIface.decodeFunctionResult(
-      'getRootCid',
+      'getPieceCid',
       resBody.result,
     )
 
-    const [[rootCidRaw]] = returnValues
+    const [[pieceCidRaw]] = returnValues
 
-    // When the root was deleted, getRootCid() returns '0x' (an empty byte array?)
-    if (rootCidRaw === '0x') return null
+    // When the piece was deleted, getPieceCid() returns '0x' (an empty byte array?)
+    if (pieceCidRaw === '0x') return null
 
     try {
-      const cidBytes = Buffer.from(rootCidRaw.slice(2), 'hex')
-      const rootCid = CID.decode(cidBytes)
-      return rootCid.toString()
+      const cidBytes = Buffer.from(pieceCidRaw.slice(2), 'hex')
+      const pieceCid = CID.decode(cidBytes)
+      return pieceCid.toString()
     } catch (err) {
       throw new Error(
-        `Cannot decode getRootCid() response ${JSON.stringify(returnValues)}`,
+        `Cannot decode getPieceCid() response ${JSON.stringify(returnValues)}`,
         {
           cause: err,
         },
@@ -92,5 +92,5 @@ export function createPdpVerifierClient({
     }
   }
 
-  return { getRootCid }
+  return { getPieceCid }
 }

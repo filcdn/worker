@@ -9,7 +9,7 @@ import {
 } from 'cloudflare:test'
 import assert from 'node:assert/strict'
 import {
-  withProofSetRoots,
+  withDataSetPieces,
   withApprovedProvider,
   withBadBits,
   withWalletDetails,
@@ -25,38 +25,35 @@ env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
   const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-  const realRootCid = CONTENT_STORED_ON_CALIBRATION[0].rootCid
+  const realPieceCid = CONTENT_STORED_ON_CALIBRATION[0].pieceCid
 
   beforeAll(async () => {
     await env.DB.batch([
-      env.DB.prepare('DELETE FROM indexer_roots'),
-      env.DB.prepare('DELETE FROM indexer_proof_sets'),
-      env.DB.prepare('DELETE FROM indexer_proof_set_rails'),
+      env.DB.prepare('DELETE FROM pieces'),
+      env.DB.prepare('DELETE FROM data_sets'),
       env.DB.prepare('DELETE FROM bad_bits'),
       env.DB.prepare('DELETE FROM wallet_details'),
     ])
 
     let i = 1
     for (const {
-      owner,
-      pieceRetrievalUrl,
-      rootCid,
-      proofSetId,
+      storageProvider,
+      serviceUrl,
+      pieceCid,
+      dataSetId,
     } of CONTENT_STORED_ON_CALIBRATION) {
-      const rootId = `root-${i}`
-      const railId = `rail-${i}`
-      await withProofSetRoots(env, {
-        owner,
-        rootCid,
+      const pieceId = `root-${i}`
+      await withDataSetPieces(env, {
+        storageProvider,
+        pieceCid,
         clientAddress: defaultClientAddress,
         withCDN: true,
-        proofSetId,
-        railId,
-        rootId,
+        dataSetId,
+        pieceId,
       })
       await withApprovedProvider(env, {
-        ownerAddress: owner,
-        pieceRetrievalUrl,
+        storageProviderAddress: storageProvider,
+        serviceUrl,
       })
       i++
     }
@@ -106,7 +103,7 @@ describe('retriever.fetch', () => {
   it('returns 400 if provided client address is invalid', async () => {
     const ctx = createExecutionContext()
     const mockRetrieveFile = vi.fn()
-    const req = withRequest('bar', realRootCid)
+    const req = withRequest('bar', realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -127,7 +124,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -144,7 +141,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -161,7 +158,7 @@ describe('retriever.fetch', () => {
       cacheMiss: false,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -182,7 +179,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -196,7 +193,7 @@ describe('retriever.fetch', () => {
     const expectedHash =
       '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, { retrieveFile })
     await waitOnExecutionContext(ctx)
     expect(res.status).toBe(200)
@@ -219,7 +216,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -257,7 +254,7 @@ describe('retriever.fetch', () => {
       cacheMiss: false,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -297,7 +294,7 @@ describe('retriever.fetch', () => {
       }
     }
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -335,7 +332,7 @@ describe('retriever.fetch', () => {
       }
     }
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid, 'GET', {
+    const req = withRequest(defaultClientAddress, realPieceCid, 'GET', {
       'CF-IPCountry': 'US',
     })
     const res = await worker.fetch(req, env, ctx, {
@@ -368,7 +365,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -386,11 +383,11 @@ describe('retriever.fetch', () => {
     'measures egress correctly from real storage provider',
     { timeout: 10000 },
     async () => {
-      const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ owner, rootCid }) => {
+      const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ storageProvider, pieceCid }) => {
         return (async () => {
           try {
             const ctx = createExecutionContext()
-            const req = withRequest(defaultClientAddress, rootCid)
+            const req = withRequest(defaultClientAddress, pieceCid)
             const res = await worker.fetch(req, env, ctx, { retrieveFile })
             await waitOnExecutionContext(ctx)
 
@@ -400,18 +397,18 @@ describe('retriever.fetch', () => {
             const actualBytes = content.byteLength
 
             const { results } = await env.DB.prepare(
-              'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND owner_address = ?',
+              'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storageProvider_address = ?',
             )
-              .bind(defaultClientAddress, owner)
+              .bind(defaultClientAddress, storageProvider)
               .all()
 
             assert.strictEqual(results.length, 1)
             assert.strictEqual(results[0].egress_bytes, actualBytes)
 
-            return { owner, success: true }
+            return { storageProvider, success: true }
           } catch (err) {
             console.warn(
-              `⚠️ Warning: Fetch or verification failed for owner ${owner}:`,
+              `⚠️ Warning: Fetch or verification failed for storageProvider ${storageProvider}:`,
               err,
             )
             throw err
@@ -425,54 +422,52 @@ describe('retriever.fetch', () => {
           throw new Error('All tasks failed')
         }
       } catch (err) {
-        const ownersChecked = CONTENT_STORED_ON_CALIBRATION.map((o) => o.owner)
+        const storageProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map((o) => o.storageProvider)
         throw new Error(
-          `❌ All owners failed to fetch. Owners checked: ${ownersChecked.join(', ')}`,
+          `❌ All storageProviders failed to fetch. StorageProviders checked: ${storageProvidersChecked.join(', ')}`,
         )
       }
     },
   )
 
   it('requests payment if withCDN=false', async () => {
-    const proofSetId = 'test-proof-set-no-cdn'
-    const railId = 'rail-no-cdn'
-    const rootId = 'root-no-cdn'
-    const rootCid =
+    const dataSetId = 'test-data-set-no-cdn'
+    const pieceId = 'root-no-cdn'
+    const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const owner = '0xOWNER'
-    await withProofSetRoots(env, {
-      owner,
-      rootCid,
-      proofSetId,
-      railId,
+    const storageProvider = '0xStorageProvider'
+    await withDataSetPieces(env, {
+      storageProvider,
+      pieceCid,
+      dataSetId,
       withCDN: false,
-      rootId,
+      pieceId,
     })
 
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid, 'GET')
+    const req = withRequest(defaultClientAddress, pieceCid, 'GET')
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
     assert.strictEqual(res.status, 402)
   })
-  it('reads the provider URL from the database, comparing owner address case-insensitively', async () => {
+  it('reads the provider URL from the database, comparing storageProvider address case-insensitively', async () => {
     const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
-    const rootCid = 'bagaTest'
+    const pieceCid = 'bagaTest'
     const body = 'file content'
 
     expect(providerAddress.toLowerCase()).not.toEqual(providerAddress)
 
-    await withProofSetRoots(env, {
-      owner: providerAddress,
-      rootCid,
+    await withDataSetPieces(env, {
+      storageProvider: providerAddress,
+      pieceCid,
       clientAddress,
     })
 
     await withApprovedProvider(env, {
-      ownerAddress: providerAddress,
-      pieceRetrievalUrl: 'https://mock-pdp-url.com',
+      storageProviderAddress: providerAddress,
+      serviceUrl: 'https://mock-pdp-url.com',
     })
 
     const mockRetrieveFile = async () => {
@@ -485,7 +480,7 @@ describe('retriever.fetch', () => {
     }
 
     const ctx = createExecutionContext()
-    const req = withRequest(clientAddress, rootCid)
+    const req = withRequest(clientAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -499,16 +494,16 @@ describe('retriever.fetch', () => {
   it('throws an error if the providerAddress is not found in the database', async () => {
     const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
     const clientAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
-    const rootCid = 'bagaTest'
+    const pieceCid = 'bagaTest'
 
-    await withProofSetRoots(env, {
-      owner: providerAddress,
-      rootCid,
+    await withDataSetPieces(env, {
+      storageProvider: providerAddress,
+      pieceCid,
       clientAddress,
     })
 
     const ctx = createExecutionContext()
-    const req = withRequest(clientAddress, rootCid)
+    const req = withRequest(clientAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
@@ -519,30 +514,30 @@ describe('retriever.fetch', () => {
     )
   })
 
-  it('returns ProofSet ID in the X-Proof-Set-ID response header', async () => {
-    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+  it('returns data set ID in the X-Data-Set-ID response header', async () => {
+    const { pieceCid, dataSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response('hello'),
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid)
+    const req = withRequest(defaultClientAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
     expect(await res.text()).toBe('hello')
-    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+    expect(res.headers.get('X-Data-Set-ID')).toBe(String(dataSetId))
   })
 
-  it('stores ProofSet ID in retrieval logs', async () => {
-    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+  it('stores data set ID in retrieval logs', async () => {
+    const { pieceCid, dataSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response('hello'),
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid)
+    const req = withRequest(defaultClientAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -551,7 +546,7 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 200)
     const { results } = await env.DB.prepare(
-      `SELECT id, response_status, proof_set_id, cache_miss, client_address
+      `SELECT id, response_status, data_set_id, cache_miss, client_address
        FROM retrieval_logs
        WHERE client_address = ?`,
     )
@@ -562,26 +557,26 @@ describe('retriever.fetch', () => {
         id: 1, // Assuming this is the first log entry
         client_address: defaultClientAddress,
         response_status: 200,
-        proof_set_id: proofSetId.toString(),
+        data_set_id: dataSetId.toString(),
         cache_miss: 1, // 1 for true, 0 for false
       },
     ])
   })
 
-  it('returns ProofSet ID in the X-ProofSet-ID response header when the response body is empty', async () => {
-    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+  it('returns data set ID in the X-Data-Set-ID response header when the response body is empty', async () => {
+    const { pieceCid, dataSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response(null, { status: 404 }),
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid)
+    const req = withRequest(defaultClientAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
     expect(res.body).toBeNull()
-    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+    expect(res.headers.get('X-Data-Set-ID')).toBe(String(dataSetId))
   })
 
   it('supports HEAD requests', async () => {
@@ -593,7 +588,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid, 'HEAD')
+    const req = withRequest(defaultClientAddress, realPieceCid, 'HEAD')
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -602,7 +597,7 @@ describe('retriever.fetch', () => {
   })
 
   it('rejects retrieval requests for CIDs found in the Bad Bits denylist', async () => {
-    await withBadBits(env, realRootCid)
+    await withBadBits(env, realPieceCid)
 
     const fakeResponse = new Response('hello')
     const mockRetrieveFile = vi.fn().mockResolvedValue({
@@ -611,7 +606,7 @@ describe('retriever.fetch', () => {
     })
 
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultClientAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -623,21 +618,19 @@ describe('retriever.fetch', () => {
   })
 
   it('reject retrieval request if client is sanctioned', async () => {
-    const proofSetId = 'test-proof-set-client-sanctioned'
-    const railId = 'rail-proof-set-client-sanctioned'
-    const rootId = 'root-proof-set-client-sanctioned'
-    const rootCid =
+    const dataSetId = 'test-data-set-client-sanctioned'
+    const pieceId = 'root-data-set-client-sanctioned'
+    const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const owner = '0xOWNER'
+    const storageProvider = '0xStorageProvider'
     const clientAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
-    await withProofSetRoots(env, {
-      owner,
+    await withDataSetPieces(env, {
+      storageProvider,
       clientAddress,
-      rootCid,
-      proofSetId,
-      railId,
+      pieceCid,
+      dataSetId,
       withCDN: true,
-      rootId,
+      pieceId,
     })
 
     await withWalletDetails(
@@ -646,7 +639,7 @@ describe('retriever.fetch', () => {
       true, // Sanctioned
     )
     const ctx = createExecutionContext()
-    const req = withRequest(clientAddress, rootCid, 'GET')
+    const req = withRequest(clientAddress, pieceCid, 'GET')
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
@@ -654,7 +647,7 @@ describe('retriever.fetch', () => {
   })
   it('does not log to retrieval_logs on method not allowed (405)', async () => {
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid, 'POST')
+    const req = withRequest(defaultClientAddress, realPieceCid, 'POST')
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
@@ -669,30 +662,27 @@ describe('retriever.fetch', () => {
     expect(result).toBeNull()
   })
   it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
-    const invalidRootCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
-    const proofSetId = 'unsupported-owner-test'
-    const unsupportedOwner = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+    const invalidPieceCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
+    const dataSetId = 'unsupported-storageProvider-test'
+    const unsupportedStorageProvider = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-      ).bind(proofSetId, unsupportedOwner),
-      env.DB.prepare(
-        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-      ).bind('root-unsupported', proofSetId, invalidRootCid),
-      env.DB.prepare(
-        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
-        proofSetId,
-        'rail-unsupported',
+        dataSetId,
+        unsupportedStorageProvider,
         defaultClientAddress,
-        unsupportedOwner,
+        unsupportedStorageProvider,
         true,
       ),
+      env.DB.prepare(
+        'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
+      ).bind('piece-unsupported', dataSetId, invalidPieceCid),
     ])
 
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, invalidRootCid)
+    const req = withRequest(defaultClientAddress, invalidPieceCid)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
@@ -700,7 +690,7 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toContain('No approved storage provider found')
 
     const result = await env.DB.prepare(
-      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND owner_address IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
+      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND storage_provider IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
     )
       .bind(defaultClientAddress)
       .first()
@@ -709,7 +699,7 @@ describe('retriever.fetch', () => {
   it('does not log to retrieval_logs when client address is invalid (400)', async () => {
     const invalidAddress = 'not-an-address'
     const ctx = createExecutionContext()
-    const req = withRequest(invalidAddress, realRootCid)
+    const req = withRequest(invalidAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
@@ -728,21 +718,21 @@ describe('retriever.fetch', () => {
 
 /**
  * @param {string} clientWalletAddress
- * @param {string} rootCid
+ * @param {string} pieceCid
  * @param {string} method
  * @param {Object} headers
  * @returns {Request}
  */
 function withRequest(
   clientWalletAddress,
-  rootCid,
+  pieceCid,
   method = 'GET',
   headers = {},
 ) {
   let url = 'http://'
   if (clientWalletAddress) url += `${clientWalletAddress}.`
   url += DNS_ROOT.slice(1) // remove the leading '.'
-  if (rootCid) url += `/${rootCid}`
+  if (pieceCid) url += `/${pieceCid}`
 
   return new Request(url, { method, headers })
 }

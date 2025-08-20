@@ -1,4 +1,4 @@
-import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
+import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from './chainalysis.js'
 
 /**
  * Handle proof set rail creation
@@ -10,7 +10,7 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
  * @throws {Error} If there is an error with fetching payer's address sanction
  *   status or during the database operation
  */
-export async function handleProofSetRailCreated(
+export async function handleFilecoinWarmStorageServiceDataSetCreated(
   env,
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
@@ -38,23 +38,24 @@ export async function handleProofSetRailCreated(
 
   await env.DB.prepare(
     `
-      INSERT INTO indexer_proof_set_rails (
-        proof_set_id,
-        rail_id,
+      INSERT INTO data_sets (
+        id,
         payer,
         payee,
         with_cdn
       )
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT DO NOTHING
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT DO UPDATE SET
+        payer=excluded.payer,
+        payee=excluded.payee,
+        with_cdn=excluded.with_cdn
     `,
   )
     .bind(
-      String(payload.proof_set_id),
-      String(payload.rail_id),
+      String(payload.data_set_id),
       payload.payer,
       payload.payee,
-      payload.with_cdn ?? null,
+      payload.with_cdn,
     )
     .run()
 }

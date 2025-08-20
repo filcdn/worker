@@ -5,7 +5,7 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {Env} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the retrieval log.
- * @param {string | null} params.ownerAddress - The owner's address.
+ * @param {string | null} params.storageProvider - The owner's address.
  * @param {string} params.clientAddress - The client's address.
  * @param {number | null} params.egressBytes - The egress bytes of the response.
  * @param {number} params.responseStatus - The HTTP response status code.
@@ -21,14 +21,14 @@ import { httpAssert } from './http-assert.js'
  * @param {string} params.timestamp - The timestamp of the retrieval.
  * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
- * @param {string | null} params.proofSetId - The proof set ID associated with
+ * @param {string | null} params.dataSetId - The data set ID associated with
  *   the retrieval
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
 export async function logRetrievalResult(env, params) {
   console.log('retrieval log', params)
   const {
-    ownerAddress,
+    storageProvider,
     clientAddress,
     cacheMiss,
     egressBytes,
@@ -36,7 +36,7 @@ export async function logRetrievalResult(env, params) {
     timestamp,
     performanceStats,
     requestCountryCode,
-    proofSetId,
+    dataSetId,
   } = params
 
   try {
@@ -44,7 +44,7 @@ export async function logRetrievalResult(env, params) {
       `
       INSERT INTO retrieval_logs (
         timestamp,
-        owner_address,
+        storage_provider,
         client_address,
         response_status,
         egress_bytes,
@@ -53,14 +53,14 @@ export async function logRetrievalResult(env, params) {
         fetch_ttlb,
         worker_ttfb,
         request_country_code,
-        proof_set_id
+        data_set_id
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
       .bind(
         timestamp,
-        ownerAddress,
+        storageProvider,
         clientAddress,
         responseStatus,
         egressBytes,
@@ -69,7 +69,7 @@ export async function logRetrievalResult(env, params) {
         performanceStats?.fetchTtlb ?? null,
         performanceStats?.workerTtfb ?? null,
         requestCountryCode,
-        proofSetId,
+        dataSetId,
       )
       .run()
   } catch (error) {
@@ -84,62 +84,60 @@ export async function logRetrievalResult(env, params) {
  *
  * @param {Env} env - Cloudflare Worker environment with D1 DB binding
  * @param {string} clientAddress - The address of the client making the request
- * @param {string} rootCid - The root CID to look up
+ * @param {string} pieceCid - The piece CID to look up
  * @returns {Promise<{
- *   ownerAddress: string
- *   pieceRetrievalUrl: string
- *   proofSetId: string
+ *   storageProvider: string
+ *   serviceUrl: string
+ *   dataSetId: string
  * }>}
  */
-export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
+export async function getStorageProviderAndValidateClient(env, clientAddress, pieceCid) {
   const query = `
-   SELECT ir.set_id, lower(ips.owner) as owner, ipsr.payer, ipsr.with_cdn, pu.piece_retrieval_url, wd.is_sanctioned
-   FROM indexer_roots ir
-   LEFT OUTER JOIN indexer_proof_sets ips
-     ON ir.set_id = ips.set_id
-   LEFT OUTER JOIN indexer_proof_set_rails ipsr
-     ON ir.set_id = ipsr.proof_set_id
-   LEFT OUTER JOIN provider_urls as pu
-     ON lower(ips.owner) = pu.address
-   LEFT OUTER JOIN wallet_details as wd
-     ON lower (ipsr.payer) = wd.address
-   WHERE ir.root_cid = ?
+   SELECT pieces.data_set_id, lower(data_sets.storage_provider) as storage_provider, data_sets.payer, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
+   FROM pieces
+   LEFT OUTER JOIN data_sets
+     ON pieces.data_set_id = data_set.id
+   LEFT OUTER JOIN providers
+     ON lower(data_set.storage_provider) = providers.address
+   LEFT OUTER JOIN wallet_details
+     ON lower(data_sets.payer) = wallet_details.address
+   WHERE pieces.cid = ?
  `
 
   const results = /**
    * @type {{
-   *   owner: string
-   *   set_id: string
+   *   storage_provider: string
+   *   data_set_id: string
    *   payer: string | undefined
    *   with_cdn: number | undefined
-   *   piece_retrieval_url: string | undefined
+   *   service_url: string | undefined
    *   is_sanctioned: number | undefined
    * }[]}
    */ (
     /** @type {any[]} */ (
-      (await env.DB.prepare(query).bind(rootCid).all()).results
+      (await env.DB.prepare(query).bind(pieceCid).all()).results
     )
   )
   httpAssert(
     results && results.length > 0,
     404,
-    `Root_cid '${rootCid}' does not exist or may not have been indexed yet.`,
+    `Piece_cid '${pieceCid}' does not exist or may not have been indexed yet.`,
   )
 
-  const withOwner = results.filter((row) => row && row.owner != null)
+  const withStorageProvider = results.filter((row) => row && row.storage_provider != null)
   httpAssert(
-    withOwner.length > 0,
+    withStorageProvider.length > 0,
     404,
-    `Root_cid '${rootCid}' exists but has no associated owner.`,
+    `Piece_cid '${pieceCid}' exists but has no associated storage provider.`,
   )
 
-  const withPaymentRail = withOwner.filter(
+  const withPaymentRail = withStorageProvider.filter(
     (row) => row.payer && row.payer.toLowerCase() === clientAddress,
   )
   httpAssert(
     withPaymentRail.length > 0,
     402,
-    `There is no Filecoin Services deal for client '${clientAddress}' and root_cid '${rootCid}'.`,
+    `There is no Filecoin Warm Storage Service deal for client '${clientAddress}' and piece_cid '${pieceCid}'.`,
   )
 
   const withCDN = withPaymentRail.filter(
@@ -148,7 +146,7 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   httpAssert(
     withCDN.length > 0,
     402,
-    `The Filecoin Services deal for client '${clientAddress}' and root_cid '${rootCid}' has withCDN=false.`,
+    `The Filecoin Warm Storage Service deal for client '${clientAddress}' and piece_cid '${pieceCid}' has withCDN=false.`,
   )
 
   const withClientNotSanctioned = withPaymentRail.filter(
@@ -157,47 +155,47 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
   httpAssert(
     withClientNotSanctioned.length > 0,
     403,
-    `Wallet '${clientAddress}' is sanctioned and cannot retrieve root_cid '${rootCid}'.`,
+    `Wallet '${clientAddress}' is sanctioned and cannot retrieve piece_cid '${pieceCid}'.`,
   )
 
-  const withApprovedProvider = withCDN.filter((row) => row.piece_retrieval_url)
+  const withApprovedProvider = withCDN.filter((row) => row.service_url)
   httpAssert(
     withApprovedProvider.length > 0,
     404,
-    `No approved storage provider found for client '${clientAddress}' and root_cid '${rootCid}'.`,
+    `No approved storage provider found for client '${clientAddress}' and piece_cid '${pieceCid}'.`,
   )
 
   const {
-    set_id: proofSetId,
-    owner: ownerAddress,
-    piece_retrieval_url: pieceRetrievalUrl,
+    data_set_id: dataSetId,
+    storage_provider: storageProvider,
+    service_url: serviceUrl,
   } = withApprovedProvider[0]
 
   // We need this assertion to supress TypeScript error. The compiler is not able to infer that
-  // `withCDN.filter()` above returns only rows with `piece_retrieval_url` defined.
-  httpAssert(pieceRetrievalUrl, 500, 'should never happen')
+  // `withCDN.filter()` above returns only rows with `service_url` defined.
+  httpAssert(serviceUrl, 500, 'should never happen')
 
   console.log(
-    `Looked up ProofSet ID '${proofSetId}' and owner '${ownerAddress}' for root_cid '${rootCid}' and client '${clientAddress}'. Piece retrieval URL: ${pieceRetrievalUrl}`,
+    `Looked up Data set ID '${dataSetId}' and storage provider '${storageProvider}' for piece_cid '${pieceCid}' and client '${clientAddress}'. Service URL: ${serviceUrl}`,
   )
 
-  return { ownerAddress, pieceRetrievalUrl, proofSetId }
+  return { storageProvider, serviceUrl, dataSetId }
 }
 
 /**
  * @param {Env} env - Worker environment (contains D1 binding).
- * @param {object} params - Parameters for the proof set update.
- * @param {string} params.proofSetId - The ID of the proof set to update.
+ * @param {object} params - Parameters for the data set update.
+ * @param {string} params.dataSetId - The ID of the data set to update.
  * @param {number} params.egressBytes - The egress bytes used for the response.
  */
-export async function updateProofSetSats(env, { proofSetId, egressBytes }) {
+export async function updateDataSetSats(env, { dataSetId, egressBytes }) {
   await env.DB.prepare(
     `
-    INSERT INTO proof_set_stats (set_id, total_egress_bytes_used)
+    INSERT INTO data_sets (id, total_egress_bytes_used)
     VALUES (?, ?)
-    ON CONFLICT(set_id) DO UPDATE SET total_egress_bytes_used = COALESCE(proof_set_stats.total_egress_bytes_used, 0) + excluded.total_egress_bytes_used
+    ON CONFLICT(id) DO UPDATE SET total_egress_bytes_used = data_sets.total_egress_bytes_used + excluded.total_egress_bytes_used
     `,
   )
-    .bind(proofSetId, egressBytes)
+    .bind(dataSetId, egressBytes)
     .run()
 }

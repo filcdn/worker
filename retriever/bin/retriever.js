@@ -5,9 +5,9 @@ import {
   measureStreamedEgress,
 } from '../lib/retrieval.js'
 import {
-  getOwnerAndValidateClient,
+  getStorageProviderAndValidateClient,
   logRetrievalResult,
-  updateProofSetSats,
+  updateDataSetSats,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
@@ -52,9 +52,9 @@ export default {
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
 
-    const { clientWalletAddress, rootCid } = parseRequest(request, env)
+    const { clientWalletAddress, pieceCid } = parseRequest(request, env)
 
-    httpAssert(clientWalletAddress && rootCid, 400, 'Missing required fields')
+    httpAssert(clientWalletAddress && pieceCid, 400, 'Missing required fields')
     httpAssert(
       isValidEthereumAddress(clientWalletAddress),
       400,
@@ -65,10 +65,10 @@ export default {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
 
-      const [{ ownerAddress, pieceRetrievalUrl, proofSetId }, isBadBit] =
+      const [{ storageProvider, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
-          getOwnerAndValidateClient(env, clientWalletAddress, rootCid),
-          findInBadBits(env, rootCid),
+          getStorageProviderAndValidateClient(env, clientWalletAddress, pieceCid),
+          findInBadBits(env, pieceCid),
         ])
 
       httpAssert(
@@ -78,14 +78,14 @@ export default {
       )
 
       httpAssert(
-        ownerAddress,
+        storageProvider,
         404,
-        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
+        `Unsupported Storage Provider: ${storageProvider}`,
       )
 
       const { response: originResponse, cacheMiss } = await retrieveFile(
-        pieceRetrievalUrl,
-        rootCid,
+        serviceUrl,
+        pieceCid,
         env.ORIGIN_CACHE_TTL,
         { signal: request.signal },
       )
@@ -97,18 +97,18 @@ export default {
         ctx.waitUntil(
           logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
-            ownerAddress,
+            storageProvider,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes: 0,
             requestCountryCode,
             timestamp: requestTimestamp,
-            proofSetId,
+            dataSetId,
           }),
         )
         const response = new Response(originResponse.body, originResponse)
         setContentSecurityPolicy(response)
-        response.headers.set('X-Proof-Set-ID', proofSetId)
+        response.headers.set('X-Proof-Set-ID', dataSetId)
         response.headers.set(
           'Cache-Control',
           `public, max-age=${env.CLIENT_CACHE_TTL}`,
@@ -130,7 +130,7 @@ export default {
 
           await logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
-            ownerAddress,
+            storageProvider,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes,
@@ -141,10 +141,10 @@ export default {
               fetchTtlb: lastByteFetchedAt - fetchStartedAt,
               workerTtfb: firstByteAt - workerStartedAt,
             },
-            proofSetId,
+            dataSetId,
           })
 
-          await updateProofSetSats(env, { proofSetId, egressBytes })
+          await updateDataSetSats(env, { dataSetId, egressBytes })
         })(),
       )
 
@@ -155,7 +155,7 @@ export default {
         headers: originResponse.headers,
       })
       setContentSecurityPolicy(response)
-      response.headers.set('X-Proof-Set-ID', proofSetId)
+      response.headers.set('X-Data-Set-ID', dataSetId)
       response.headers.set(
         'Cache-Control',
         `public, max-age=${env.CLIENT_CACHE_TTL}`,
@@ -167,13 +167,13 @@ export default {
       ctx.waitUntil(
         logRetrievalResult(env, {
           clientAddress: clientWalletAddress,
-          ownerAddress: null,
+          storageProvider: null,
           cacheMiss: null,
           responseStatus: status,
           egressBytes: null,
           requestCountryCode,
           timestamp: requestTimestamp,
-          proofSetId: null,
+          dataSetId: null,
         }),
       )
 
