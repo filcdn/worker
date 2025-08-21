@@ -1,5 +1,3 @@
-import { assertOkResponse } from 'assert-ok-response'
-import pRetry from 'p-retry'
 import { getLastEtag, updateBadBitsDatabase } from './store.js'
 
 export const BAD_BITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
@@ -14,24 +12,33 @@ export async function fetchAndStoreBadBits(
   env,
   { fetch } = { fetch: globalThis.fetch },
 ) {
+  const req = new Request(BAD_BITS_URL)
+
   const lastEtag = await getLastEtag(env)
+  if (lastEtag) {
+    console.log(`Requesting version different from etag ${lastEtag}`)
+    req.headers.set('if-none-match', lastEtag)
+  }
 
-  const result = await pRetry(() => fetchBadBits({ lastEtag, fetch }), {
-    retries: 5,
-    shouldRetry: (error) => {
-      return error.statusCode && error.statusCode >= 500
-    },
-    onFailedAttempt: (error) => {
-      if (!error.statusCode || error.statusCode < 500) return
-      console.error(error)
-      console.error('Bad-bits query failed, retrying...')
-    },
-  })
+  const response = await fetch(req)
 
-  if (!result.hasChanged) return
-  const { etag, text } = result
+  if (response.status === 304) {
+    console.log(
+      'Bad bits were not modified since the last check, skipping update.',
+    )
+    return
+  }
 
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch bad bits: ${response.status} ${response.statusText}`,
+    )
+  }
+
+  const text = await response.text()
+  const etag = response.headers.get('etag')
   const lines = text.split('\n')
+
   const currentBadHashes = new Set()
 
   for (const line of lines) {
@@ -56,34 +63,4 @@ export async function fetchAndStoreBadBits(
     console.error('Error updating bad bits:', error)
     throw error
   }
-}
-
-/**
- * @param {object} options
- * @param {string | null} options.lastEtag
- * @param {typeof globalThis.fetch} options.fetch
- * @returns {Promise<
- *   { hasChanged: false } | { hasChanged: true; text?: string; etag?: string }
- * >}
- */
-async function fetchBadBits({ lastEtag, fetch }) {
-  const req = new Request(BAD_BITS_URL)
-  if (lastEtag) {
-    console.log(`Requesting version different from etag ${lastEtag}`)
-    req.headers.set('if-none-match', lastEtag)
-  }
-
-  const response = fetch(req)
-
-  if (response.status === 304) {
-    console.log(
-      'Bad bits were not modified since the last check, skipping update.',
-    )
-    return { hasChanged: false }
-  }
-  await assertOkResponse(response, 'Failed to fetch bad bits')
-
-  const text = await response.text()
-  const etag = response.headers.get('etag')
-  return { hasChanged: true, text, etag }
 }

@@ -51,7 +51,7 @@ export async function updateBadBitsDatabase(env, currentHashes, etag) {
 
 /**
  * @param {Env} env
- * @returns {string | null}
+ * @returns
  */
 export async function getLastEtag(env) {
   const result = await env.DB.prepare(

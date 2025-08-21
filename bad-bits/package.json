@@ -13,8 +13,5 @@
     "start": "wrangler d1 migrations apply dev-db --local --env dev --cwd ../db && wrangler dev --env dev",
     "test": "wrangler d1 migrations apply test-db --local --cwd ../db && vitest run"
   },
-  "dependencies": {
-    "assert-ok-response": "^1.0.0",
-    "p-retry": "^6.2.1"
-  }
+  "dependencies": {}
 }
