@@ -54,7 +54,7 @@ export async function withApprovedProvider(
 ) {
   await env.DB.prepare(
     `
-    INSERT INTO providers (address, service_url)
+    INSERT INTO providers (owner, service_url)
     VALUES (?, ?)
   `,
   )

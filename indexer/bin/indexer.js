@@ -1,7 +1,9 @@
 import {
-  handleProviderRegistered,
-  handleProviderRemoved,
-} from '../lib/provider-events-handler.js'
+  handleProductAdded,
+  handleProductUpdated,
+  handleProductRemoved,
+  rpcRequest as defaultRpcRequest,
+} from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import { handleFilecoinWarmStorageServiceDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
 import {
@@ -16,19 +18,29 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
+   * @param {typeof defaultRpcRequest} [options.rpcRequest]
    * @returns {Promise<Response>}
    */
   async fetch(
     request,
     env,
     ctx,
-    { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned } = {},
+    {
+      checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
+      rpcRequest = defaultRpcRequest,
+    } = {},
   ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
     const {
+      // @ts-ignore
+      GLIF_TOKEN,
+      // @ts-ignore
+      RPC_URL,
+      // @ts-ignore
+      SERVICE_PROVIDER_REGISTRY_ADDRESS,
       // @ts-ignore
       SECRET_HEADER_KEY,
       // @ts-ignore
@@ -158,12 +170,41 @@ export default {
       }
 
       return new Response('OK', { status: 200 })
-    } else if (pathname === '/provider-registered') {
-      const { provider, piece_retrieval_url: pieceRetrievalUrl } = payload
-      return await handleProviderRegistered(env, provider, pieceRetrievalUrl)
-    } else if (pathname === '/provider-removed') {
-      const { provider } = payload
-      return await handleProviderRemoved(env, provider)
+    } else if (pathname === '/service-provider-registry/product-added') {
+      const {
+        provider_id: providerId,
+        product_type: productType,
+        block_number: blockNumber,
+      } = payload
+      return await handleProductAdded(
+        env,
+        rpcRequest,
+        providerId,
+        productType,
+        RPC_URL,
+        GLIF_TOKEN,
+        blockNumber,
+        SERVICE_PROVIDER_REGISTRY_ADDRESS,
+      )
+    } else if (pathname === '/service-provider-registry/product-updated') {
+      const {
+        provider_id: providerId,
+        product_type: productType,
+        block_number: blockNumber,
+      } = payload
+      return await handleProductUpdated(
+        env,
+        rpcRequest,
+        providerId,
+        productType,
+        RPC_URL,
+        GLIF_TOKEN,
+        blockNumber,
+        SERVICE_PROVIDER_REGISTRY_ADDRESS,
+      )
+    } else if (pathname === '/service-provider-registry/product-removed') {
+      const { provider_id: providerId, product_type: productType } = payload
+      return await handleProductRemoved(env, providerId, productType)
     } else {
       return new Response('Not Found', { status: 404 })
     }

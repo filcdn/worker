@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import workerImpl from '../bin/indexer.js'
-import { env } from 'cloudflare:test'
+import {
+  env,
+  createExecutionContext,
+  waitOnExecutionContext,
+} from 'cloudflare:test'
 import {
   LIVE_PDP_FILE,
   DELETED_PDP_FILE,
@@ -621,169 +625,149 @@ describe('retriever.indexer', () => {
       expect(dataSets.length).toBe(0)
     })
   })
-  describe('POST /provider-registered', () => {
-    it('returns 400 if provider_url and owner are missing', async () => {
-      const req = new Request('https://host/provider-registered', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+  describe('POST /service-provider-registry/product-added', () => {
+    it('returns 400 if provider_id and product_type are missing', async () => {
+      const req = new Request(
+        'https://host/service-provider-registry/product-added',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({}),
         },
-        body: JSON.stringify({}),
-      })
+      )
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
-    it('inserts a provider URL', async () => {
-      const pieceRetrievalUrl = 'https://provider.example.com'
-      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-      const req = new Request('https://host/provider-registered', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+    it('inserts a provider service URL', async () => {
+      const serviceUrl = 'https://provider.example.com'
+      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const providerId = 0
+      const blockNumber = 10
+      const req = new Request(
+        'https://host/service-provider-registry/product-added',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider_id: providerId,
+            product_type: 0,
+            block_number: blockNumber,
+          }),
         },
-        body: JSON.stringify({
-          provider,
-          piece_retrieval_url: pieceRetrievalUrl,
-        }),
-      })
-      const res = await workerImpl.fetch(req, env)
+      )
+      const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
+        if (functionName === 'getPDPService') {
+          expect(args).toBe([providerId])
+          expect(_blockNumber).toBe(blockNumber)
+          return [{ serviceUrl }]
+        } else if (functionName === 'getProvider') {
+          expect(args).toBe([providerId])
+          expect(_blockNumber).toBe(blockNumber)
+          return [{ beneficiary }]
+        }
+      }
+      const ctx = createExecutionContext()
+      const res = await workerImpl.fetch(req, env, ctx, { rpcRequest })
+      await waitOnExecutionContext(ctx)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
       const { results: providerUrls } = await env.DB.prepare(
-        'SELECT * FROM provider_urls WHERE address = ?',
+        'SELECT * FROM providers WHERE id = ?',
       )
-        .bind(provider.toLowerCase())
+        .bind(providerId)
         .all()
       expect(providerUrls.length).toBe(1)
-      expect(providerUrls[0].address).toBe(provider.toLowerCase())
-      expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
+      expect(providerUrls[0].beneficiary).toBe(beneficiary)
+      expect(providerUrls[0].service_url).toBe(serviceUrl)
     })
   })
-  it('updates pdp URLs for an existing provider', async () => {
-    const pieceRetrievalUrl = 'https://provider.example.com'
-    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-    const newpieceRetrievalUrl = 'https://new-provider.example.com'
+  describe('POST /service-provider-registry/product-updated', () => {
+    it('updates service URLs for an existing provider', async () => {
+      const serviceUrl = 'https://provider.example.com'
+      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const providerId = 0
+      const blockNumber = 10
+      const newServiceUrl = 'https://new-provider.example.com'
 
-    // First insert the initial provider URL
-    let req = new Request('https://host/provider-registered', {
-      method: 'POST',
-      headers: {
-        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-      },
-      body: JSON.stringify({
-        provider,
-        piece_retrieval_url: pieceRetrievalUrl,
-      }),
-    })
-    let res = await workerImpl.fetch(req, env)
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe('OK')
-
-    // Now update the provider URL
-    req = new Request('https://host/provider-registered', {
-      method: 'POST',
-      headers: {
-        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-      },
-      body: JSON.stringify({
-        provider,
-        piece_retrieval_url: newpieceRetrievalUrl,
-      }),
-    })
-    res = await workerImpl.fetch(req, env)
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe('OK')
-
-    const { results: providerUrls } = await env.DB.prepare(
-      'SELECT * FROM provider_urls WHERE address = ?',
-    )
-      .bind(provider.toLowerCase())
-      .all()
-    expect(providerUrls.length).toBe(1)
-    expect(providerUrls[0].address).toBe(provider.toLowerCase())
-    expect(providerUrls[0].piece_retrieval_url).toBe(newpieceRetrievalUrl)
-  })
-  it('stores provider with lower case', async () => {
-    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-    const pieceRetrievalUrl = 'https://provider.example.com'
-
-    const req = new Request('https://host/provider-registered', {
-      method: 'POST',
-      headers: {
-        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-      },
-      body: JSON.stringify({
-        provider,
-        piece_retrieval_url: pieceRetrievalUrl,
-      }),
-    })
-    const res = await workerImpl.fetch(req, env)
-    expect(res.status).toBe(200)
-    expect(await res.text()).toBe('OK')
-
-    const { results: providerUrls } = await env.DB.prepare(
-      'SELECT * FROM provider_urls WHERE address = ?',
-    )
-      .bind(provider.toLowerCase())
-      .all()
-    expect(providerUrls.length).toBe(1)
-    expect(providerUrls[0].address).toBe(provider.toLowerCase())
-    expect(providerUrls[0].piece_retrieval_url).toBe(pieceRetrievalUrl)
-  })
-  it('returns 400 on invalid URL', async () => {
-    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-    const pieceRetrievalUrl = 'INVALID_URL'
-
-    const req = new Request('https://host/provider-registered', {
-      method: 'POST',
-      headers: {
-        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-      },
-      body: JSON.stringify({
-        provider: provider.toUpperCase(),
-        piece_retrieval_url: pieceRetrievalUrl,
-      }),
-    })
-    const res = await workerImpl.fetch(req, env)
-    expect(res.status).toBe(400)
-    expect(await res.text()).toBe('Bad Request')
-  })
-  it('returns 400 when piece_retrieval_url is not a string', async () => {
-    const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-
-    // Test with various non-string URL values
-    const invalidUrls = [
-      123, // Number
-      true, // Boolean
-      null, // Null
-      undefined, // Undefined
-      { url: 'https://provider.example.com' }, // Object
-      ['https://provider.example.com'], // Array
-    ]
-
-    for (const invalidUrl of invalidUrls) {
-      const req = new Request('https://host/provider-registered', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      // First insert the initial provider URL
+      let req = new Request(
+        'https://host/service-provider-registry/product-added',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider_id: providerId,
+            product_type: 0,
+            block_number: blockNumber,
+          }),
         },
-        body: JSON.stringify({
-          provider,
-          piece_retrieval_url: invalidUrl,
-        }),
-      })
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(
-        400,
-        `Expected 400 for invalid URL type: ${typeof invalidUrl}`,
       )
-      expect(await res.text()).toBe('Bad Request')
-    }
-  })
-  it('returns 400 when provider is an invalid Ethereum address', async () => {
-    testInvalidValidEthereumAddress('provider-registered')
+      let rpcRequest = async (to, functionName, args, _, _blockNumber) => {
+        if (functionName === 'getPDPService') {
+          expect(args).toBe([providerId])
+          expect(_blockNumber).toBe(blockNumber)
+          return [{ serviceUrl }]
+        } else if (functionName === 'getProvider') {
+          expect(args).toBe([providerId])
+          expect(_blockNumber).toBe(blockNumber)
+          return [{ beneficiary }]
+        }
+      }
+      let ctx = createExecutionContext()
+      let res = await workerImpl.fetch(req, env, ctx, { rpcRequest })
+      await waitOnExecutionContext(ctx)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      // Now update the provider URL
+      req = new Request(
+        'https://host/service-provider-registry/product-added',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider_id: providerId,
+            product_type: 0,
+            block_number: blockNumber,
+          }),
+        },
+      )
+      rpcRequest = async (to, functionName, args, _, _blockNumber) => {
+        if (functionName === 'getPDPService') {
+          expect(args).toBe([providerId])
+          expect(_blockNumber).toBe(blockNumber)
+          return [{ serviceUrl: newServiceUrl }]
+        } else if (functionName === 'getProvider') {
+          expect(args).toBe([providerId])
+          expect(_blockNumber).toBe(blockNumber)
+          return [{ beneficiary }]
+        }
+      }
+      ctx = createExecutionContext()
+      res = await workerImpl.fetch(req, env, ctx, { rpcRequest })
+      await waitOnExecutionContext(ctx)
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: providerUrls } = await env.DB.prepare(
+        'SELECT * FROM providers WHERE id = ?',
+      )
+        .bind(providerId)
+        .all()
+      expect(providerUrls.length).toBe(1)
+      expect(providerUrls[0].beneficiary).toBe(beneficiary)
+      expect(providerUrls[0].service_url).toBe(newServiceUrl)
+    })
   })
   describe('POST /provider-removed', () => {
     it('returns 400 if provider is missing', async () => {
@@ -799,8 +783,8 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
 
-    it('removes a provider from the provider_urls table', async () => {
-      const provider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+    it('removes a provider from the providers table', async () => {
+      const owner = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
 
       // First, insert a provider
       const insertReq = new Request('https://host/provider-registered', {
@@ -810,7 +794,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           provider,
-          piece_retrieval_url: 'https://provider.example.com',
+          service_url: 'https://provider.example.com',
         }),
       })
       const insertRes = await workerImpl.fetch(insertReq, env)
@@ -833,7 +817,7 @@ describe('retriever.indexer', () => {
 
       // Verify that the provider is removed from the database
       const { results: ownerUrls } = await env.DB.prepare(
-        'SELECT * FROM provider_urls WHERE address =?',
+        'SELECT * FROM providers WHERE owner = ?',
       )
         .bind(provider)
         .all()
@@ -875,7 +859,7 @@ async function testInvalidValidEthereumAddress(route, providerUrl) {
     const requestBody = {
       provider: invalidAddress,
     }
-    if (providerUrl) requestBody.piece_retrieval_url = providerUrl
+    if (providerUrl) requestBody.service_url = providerUrl
     const req = new Request(`https://host/${route}`, {
       method: 'POST',
       headers: {

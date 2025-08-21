@@ -6,10 +6,10 @@ DROP TABLE proof_set_stats;
 DROP TABLE retrieval_logs;
 
 CREATE TABLE providers (
-  id TEXT,
-  owner TEXT NOT NULL,
+  id TEXT NOT NULL,
+  beneficiary TEXT NOT NULL,
   service_url TEXT,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id, owner)
 );
 
 CREATE TABLE data_sets (
@@ -34,7 +34,7 @@ CREATE TABLE retrieval_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp DATETIME NOT NULL,
   data_set_id TEXT,
-  storage_provider_address TEXT,
+  storage_provider TEXT,
   client_address TEXT NOT NULL,
   response_status INTEGER,
   egress_bytes INTEGER,
