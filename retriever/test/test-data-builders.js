@@ -25,7 +25,13 @@ export async function withProofSetRoots(
       INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn)
       VALUES (?, ?)
     `,
-    ).bind(String(dataSetId), storageProvider, clientAddress, storageProvider, withCDN),
+    ).bind(
+      String(dataSetId),
+      storageProvider,
+      clientAddress,
+      storageProvider,
+      withCDN,
+    ),
 
     env.DB.prepare(
       `

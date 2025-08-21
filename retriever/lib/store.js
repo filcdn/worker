@@ -21,8 +21,8 @@ import { httpAssert } from './http-assert.js'
  * @param {string} params.timestamp - The timestamp of the retrieval.
  * @param {string | null} params.requestCountryCode - The country code where the
  *   request originated from
- * @param {string | null} params.dataSetId - The data set ID associated with
- *   the retrieval
+ * @param {string | null} params.dataSetId - The data set ID associated with the
+ *   retrieval
  * @returns {Promise<void>} - A promise that resolves when the log is inserted.
  */
 export async function logRetrievalResult(env, params) {
@@ -91,7 +91,11 @@ export async function logRetrievalResult(env, params) {
  *   dataSetId: string
  * }>}
  */
-export async function getStorageProviderAndValidateClient(env, clientAddress, pieceCid) {
+export async function getStorageProviderAndValidateClient(
+  env,
+  clientAddress,
+  pieceCid,
+) {
   const query = `
    SELECT pieces.data_set_id, lower(data_sets.storage_provider) as storage_provider, data_sets.payer, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
    FROM pieces
@@ -124,7 +128,9 @@ export async function getStorageProviderAndValidateClient(env, clientAddress, pi
     `Piece_cid '${pieceCid}' does not exist or may not have been indexed yet.`,
   )
 
-  const withStorageProvider = results.filter((row) => row && row.storage_provider != null)
+  const withStorageProvider = results.filter(
+    (row) => row && row.storage_provider != null,
+  )
   httpAssert(
     withStorageProvider.length > 0,
     404,

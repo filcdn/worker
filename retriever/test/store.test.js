@@ -85,7 +85,11 @@ describe('getStorageProviderAndValidateClient', () => {
       .bind('piece-1', dataSetId, pieceCid)
       .run()
 
-    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
+    const result = await getStorageProviderAndValidateClient(
+      env,
+      clientAddress,
+      pieceCid,
+    )
     assert.strictEqual(result.storageProvider, APPROVED_STORAGE_PROVIDER)
   })
 
@@ -93,7 +97,11 @@ describe('getStorageProviderAndValidateClient', () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     await assert.rejects(
       async () =>
-        await getStorageProviderAndValidateClient(env, clientAddress, 'nonexistent-cid'),
+        await getStorageProviderAndValidateClient(
+          env,
+          clientAddress,
+          'nonexistent-cid',
+        ),
       /does not exist/,
     )
   })
@@ -113,7 +121,8 @@ describe('getStorageProviderAndValidateClient', () => {
       .run()
 
     await assert.rejects(
-      async () => await getStorageProviderAndValidateClient(env, clientAddress, cid),
+      async () =>
+        await getStorageProviderAndValidateClient(env, clientAddress, cid),
       /no associated owner/,
     )
   })
@@ -140,7 +149,8 @@ describe('getStorageProviderAndValidateClient', () => {
     ])
 
     await assert.rejects(
-      async () => await getStorageProviderAndValidateClient(env, clientAddress, cid),
+      async () =>
+        await getStorageProviderAndValidateClient(env, clientAddress, cid),
       /There is no Filecoin Warm Storage Service deal for client/,
     )
   })
@@ -154,20 +164,15 @@ describe('getStorageProviderAndValidateClient', () => {
     await env.DB.batch([
       env.DB.prepare(
         'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-      ).bind(
-        dataSetId,
-        owner,
-        clientAddress,
-        APPROVED_STORAGE_PROVIDER,
-        false,
-      ),
+      ).bind(dataSetId, owner, clientAddress, APPROVED_STORAGE_PROVIDER, false),
       env.DB.prepare(
         'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
       ).bind('piece-2', dataSetId, cid),
     ])
 
     await assert.rejects(
-      async () => await getStorageProviderAndValidateClient(env, clientAddress, cid),
+      async () =>
+        await getStorageProviderAndValidateClient(env, clientAddress, cid),
       /withCDN=false/,
     )
   })
@@ -180,30 +185,49 @@ describe('getStorageProviderAndValidateClient', () => {
     await env.DB.batch([
       env.DB.prepare(
         'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-      ).bind(dataSetId, APPROVED_STORAGE_PROVIDER, clientAddress, APPROVED_STORAGE_PROVIDER, true),
+      ).bind(
+        dataSetId,
+        APPROVED_STORAGE_PROVIDER,
+        clientAddress,
+        APPROVED_STORAGE_PROVIDER,
+        true,
+      ),
       env.DB.prepare(
         'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
       ).bind('piece-3', dataSetId, cid),
     ])
 
-    const result = await getStorageProviderAndValidateClient(env, clientAddress, cid)
+    const result = await getStorageProviderAndValidateClient(
+      env,
+      clientAddress,
+      cid,
+    )
 
     assert.strictEqual(result.storageProvider, APPROVED_STORAGE_PROVIDER)
   })
   it('returns owner for valid pieceCid with mixed-case owner (case insensitive)', async () => {
     const dataSetId = 'data-set-1'
     const pieceCid = 'piece-cid-1'
-    const mixedCaseStorageProvider = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
+    const mixedCaseStorageProvider =
+      '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     const expectedStorageProvider = mixedCaseStorageProvider.toLowerCase()
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
-    await withApprovedProvider(env, { storageProvider: mixedCaseStorageProvider })
+    await withApprovedProvider(env, {
+      storageProvider: mixedCaseStorageProvider,
+    })
 
     // Insert a proof set with a mixed-case owner
     await env.DB.prepare(
       'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(dataSetId, mixedCaseStorageProvider, clientAddress, mixedCaseStorageProvider, true)
+      .bind(
+        dataSetId,
+        mixedCaseStorageProvider,
+        clientAddress,
+        mixedCaseStorageProvider,
+        true,
+      )
       .run()
 
     // Insert a root CID linked to the proof set
@@ -214,7 +238,11 @@ describe('getStorageProviderAndValidateClient', () => {
       .run()
 
     // Lookup by pieceCid and assert returned owner is normalized to lowercase
-    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
+    const result = await getStorageProviderAndValidateClient(
+      env,
+      clientAddress,
+      pieceCid,
+    )
     assert.strictEqual(result.storageProvider, expectedStorageProvider)
   })
   it('returns the storage provider first in the ordering when multiple storage providers share the same pieceCid', async () => {
@@ -232,7 +260,7 @@ describe('getStorageProviderAndValidateClient', () => {
     await env.DB.prepare(
       'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(dataSetId1, storageProvider1,  clientAddress, storageProvider1, true)
+      .bind(dataSetId1, storageProvider1, clientAddress, storageProvider1, true)
       .run()
 
     await env.DB.prepare(
@@ -255,7 +283,11 @@ describe('getStorageProviderAndValidateClient', () => {
       .run()
 
     // Should return only the storageProvider1 which is the first in the ordering
-    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
+    const result = await getStorageProviderAndValidateClient(
+      env,
+      clientAddress,
+      pieceCid,
+    )
     assert.strictEqual(result.storageProvider, storageProvider1.toLowerCase())
   })
 
@@ -292,7 +324,11 @@ describe('getStorageProviderAndValidateClient', () => {
     })
 
     // Should return storageProvider1 because storageProvider2 is not approved
-    const result = await getStorageProviderAndValidateClient(env, clientAddress, pieceCid)
+    const result = await getStorageProviderAndValidateClient(
+      env,
+      clientAddress,
+      pieceCid,
+    )
     assert.deepStrictEqual(result, {
       dataSetId: dataSetId1,
       storageProvider: storageProvider1.toLowerCase(),

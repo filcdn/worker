@@ -52,7 +52,10 @@ describe('retriever.indexer', () => {
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
-        body: JSON.stringify({ set_id: dataSetId, storage_provider: '0xAddress' }),
+        body: JSON.stringify({
+          set_id: dataSetId,
+          storage_provider: '0xAddress',
+        }),
       })
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(200)
@@ -75,7 +78,10 @@ describe('retriever.indexer', () => {
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
-          body: JSON.stringify({ set_id: dataSetId, storage_provider: '0xAddress' }),
+          body: JSON.stringify({
+            set_id: dataSetId,
+            storage_provider: '0xAddress',
+          }),
         })
         const res = await workerImpl.fetch(req, env)
         expect(res.status).toBe(200)
@@ -368,13 +374,16 @@ describe('retriever.indexer', () => {
     })
 
     it('returns 400 if property is missing', async () => {
-      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      const req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({}),
         },
-        body: JSON.stringify({}),
-      })
+      )
       const res = await workerImpl.fetch(req, env, ctx, {
         checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
@@ -383,18 +392,21 @@ describe('retriever.indexer', () => {
     })
     it('inserts a data set', async () => {
       const dataSetId = randomId()
-      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      const req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: dataSetId,
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            with_cdn: true,
+          }),
         },
-        body: JSON.stringify({
-          data_set_id: dataSetId,
-          payer: '0xPayerAddress',
-          payee: '0xPayeeAddress',
-          with_cdn: true,
-        }),
-      })
+      )
 
       mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
       const res = await workerImpl.fetch(req, env, ctx, {
@@ -427,18 +439,21 @@ describe('retriever.indexer', () => {
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
       for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        const req = new Request(
+          'https://host/filecoin-warm-storage-service/data-set-created',
+          {
+            method: 'POST',
+            headers: {
+              [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+            },
+            body: JSON.stringify({
+              data_set_id: dataSetId,
+              payer: '0xPayerAddress',
+              payee: '0xPayeeAddress',
+              with_cdn: true,
+            }),
           },
-          body: JSON.stringify({
-            data_set_id: dataSetId,
-            payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
-            with_cdn: true,
-          }),
-        })
+        )
         mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
         const res = await workerImpl.fetch(req, env, ctx, {
           checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
@@ -457,18 +472,21 @@ describe('retriever.indexer', () => {
 
     it('stores numeric ID values as integers', async () => {
       const dataSetId = Number(randomId())
-      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      const req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: dataSetId,
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            with_cdn: true,
+          }),
         },
-        body: JSON.stringify({
-          data_set_id: dataSetId,
-          payer: '0xPayerAddress',
-          payee: '0xPayeeAddress',
-          with_cdn: true,
-        }),
-      })
+      )
       mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
       const res = await workerImpl.fetch(req, env, ctx, {
         checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
@@ -489,18 +507,21 @@ describe('retriever.indexer', () => {
       const dataSetId = randomId()
 
       // send first request with with_cdn = true
-      let req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      let req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: dataSetId,
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            with_cdn: true,
+          }),
         },
-        body: JSON.stringify({
-          data_set_id: dataSetId,
-          payer: '0xPayerAddress',
-          payee: '0xPayeeAddress',
-          with_cdn: true,
-        }),
-      })
+      )
 
       mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
       let res = await workerImpl.fetch(req, env, ctx, {
@@ -510,18 +531,21 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('OK')
 
       // send second request with with_cdn = false
-      req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: randomId(),
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            with_cdn: false,
+          }),
         },
-        body: JSON.stringify({
-          data_set_id: randomId(),
-          payer: '0xPayerAddress',
-          payee: '0xPayeeAddress',
-          with_cdn: false,
-        }),
-      })
+      )
       res = await workerImpl.fetch(req, env, ctx, {
         checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
@@ -565,13 +589,16 @@ describe('retriever.indexer', () => {
         payee: '0xPayeeAddress',
         with_cdn: true,
       }
-      const req = new Request('https://host/filecoin-warm-storage-service/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      const req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      })
+      )
       const res = await workerImpl.fetch(req, env, ctx, {
         checkIfAddressIsSanctioneded: async (apiKey, address) => {
           throw Error('fail')

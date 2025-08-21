@@ -383,38 +383,40 @@ describe('retriever.fetch', () => {
     'measures egress correctly from real storage provider',
     { timeout: 10000 },
     async () => {
-      const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ storageProvider, pieceCid }) => {
-        return (async () => {
-          try {
-            const ctx = createExecutionContext()
-            const req = withRequest(defaultClientAddress, pieceCid)
-            const res = await worker.fetch(req, env, ctx, { retrieveFile })
-            await waitOnExecutionContext(ctx)
+      const tasks = CONTENT_STORED_ON_CALIBRATION.map(
+        ({ storageProvider, pieceCid }) => {
+          return (async () => {
+            try {
+              const ctx = createExecutionContext()
+              const req = withRequest(defaultClientAddress, pieceCid)
+              const res = await worker.fetch(req, env, ctx, { retrieveFile })
+              await waitOnExecutionContext(ctx)
 
-            assert.strictEqual(res.status, 200)
+              assert.strictEqual(res.status, 200)
 
-            const content = await res.arrayBuffer()
-            const actualBytes = content.byteLength
+              const content = await res.arrayBuffer()
+              const actualBytes = content.byteLength
 
-            const { results } = await env.DB.prepare(
-              'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storageProvider_address = ?',
-            )
-              .bind(defaultClientAddress, storageProvider)
-              .all()
+              const { results } = await env.DB.prepare(
+                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storageProvider_address = ?',
+              )
+                .bind(defaultClientAddress, storageProvider)
+                .all()
 
-            assert.strictEqual(results.length, 1)
-            assert.strictEqual(results[0].egress_bytes, actualBytes)
+              assert.strictEqual(results.length, 1)
+              assert.strictEqual(results[0].egress_bytes, actualBytes)
 
-            return { storageProvider, success: true }
-          } catch (err) {
-            console.warn(
-              `⚠️ Warning: Fetch or verification failed for storageProvider ${storageProvider}:`,
-              err,
-            )
-            throw err
-          }
-        })()
-      })
+              return { storageProvider, success: true }
+            } catch (err) {
+              console.warn(
+                `⚠️ Warning: Fetch or verification failed for storageProvider ${storageProvider}:`,
+                err,
+              )
+              throw err
+            }
+          })()
+        },
+      )
 
       try {
         const res = await Promise.allSettled(tasks)
@@ -422,7 +424,9 @@ describe('retriever.fetch', () => {
           throw new Error('All tasks failed')
         }
       } catch (err) {
-        const storageProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map((o) => o.storageProvider)
+        const storageProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
+          (o) => o.storageProvider,
+        )
         throw new Error(
           `❌ All storageProviders failed to fetch. StorageProviders checked: ${storageProvidersChecked.join(', ')}`,
         )
@@ -664,7 +668,8 @@ describe('retriever.fetch', () => {
   it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
     const invalidPieceCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
     const dataSetId = 'unsupported-storageProvider-test'
-    const unsupportedStorageProvider = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+    const unsupportedStorageProvider =
+      '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
 
     await env.DB.batch([
       env.DB.prepare(

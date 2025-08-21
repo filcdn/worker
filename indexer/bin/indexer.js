@@ -4,7 +4,10 @@ import {
 } from '../lib/provider-events-handler.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import { handleFilecoinWarmStorageServiceDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
-import { removeDataSetPieces, insertDataSetPieces } from '../lib/pdp-verifier-handlers.js'
+import {
+  removeDataSetPieces,
+  insertDataSetPieces,
+} from '../lib/pdp-verifier-handlers.js'
 
 export default {
   /**
@@ -19,9 +22,7 @@ export default {
     request,
     env,
     ctx,
-    {
-      checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
-    } = {},
+    { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned } = {},
   ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
@@ -130,7 +131,10 @@ export default {
         !payload.payee ||
         typeof payload.with_cdn !== 'boolean'
       ) {
-        console.error('FilecoinWarmStorageService.DataSetCreated: Invalid payload', payload)
+        console.error(
+          'FilecoinWarmStorageService.DataSetCreated: Invalid payload',
+          payload,
+        )
         return new Response('Bad Request', { status: 400 })
       }
 
@@ -147,7 +151,10 @@ export default {
           `Error handling FilecoinWarmStorageService data set creation: ${err}. Retrying...`,
         )
         // @ts-ignore
-        env.RETRY_QUEUE.send({ type: 'filecoin-warm-storage-service-data-set-created', payload })
+        env.RETRY_QUEUE.send({
+          type: 'filecoin-warm-storage-service-data-set-created',
+          payload,
+        })
       }
 
       return new Response('OK', { status: 200 })
@@ -177,9 +184,13 @@ export default {
     for (const message of batch.messages) {
       if (message.body.type === 'proof-set-rail-created') {
         try {
-          await handleFilecoinWarmStorageServiceDataSetCreated(env, message.body.payload, {
-            checkIfAddressIsSanctioned,
-          })
+          await handleFilecoinWarmStorageServiceDataSetCreated(
+            env,
+            message.body.payload,
+            {
+              checkIfAddressIsSanctioned,
+            },
+          )
 
           message.ack()
         } catch (err) {
