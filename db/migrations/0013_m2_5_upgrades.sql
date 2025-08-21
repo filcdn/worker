@@ -18,7 +18,7 @@ CREATE TABLE data_sets (
   payer TEXT,
   payee TEXT,
   with_cdn BOOLEAN,
-  total_egress_bytes_used INTEGER NOT NULL DEFAULT 0
+  total_egress_bytes_used INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
 
