@@ -2,7 +2,6 @@ import {
   handleProviderRegistered,
   handleProviderRemoved,
 } from '../lib/provider-events-handler.js'
-import { createPdpVerifierClient as defaultCreatePdpVerifierClient } from '../lib/pdp-verifier.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import { handleFilecoinWarmStorageServiceDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
 import { removeDataSetPieces, insertDataSetPieces } from '../lib/pdp-verifier-handlers.js'
@@ -13,7 +12,6 @@ export default {
    * @param {Env} env
    * @param {ExecutionContext} ctx
    * @param {object} options
-   * @param {typeof defaultCreatePdpVerifierClient} [options.createPdpVerifierClient]
    * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
    * @returns {Promise<Response>}
    */
@@ -22,7 +20,6 @@ export default {
     env,
     ctx,
     {
-      createPdpVerifierClient = defaultCreatePdpVerifierClient,
       checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
     } = {},
   ) {
@@ -31,12 +28,6 @@ export default {
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
     const {
-      // @ts-ignore
-      GLIF_TOKEN,
-      // @ts-ignore
-      RPC_URL,
-      // @ts-ignore
-      PDP_VERIFIER_ADDRESS,
       // @ts-ignore
       SECRET_HEADER_KEY,
       // @ts-ignore
@@ -86,7 +77,9 @@ export default {
           typeof payload.set_id === 'string'
         ) ||
         !payload.piece_ids ||
-        typeof payload.piece_ids !== 'string'
+        typeof payload.piece_ids !== 'string' ||
+        !payload.piece_cids ||
+        typeof payload.piece_cids !== 'string'
       ) {
         console.error('PDPVerifier.PiecesAdded: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
@@ -94,33 +87,8 @@ export default {
 
       /** @type {string[]} */
       const pieceIds = payload.piece_ids.split(',')
-
-      const dataSetId = BigInt(payload.set_id)
-
-      const pdpVerifier = createPdpVerifierClient({
-        rpcUrl: RPC_URL,
-        glifToken: GLIF_TOKEN,
-        pdpVerifierAddress: PDP_VERIFIER_ADDRESS,
-      })
-
-      const pieceCids = payload.piece_cids
-        ? payload.piece_cids.split(',')
-        : await Promise.all(
-            pieceIds.map(async (pieceId) => {
-              try {
-                return await pdpVerifier.getPieceCid(
-                  dataSetId,
-                  BigInt(pieceId),
-                  payload.block_number,
-                )
-              } catch (/** @type {any} */ err) {
-                console.error(
-                  `RootsAdded: Cannot resolve root CID for dataSetId=${dataSetId} pieceId=${pieceId}: ${err?.stack ?? err}`,
-                )
-                throw err
-              }
-            }),
-          )
+      /** @type {string[]} */
+      const pieceCids = payload.piece_cids.split(',')
 
       console.log(
         `New pieces (piece_ids=[${pieceIds.join(', ')}], piece_cids=[${pieceCids.join(', ')}], data_set_id=${payload.set_id})`,

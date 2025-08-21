@@ -7,12 +7,9 @@ and cache from the Filecoin PDP Storage Providers.
 
 ### Initial setup
 
-Get a GLIF_TOKEN at https://api.node.glif.io/rpc.
-
 Create `indexer/.dev.vars` file with the following content:
 
 ```
-GLIF_TOKEN=<your_glif_token>
 SECRET_HEADER_KEY=X-SECRET-KEY
 SECRET_HEADER_VALUE=SecretToken
 ```
