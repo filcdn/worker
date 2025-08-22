@@ -8,11 +8,12 @@ import { getBadBitsEntry } from '../lib/bad-bits-util'
  * @param {number} options.dataSetId
  * @param {boolean} options.with_cdn
  */
-export async function withProofSetRoots(
+export async function withDataSetPieces(
   env,
   {
     storageProvider = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
-    clientAddress = '0x1234567890abcdef1234567890abcdef12345608',
+    payee = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
+    payer = '0x1234567890abcdef1234567890abcdef12345608',
     pieceCid = 'bagaTEST',
     dataSetId = 0,
     withCDN = true,
@@ -23,15 +24,9 @@ export async function withProofSetRoots(
     env.DB.prepare(
       `
       INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn)
-      VALUES (?, ?)
+      VALUES (?, ?, ?, ?, ?)
     `,
-    ).bind(
-      String(dataSetId),
-      storageProvider,
-      clientAddress,
-      storageProvider,
-      withCDN,
-    ),
+    ).bind(String(dataSetId), storageProvider, payer, payee, withCDN),
 
     env.DB.prepare(
       `
@@ -45,20 +40,21 @@ export async function withProofSetRoots(
 /**
  * @param {Env} env
  * @param {Object} options
- * @param {string} options.storageProviderAddress
+ * @param {number} id
+ * @param {string} options.beneficiary
  * @param {string} [options.serviceUrl]
  */
 export async function withApprovedProvider(
   env,
-  { storageProviderAddress, serviceUrl = 'https://pdp.xyz/' } = {},
+  { id, beneficiary, serviceUrl = 'https://pdp.xyz/' } = {},
 ) {
   await env.DB.prepare(
     `
-    INSERT INTO providers (owner, service_url)
-    VALUES (?, ?)
+    INSERT INTO providers (id, beneficiary, service_url)
+    VALUES (?, ?, ?)
   `,
   )
-    .bind(storageProviderAddress.toLowerCase(), serviceUrl)
+    .bind(id, beneficiary, serviceUrl)
     .run()
 }
 

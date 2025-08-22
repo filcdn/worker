@@ -3,10 +3,8 @@ import { Interface } from '@ethersproject/abi'
 import { assertOkResponse } from 'assert-ok-response'
 
 const serviceProviderRegistryAbi = [
-  'struct PDPOffering { string serviceURL; uint256 minPieceSizeInBytes; uint256 maxPieceSizeInBytes; bool ipniPiece; bool ipniIpfs; uint256 storagePricePerTibPerMonth; // Storage price per TiB per month in attoFIL }',
-  'struct ServiceProviderInfo { address beneficiary; string description; bool isActive; }',
-  'function getPDPService(uint256 providerId) external view returns (PDPOffering, string[], bool)',
-  'function getProvider(uint256 providerId) external view returns (ServiceProviderInfo)',
+  'function getPDPService(uint256 providerId) external view returns (tuple(string, uint256, uint256, bool, bool, uint256), string[], bool)',
+  'function getProvider(uint256 providerId) external view returns (tuple(address, string, bool))',
 ]
 const serviceProviderRegistryIface = new Interface(serviceProviderRegistryAbi)
 
@@ -212,7 +210,7 @@ async function handleProviderServiceUrlUpdate(
   blockNumber,
   serviceProviderRegistryAddress,
 ) {
-  const [[{ serviceUrl }], [{ beneficiary }]] = await Promise.all([
+  const [[[serviceUrl]], [[beneficiary]]] = await Promise.all([
     rpcRequest(
       serviceProviderRegistryAddress,
       'getPDPService',

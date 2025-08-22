@@ -46,13 +46,15 @@ describe('retriever.fetch', () => {
       await withDataSetPieces(env, {
         storageProvider,
         pieceCid,
-        clientAddress: defaultClientAddress,
+        payer: defaultClientAddress,
+        payee: storageProvider,
         withCDN: true,
         dataSetId,
         pieceId,
       })
       await withApprovedProvider(env, {
-        storageProviderAddress: storageProvider,
+        id: 0,
+        beneficiary: storageProvider,
         serviceUrl,
       })
       i++
@@ -442,6 +444,7 @@ describe('retriever.fetch', () => {
     const storageProvider = '0xStorageProvider'
     await withDataSetPieces(env, {
       storageProvider,
+      payee: storageProvider,
       pieceCid,
       dataSetId,
       withCDN: false,
@@ -465,12 +468,14 @@ describe('retriever.fetch', () => {
 
     await withDataSetPieces(env, {
       storageProvider: providerAddress,
+      payee: providerAddress,
       pieceCid,
-      clientAddress,
+      payer: clientAddress,
     })
 
     await withApprovedProvider(env, {
-      storageProviderAddress: providerAddress,
+      id: 0,
+      beneficiary: providerAddress,
       serviceUrl: 'https://mock-pdp-url.com',
     })
 
@@ -502,8 +507,9 @@ describe('retriever.fetch', () => {
 
     await withDataSetPieces(env, {
       storageProvider: providerAddress,
+      payee: providerAddress,
       pieceCid,
-      clientAddress,
+      payer: clientAddress,
     })
 
     const ctx = createExecutionContext()
@@ -630,7 +636,8 @@ describe('retriever.fetch', () => {
     const clientAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
     await withDataSetPieces(env, {
       storageProvider,
-      clientAddress,
+      payee: storageProvider,
+      payer: clientAddress,
       pieceCid,
       dataSetId,
       withCDN: true,

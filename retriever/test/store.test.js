@@ -58,7 +58,8 @@ describe('getStorageProviderAndValidateClient', () => {
   const APPROVED_STORAGE_PROVIDER = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   beforeAll(async () => {
     await withApprovedProvider(env, {
-      storageProvider: APPROVED_STORAGE_PROVIDER,
+      id: 0,
+      beneficiary: APPROVED_STORAGE_PROVIDER,
       serviceUrl: 'https://approved-provider.xyz',
     })
   })
@@ -214,7 +215,8 @@ describe('getStorageProviderAndValidateClient', () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await withApprovedProvider(env, {
-      storageProvider: mixedCaseStorageProvider,
+      id: 0,
+      beneficiary: mixedCaseStorageProvider,
     })
 
     // Insert a proof set with a mixed-case owner
@@ -253,8 +255,8 @@ describe('getStorageProviderAndValidateClient', () => {
     const storageProvider1 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e7'
     const storageProvider2 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
 
-    withApprovedProvider(env, { storageProvider: storageProvider1 })
-    withApprovedProvider(env, { storageProvider: storageProvider2 })
+    withApprovedProvider(env, { id: 0, beneficiary: storageProvider1 })
+    withApprovedProvider(env, { id: 0, beneficiary: storageProvider2 })
 
     // Insert both owners into separate sets with the same pieceCid
     await env.DB.prepare(
@@ -300,7 +302,8 @@ describe('getStorageProviderAndValidateClient', () => {
     const storageProvider2 = '0x2006D234246eD18b6C91de8349fF34C22C726802'
 
     withApprovedProvider(env, {
-      storageProvider: storageProvider1,
+      id: 0,
+      beneficiary: storageProvider1,
       serviceUrl: 'https://pdp-provider-1.xyz',
     })
 
@@ -308,16 +311,18 @@ describe('getStorageProviderAndValidateClient', () => {
 
     // Important: we must insert the unapproved provider first!
     withDataSetPieces(env, {
-      clientAddress,
+      payer: clientAddress,
       storageProvider: storageProvider2,
+      payee: storageProvider2,
       dataSetId: dataSetId2,
       withCDN: true,
       pieceCid,
     })
 
     withDataSetPieces(env, {
-      clientAddress,
+      payer: clientAddress,
       storageProvider: storageProvider1,
+      payee: storageProvider1,
       dataSetId: dataSetId1,
       withCDN: true,
       pieceCid,
