@@ -59,3 +59,42 @@ export async function handleFilecoinWarmStorageServiceDataSetCreated(
     )
     .run()
 }
+
+/**
+ * @param {Env} env
+ * @param {any} payload
+ * @throws {Error}
+ */
+export async function handleFilecoinWarmStorageServiceStorageServiceTerminated(
+  env,
+  payload,
+) {
+  await env.DB.prepare(
+    `
+      DELETE FROM data_sets
+      WHERE id = ?
+    `,
+  )
+    .bind(String(payload.data_set_id))
+    .run()
+}
+
+/**
+ * @param {Env} env
+ * @param {any} payload
+ * @throws {Error}
+ */
+export async function handleFilecoinWarmStorageServiceCDNServiceTerminated(
+  env,
+  payload,
+) {
+  await env.DB.prepare(
+    `
+      UPDATE data_sets
+      SET with_cdn = false
+      WHERE id = ?
+    `,
+  )
+    .bind(String(payload.data_set_id))
+    .run()
+}
