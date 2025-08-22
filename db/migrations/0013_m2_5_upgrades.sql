@@ -9,7 +9,7 @@ CREATE TABLE providers (
   id TEXT NOT NULL,
   beneficiary TEXT NOT NULL,
   service_url TEXT,
-  PRIMARY KEY (id, owner)
+  PRIMARY KEY (id, beneficiary)
 );
 
 CREATE TABLE data_sets (
