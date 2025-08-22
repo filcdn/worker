@@ -18,10 +18,10 @@ export async function fetchAndStoreBadBits(
 
   const result = await pRetry(() => fetchBadBits({ lastEtag, fetch }), {
     retries: 5,
-    shouldRetry: (error) => {
+    shouldRetry: ({ error }) => {
       return error.statusCode && error.statusCode >= 500
     },
-    onFailedAttempt: (error) => {
+    onFailedAttempt: ({ error }) => {
       if (!error.statusCode || error.statusCode < 500) return
       console.error(error)
       console.error('Bad-bits query failed, retrying...')
