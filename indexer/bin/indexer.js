@@ -218,7 +218,7 @@ export default {
       }
 
       console.log(
-        `Terminating service for data set (data_set_id=${payload.data_set_id})`,
+        `Terminating CDN service for data set (data_set_id=${payload.data_set_id})`,
       )
 
       await handleFilecoinWarmStorageServiceCDNServiceTerminated(env, payload)
