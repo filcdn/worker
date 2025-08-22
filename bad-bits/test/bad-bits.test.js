@@ -23,7 +23,7 @@ describe('fetchAndStoreBadBits', () => {
     const text = testData
 
     await fetchAndStoreBadBits(env, {
-      fetch: () =>
+      fetch: async () =>
         new Response(text, { headers: { 'Content-Type': 'text/plain' } }),
     })
     const storedHashes = new Set(await getAllBadBitHashes(env))

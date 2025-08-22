@@ -73,7 +73,7 @@ async function fetchBadBits({ lastEtag, fetch }) {
     req.headers.set('if-none-match', lastEtag)
   }
 
-  const response = fetch(req)
+  const response = await fetch(req)
 
   if (response.status === 304) {
     console.log(
