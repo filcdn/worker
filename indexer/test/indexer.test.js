@@ -769,112 +769,108 @@ describe('retriever.indexer', () => {
       expect(providerUrls[0].service_url).toBe(newServiceUrl)
     })
   })
-  describe('POST /provider-removed', () => {
-    it('returns 400 if provider is missing', async () => {
-      const req = new Request('https://host/provider-removed', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+  describe('POST /service-provider-registry/product-removed', () => {
+    it('returns 400 if provider id and product type are missing', async () => {
+      const req = new Request(
+        'https://host/service-provider-registry/product-removed',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({}),
         },
-        body: JSON.stringify({}),
-      })
+      )
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
 
     it('removes a provider from the providers table', async () => {
-      const owner = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const providerId = 0
+      const blockNumber = 10
+      const productType = 0
+      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider
-      const insertReq = new Request('https://host/provider-registered', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
+        if (functionName === 'getPDPService') {
+          return [{ serviceUrl }]
+        } else if (functionName === 'getProvider') {
+          return [{ beneficiary }]
+        }
+      }
+      const insertReq = new Request(
+        'https://host/service-provider-registry/product-added',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider_id: providerId,
+            product_type: productType,
+            block_number: blockNumber,
+            service_url: 'https://provider.example.com',
+          }),
         },
-        body: JSON.stringify({
-          provider,
-          service_url: 'https://provider.example.com',
-        }),
+      )
+      const ctx = createExecutionContext()
+      const insertRes = await workerImpl.fetch(insertReq, env, ctx, {
+        rpcRequest,
       })
-      const insertRes = await workerImpl.fetch(insertReq, env)
+      await waitOnExecutionContext(ctx)
       expect(insertRes.status).toBe(200)
       expect(await insertRes.text()).toBe('OK')
 
       // Now, remove the provider
-      const removeReq = new Request('https://host/provider-removed', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      const removeReq = new Request(
+        'https://host/service-provider-registry/product-removed',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider_id: providerId,
+            product_type: productType,
+          }),
         },
-        body: JSON.stringify({
-          provider,
-        }),
-      })
+      )
       const removeRes = await workerImpl.fetch(removeReq, env)
       expect(removeRes.status).toBe(200)
       expect(await removeRes.text()).toBe('OK')
 
       // Verify that the provider is removed from the database
-      const { results: ownerUrls } = await env.DB.prepare(
-        'SELECT * FROM providers WHERE owner = ?',
+      const { results: providers } = await env.DB.prepare(
+        'SELECT * FROM providers WHERE beneficiary = ?',
       )
-        .bind(provider)
+        .bind(beneficiary)
         .all()
-      expect(ownerUrls.length).toBe(0) // The provider should be removed
+      expect(providers.length).toBe(0) // The provider should be removed
     })
 
     it('returns 404 if the provider does not exist', async () => {
-      const nonExistentProvider = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
-      const req = new Request('https://host/provider-removed', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      const req = new Request(
+        'https://host/service-provider-registry/product-removed',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            provider_id: 13,
+            product_type: 0,
+          }),
         },
-        body: JSON.stringify({
-          provider: nonExistentProvider,
-        }),
-      })
+      )
       const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(404)
       expect(await res.text()).toBe('Provider Not Found')
     })
-    it('returns 400 when provider is an invalid Ethereum address', async () => {
-      await testInvalidValidEthereumAddress('provider-removed')
-    })
   })
 })
-
-async function testInvalidValidEthereumAddress(route, providerUrl) {
-  const invalidAddresses = [
-    'not-an-address', // Not hex
-    '0x123', // Too short
-    '0xinvalid', // Invalid hex
-    '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68', // Too short (40 chars needed after 0x)
-    '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DCZZ', // Too long
-    '12345678901234567890123456789012345678901', // No 0x prefix
-  ]
-
-  for (const invalidAddress of invalidAddresses) {
-    const requestBody = {
-      provider: invalidAddress,
-    }
-    if (providerUrl) requestBody.service_url = providerUrl
-    const req = new Request(`https://host/${route}`, {
-      method: 'POST',
-      headers: {
-        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-      },
-      body: JSON.stringify(requestBody),
-    })
-    const res = await workerImpl.fetch(req, env)
-    expect(res.status).toBe(
-      400,
-      `Expected 400 for invalid address: ${invalidAddress}`,
-    )
-    expect(await res.text()).toBe('Bad Request')
-  }
-}
 
 async function withPieces(env, dataSetId, pieceIds, pieceCids) {
   await env.DB.prepare(
