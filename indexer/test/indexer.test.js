@@ -426,6 +426,7 @@ describe('retriever.indexer', () => {
 
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(walletDetails[0].screened_at)
     })
     it('does not insert duplicate proof set rails', async () => {
       const proofSetId = randomId()
@@ -595,6 +596,77 @@ describe('retriever.indexer', () => {
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].address).toBe('0xPayerAddress')
       expect(walletDetails[0].is_sanctioned).toBe(1)
+    })
+
+    it('updates is_sanctioned status of existing wallet', async () => {
+      // When the wallet creates the first ProofSet, it's not sanctioned yet
+      let req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          proof_set_id: randomId(),
+          rail_id: randomId(),
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: true,
+        }),
+      })
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(false)
+      let res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: initialWalletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress')
+        .all()
+      expect(initialWalletDetails.length).toBe(1)
+      expect(initialWalletDetails[0].address).toBe('0xPayerAddress')
+      expect(initialWalletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(initialWalletDetails[0].screened_at)
+
+      // When the wallet creates the second ProofSet some time later,
+      // it's flagged as sanctioned
+
+      await env.DB.exec(
+        'UPDATE wallet_details SET screened_at = datetime("now", "-1 day")',
+      )
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
+      req = new Request('https://host/proof-set-rail-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          proof_set_id: randomId(),
+          rail_id: randomId(),
+          payer: '0xPayerAddress',
+          payee: '0xPayeeAddress',
+          with_cdn: true,
+        }),
+      })
+      res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress')
+        .all()
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].address).toBe('0xPayerAddress')
+      expect(walletDetails[0].is_sanctioned).toBe(1)
+      assertCloseToNow(walletDetails[0].screened_at)
     })
 
     it('sends message to queue if sanction check fails', async () => {
@@ -930,4 +1002,11 @@ async function withRoots(env, setId, rootIds, rootCids) {
       ]),
     )
     .run()
+}
+
+function assertCloseToNow(sqliteDateString) {
+  // D1 returns dates as UTC without timezone info, append 'Z' to parse as UTC
+  const date = new Date(sqliteDateString + 'Z')
+  // Assert that the timestamp is within 5 seconds of now
+  expect(date).toBeCloseTo(new Date(), -4)
 }

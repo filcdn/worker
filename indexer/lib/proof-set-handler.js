@@ -27,9 +27,11 @@ export async function handleProofSetRailCreated(
 
     await env.DB.prepare(
       `
-        INSERT INTO wallet_details (address, is_sanctioned)
-        VALUES (?, ?)
-        ON CONFLICT (address) DO UPDATE SET is_sanctioned = excluded.is_sanctioned
+      INSERT INTO wallet_details (address, is_sanctioned, screened_at)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT (address) DO UPDATE SET
+        is_sanctioned = excluded.is_sanctioned,
+        screened_at = excluded.screened_at
       `,
     )
       .bind(payload.payer, isPayerSanctioned)
