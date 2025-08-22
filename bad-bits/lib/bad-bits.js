@@ -5,7 +5,7 @@ export const BAD_BITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
 /**
  * @param {Env} env
  * @param {object} options
- * @param {typeof globalThis.fetch} [options.fetch]
+ * @param {typeof globalThis.fetch} options.fetch
  * @returns
  */
 export async function fetchAndStoreBadBits(

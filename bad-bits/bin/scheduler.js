@@ -1,6 +1,12 @@
 import { fetchAndStoreBadBits } from '../lib/bad-bits.js'
 
+/** @type {ExportedHandler<Env>} */
 export default {
+  /**
+   * @param {ScheduledController} _controller
+   * @param {Env} env
+   * @param {ExecutionContext} _ctx
+   */
   async scheduled(_controller, env, _ctx) {
     console.log('Running scheduled bad bits update...')
     try {
