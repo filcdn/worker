@@ -7,7 +7,7 @@ export const BAD_BITS_URL = 'https://badbits.dwebops.pub/badbits.deny'
 /**
  * @param {Env} env
  * @param {object} options
- * @param {typeof globalThis.fetch} [options.fetch]
+ * @param {typeof globalThis.fetch} options.fetch
  * @returns
  */
 export async function fetchAndStoreBadBits(
@@ -18,11 +18,9 @@ export async function fetchAndStoreBadBits(
 
   const result = await pRetry(() => fetchBadBits({ lastEtag, fetch }), {
     retries: 5,
-    shouldRetry: ({ error }) => {
-      return error.statusCode && error.statusCode >= 500
-    },
+    shouldRetry: ({ error }) => isServerError(error),
     onFailedAttempt: ({ error }) => {
-      if (!error.statusCode || error.statusCode < 500) return
+      if (isServerError(error)) return
       console.error(error)
       console.error('Bad-bits query failed, retrying...')
     },
@@ -63,7 +61,8 @@ export async function fetchAndStoreBadBits(
  * @param {string | null} options.lastEtag
  * @param {typeof globalThis.fetch} options.fetch
  * @returns {Promise<
- *   { hasChanged: false } | { hasChanged: true; text?: string; etag?: string }
+ *   | { hasChanged: false }
+ *   | { hasChanged: true; text: string; etag: string | null }
  * >}
  */
 async function fetchBadBits({ lastEtag, fetch }) {
@@ -86,4 +85,16 @@ async function fetchBadBits({ lastEtag, fetch }) {
   const text = await response.text()
   const etag = response.headers.get('etag')
   return { hasChanged: true, text, etag }
+}
+
+/**
+ * @param {Error} error
+ * @returns {boolean}
+ */
+function isServerError(error) {
+  return (
+    'statusCode' in error &&
+    typeof error.statusCode === 'number' &&
+    error.statusCode >= 500
+  )
 }

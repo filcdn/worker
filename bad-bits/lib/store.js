@@ -4,7 +4,7 @@
  * @param {Env} env - Environment containing database connection
  * @param {Set<string>} currentHashes - Set of current valid hashes from
  *   denylist
- * @param {string} etag - ETag for the current denylist
+ * @param {string | null} etag - ETag for the current denylist
  */
 export async function updateBadBitsDatabase(env, currentHashes, etag) {
   const startedAt = Date.now()
@@ -49,13 +49,10 @@ export async function updateBadBitsDatabase(env, currentHashes, etag) {
   await env.DB.batch(statements)
 }
 
-/**
- * @param {Env} env
- * @returns {string | null}
- */
+/** @param {Env} env */
 export async function getLastEtag(env) {
   const result = await env.DB.prepare(
     'SELECT etag FROM bad_bits_history ORDER BY timestamp DESC LIMIT 1',
   ).first()
-  return result ? result.etag : null
+  return result ? /** @type {string} */ (result.etag) : null
 }
