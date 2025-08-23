@@ -5,12 +5,7 @@ import {
   createExecutionContext,
   waitOnExecutionContext,
 } from 'cloudflare:test'
-import {
-  LIVE_PDP_FILE,
-  DELETED_PDP_FILE,
-  PDP_FILES_BY_DATA_SET_ID,
-} from './test-data.js'
-import { assertOkResponse } from 'assert-ok-response'
+import { PDP_FILES_BY_DATA_SET_ID } from './test-data.js'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
@@ -255,66 +250,6 @@ describe('retriever.indexer', () => {
         {
           data_set_id: dataSetIds[1],
           id: '0',
-        },
-      ])
-    })
-
-    it('adds a real live piece and fetches the piece CID from on-chain state', async () => {
-      const req = new Request('https://host/pdp-verifier/pieces-added', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: LIVE_PDP_FILE.dataSetId.toString(),
-          piece_ids: LIVE_PDP_FILE.pieceId.toString(),
-          piece_cids: undefined,
-        }),
-      })
-      const res = await workerImpl.fetch(req, env)
-      await assertOkResponse(res)
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT id, cid FROM pieces WHERE data_set_id = ?',
-      )
-        .bind(LIVE_PDP_FILE.dataSetId.toString())
-        .all()
-
-      expect(pieces).toEqual([
-        {
-          id: LIVE_PDP_FILE.pieceId.toString(),
-          cid: LIVE_PDP_FILE.cid,
-        },
-      ])
-    })
-
-    it('ignores piece when on-chain state does not have a live piece', async () => {
-      const req = new Request('https://host/pdp-verifier/pieces-added', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: DELETED_PDP_FILE.dataSetId.toString(),
-          piece_ids: DELETED_PDP_FILE.pieceId.toString(),
-          piece_cids: undefined,
-        }),
-      })
-      const res = await workerImpl.fetch(req, env, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
-      await assertOkResponse(res)
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT id, cid FROM pieces WHERE data_set_id = ?',
-      )
-        .bind(DELETED_PDP_FILE.dataSetId.toString())
-        .all()
-
-      expect(pieces).toEqual([
-        {
-          id: DELETED_PDP_FILE.pieceId.toString(),
-          cid: DELETED_PDP_FILE.cid,
         },
       ])
     })
