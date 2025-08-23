@@ -76,8 +76,7 @@ export default {
             storage_provider
           )
           VALUES (?, ?)
-          ON CONFLICT DO UPDATE SET
-            storage_provider=excluded.storage_provider
+          ON CONFLICT DO NOTHING
         `,
       )
         .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
