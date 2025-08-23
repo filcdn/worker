@@ -679,12 +679,12 @@ describe('retriever.indexer', () => {
       )
       rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
-          return [{ serviceUrl: newServiceUrl }]
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
+          return [[newServiceUrl]]
         } else if (functionName === 'getProvider') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
           return [[beneficiary]]
         }
       }
