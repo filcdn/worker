@@ -112,7 +112,7 @@ export default {
         )
         const response = new Response(originResponse.body, originResponse)
         setContentSecurityPolicy(response)
-        response.headers.set('X-Proof-Set-ID', dataSetId)
+        response.headers.set('X-Data-Set-ID', dataSetId)
         response.headers.set(
           'Cache-Control',
           `public, max-age=${env.CLIENT_CACHE_TTL}`,
