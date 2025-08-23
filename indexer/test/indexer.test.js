@@ -53,7 +53,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: dataSetId,
-          storage_provider: '0xAddress',
+          storage_provider: '0xaddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -67,7 +67,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xAddress'.toLowerCase())
+      expect(dataSets[0].storage_provider).toBe('0xaddress')
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
@@ -103,7 +103,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: Number(dataSetId),
-          storage_provider: '0xAddress',
+          storage_provider: '0xaddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -117,7 +117,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xAddress'.toLowerCase())
+      expect(dataSets[0].storage_provider).toBe('0xaddress'.toLowerCase())
     })
   })
 

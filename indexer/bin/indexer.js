@@ -79,7 +79,7 @@ export default {
           ON CONFLICT DO NOTHING
         `,
       )
-        .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
+        .bind(String(payload.set_id), payload.storage_provider)
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {
