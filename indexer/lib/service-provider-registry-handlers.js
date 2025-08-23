@@ -84,9 +84,7 @@ export async function handleProductAdded(
   serviceProviderRegistryAddress,
 ) {
   if (
-    !providerId ||
     (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    !productType ||
     (typeof productType !== 'string' && typeof productType !== 'number')
   ) {
     console.error('ServiceProviderRegistry.ProductAdded: Invalid payload', {
@@ -132,9 +130,7 @@ export async function handleProductUpdated(
   serviceProviderRegistryAddress,
 ) {
   if (
-    !providerId ||
     (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    !productType ||
     (typeof productType !== 'string' && typeof productType !== 'number')
   ) {
     console.error('ServiceProviderRegistry.ProductUpdated: Invalid payload', {
