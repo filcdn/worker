@@ -97,12 +97,12 @@ export async function getStorageProviderAndValidateClient(
   pieceCid,
 ) {
   const query = `
-   SELECT pieces.data_set_id, lower(data_sets.storage_provider) as storage_provider, data_sets.payer, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
+   SELECT pieces.data_set_id, data_sets.storage_provider, data_sets.payer, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
    FROM pieces
    LEFT OUTER JOIN data_sets
      ON pieces.data_set_id = data_sets.id
    LEFT OUTER JOIN providers
-     ON lower(data_sets.storage_provider) = providers.beneficiary
+     ON data_sets.storage_provider = providers.beneficiary
    LEFT OUTER JOIN wallet_details
      ON lower(data_sets.payer) = wallet_details.address
    WHERE pieces.cid = ?

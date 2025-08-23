@@ -206,54 +206,13 @@ describe('getStorageProviderAndValidateClient', () => {
 
     assert.strictEqual(result.storageProvider, APPROVED_STORAGE_PROVIDER)
   })
-  it('returns owner for valid pieceCid with mixed-case owner (case insensitive)', async () => {
-    const dataSetId = 'data-set-1'
-    const pieceCid = 'piece-cid-1'
-    const mixedCaseStorageProvider =
-      '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
-    const expectedStorageProvider = mixedCaseStorageProvider.toLowerCase()
-    const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-
-    await withApprovedProvider(env, {
-      id: 20,
-      beneficiary: mixedCaseStorageProvider,
-    })
-
-    // Insert a proof set with a mixed-case owner
-    await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-    )
-      .bind(
-        dataSetId,
-        mixedCaseStorageProvider,
-        clientAddress,
-        mixedCaseStorageProvider,
-        true,
-      )
-      .run()
-
-    // Insert a root CID linked to the proof set
-    await env.DB.prepare(
-      'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
-    )
-      .bind('piece-1', dataSetId, pieceCid)
-      .run()
-
-    // Lookup by pieceCid and assert returned owner is normalized to lowercase
-    const result = await getStorageProviderAndValidateClient(
-      env,
-      clientAddress,
-      pieceCid,
-    )
-    assert.strictEqual(result.storageProvider, expectedStorageProvider)
-  })
   it('returns the storage provider first in the ordering when multiple storage providers share the same pieceCid', async () => {
     const dataSetId1 = 'data-set-a'
     const dataSetId2 = 'data-set-b'
     const pieceCid = 'shared-piece-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-    const storageProvider1 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e7'
-    const storageProvider2 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
+    const storageProvider1 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e7'
+    const storageProvider2 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
 
     await withApprovedProvider(env, { id: 30, beneficiary: storageProvider1 })
     await withApprovedProvider(env, { id: 31, beneficiary: storageProvider2 })
@@ -290,16 +249,16 @@ describe('getStorageProviderAndValidateClient', () => {
       clientAddress,
       pieceCid,
     )
-    assert.strictEqual(result.storageProvider, storageProvider1.toLowerCase())
+    assert.strictEqual(result.storageProvider, storageProvider1)
   })
 
   it('ignores owners that are not approved by Filecoin Warm Storage Service', async () => {
-    const dataSetId1 = 0
-    const dataSetId2 = 1
+    const dataSetId1 = '0'
+    const dataSetId2 = '1'
     const pieceCid = 'shared-piece-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-    const storageProvider1 = '0x1006D234246eD18b6C91de8349fF34C22C726801'
-    const storageProvider2 = '0x2006D234246eD18b6C91de8349fF34C22C726802'
+    const storageProvider1 = '0x1006d234246ed18b6c91de8349ff34c22c726801'
+    const storageProvider2 = '0x2006d234246ed18b6c91de8349ff34c22c726801'
 
     await withApprovedProvider(env, {
       id: 40,
