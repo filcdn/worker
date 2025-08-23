@@ -107,7 +107,7 @@ describe('getStorageProviderAndValidateClient', () => {
     )
   })
 
-  it('throws error if data_set_id exists but has no associated owner', async () => {
+  it('throws error if data_set_id exists but has no associated storage provider', async () => {
     const cid = 'cid-no-owner'
     const dataSetId = 'data-set-no-owner'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
@@ -124,7 +124,7 @@ describe('getStorageProviderAndValidateClient', () => {
     await assert.rejects(
       async () =>
         await getStorageProviderAndValidateClient(env, clientAddress, cid),
-      /no associated owner/,
+      /no associated storage provider/,
     )
   })
 
