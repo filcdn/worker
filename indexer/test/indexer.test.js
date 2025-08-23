@@ -806,6 +806,104 @@ describe('retriever.indexer', () => {
     })
   })
 })
+describe('POST /service-provider-registry/provider-removed', () => {
+  it('returns 400 if the provider id is missing', async () => {
+    const req = new Request(
+      'https://host/service-provider-registry/provider-removed',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('removes a provider from the providers table', async () => {
+    const providerId = 0
+    const blockNumber = 10
+    const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+    const serviceUrl = 'https://provider.example.com'
+
+    // First, insert a provider
+    const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
+      if (functionName === 'getPDPService') {
+        return [[serviceUrl]]
+      } else if (functionName === 'getProvider') {
+        return [[beneficiary]]
+      }
+    }
+    const insertReq = new Request(
+      'https://host/service-provider-registry/product-added',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider_id: providerId,
+          product_type: 0,
+          block_number: blockNumber,
+          service_url: 'https://provider.example.com',
+        }),
+      },
+    )
+    const ctx = createExecutionContext()
+    const insertRes = await workerImpl.fetch(insertReq, env, ctx, {
+      rpcRequest,
+    })
+    await waitOnExecutionContext(ctx)
+    expect(insertRes.status).toBe(200)
+    expect(await insertRes.text()).toBe('OK')
+
+    // Now, remove the provider
+    const removeReq = new Request(
+      'https://host/service-provider-registry/provider-removed',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider_id: providerId,
+        }),
+      },
+    )
+    const removeRes = await workerImpl.fetch(removeReq, env)
+    expect(removeRes.status).toBe(200)
+    expect(await removeRes.text()).toBe('OK')
+
+    // Verify that the provider is removed from the database
+    const { results: providers } = await env.DB.prepare(
+      'SELECT * FROM providers WHERE beneficiary = ?',
+    )
+      .bind(beneficiary)
+      .all()
+    expect(providers.length).toBe(0) // The provider should be removed
+  })
+
+  it('returns 404 if the provider does not exist', async () => {
+    const req = new Request(
+      'https://host/service-provider-registry/provider-removed',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider_id: 13,
+        }),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe('Provider Not Found')
+  })
+})
 
 async function withPieces(env, dataSetId, pieceIds, pieceCids) {
   await env.DB.prepare(

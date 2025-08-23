@@ -2,6 +2,7 @@ import {
   handleProductAdded,
   handleProductUpdated,
   handleProductRemoved,
+  handleProviderRemoved,
   rpcRequest as defaultRpcRequest,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
@@ -204,6 +205,9 @@ export default {
     } else if (pathname === '/service-provider-registry/product-removed') {
       const { provider_id: providerId, product_type: productType } = payload
       return await handleProductRemoved(env, providerId, productType)
+    } else if (pathname === '/service-provider-registry/provider-removed') {
+      const { provider_id: providerId } = payload
+      return await handleProviderRemoved(env, providerId)
     } else {
       return new Response('Not Found', { status: 404 })
     }
