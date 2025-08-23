@@ -8,6 +8,8 @@ const serviceProviderRegistryAbi = [
 ]
 const serviceProviderRegistryIface = new Interface(serviceProviderRegistryAbi)
 
+const PRODUCT_TYPE_PDP = 0
+
 /**
  * @param {string} to
  * @param {string} functionName
@@ -93,7 +95,7 @@ export async function handleProductAdded(
     })
     return new Response('Bad Request', { status: 400 })
   }
-  if (Number(productType) !== 0) {
+  if (Number(productType) !== PRODUCT_TYPE_PDP) {
     return new Response('OK', { status: 200 })
   }
 
@@ -139,7 +141,7 @@ export async function handleProductUpdated(
     })
     return new Response('Bad Request', { status: 400 })
   }
-  if (Number(productType) !== 0) {
+  if (Number(productType) !== PRODUCT_TYPE_PDP) {
     return new Response('OK', { status: 200 })
   }
 
@@ -171,7 +173,7 @@ export async function handleProductRemoved(env, providerId, productType) {
     })
     return new Response('Bad Request', { status: 400 })
   }
-  if (Number(productType) !== 0) {
+  if (Number(productType) !== PRODUCT_TYPE_PDP) {
     return new Response('OK', { status: 200 })
   }
 
