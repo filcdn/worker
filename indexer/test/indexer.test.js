@@ -578,7 +578,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const providerId = 0
       const blockNumber = 10
       const req = new Request(
@@ -625,7 +625,7 @@ describe('retriever.indexer', () => {
   describe('POST /service-provider-registry/product-updated', () => {
     it('updates service URLs for an existing provider', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const providerId = 0
       const blockNumber = 10
       const newServiceUrl = 'https://new-provider.example.com'
@@ -725,7 +725,7 @@ describe('retriever.indexer', () => {
       const providerId = 0
       const blockNumber = 10
       const productType = 0
-      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider

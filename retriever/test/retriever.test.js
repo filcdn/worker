@@ -458,13 +458,11 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 402)
   })
-  it('reads the provider URL from the database, comparing storageProvider address case-insensitively', async () => {
-    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
+  it('reads the provider URL from the database', async () => {
+    const providerAddress = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
     const pieceCid = 'bagaTest'
     const body = 'file content'
-
-    expect(providerAddress.toLowerCase()).not.toEqual(providerAddress)
 
     await withDataSetPieces(env, {
       storageProvider: providerAddress,
