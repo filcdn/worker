@@ -662,12 +662,12 @@ describe('retriever.indexer', () => {
       )
       const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
           return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
           return [[beneficiary]]
         }
       }
@@ -712,12 +712,12 @@ describe('retriever.indexer', () => {
       )
       let rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
           return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
           return [[beneficiary]]
         }
       }
