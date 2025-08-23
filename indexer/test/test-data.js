@@ -13,7 +13,7 @@ const DELETED_PIECE = {
   cid: null,
 }
 
-export const PDP_FILES_BY_DATA_SET_ID = {
+export const PIECES_BY_DATA_SET_ID = {
   [LIVE_PIECE.dataSetId]: LIVE_PIECE,
   [DELETED_PIECE.dataSetId]: DELETED_PIECE,
 }

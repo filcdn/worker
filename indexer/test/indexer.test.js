@@ -5,7 +5,7 @@ import {
   createExecutionContext,
   waitOnExecutionContext,
 } from 'cloudflare:test'
-import { PDP_FILES_BY_DATA_SET_ID } from './test-data.js'
+import { PIECES_BY_DATA_SET_ID } from './test-data.js'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
@@ -128,7 +128,7 @@ describe('retriever.indexer', () => {
     const createMockPdpVerifierClient = () => {
       return {
         getPieceCid(dataSetId, pieceId) {
-          return PDP_FILES_BY_DATA_SET_ID[dataSetId]?.cid || null
+          return PIECES_BY_DATA_SET_ID[dataSetId]?.cid || null
         },
       }
     }
