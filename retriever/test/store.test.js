@@ -58,7 +58,7 @@ describe('getStorageProviderAndValidateClient', () => {
   const APPROVED_STORAGE_PROVIDER = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   beforeAll(async () => {
     await withApprovedProvider(env, {
-      id: 10,
+      id: 20,
       beneficiary: APPROVED_STORAGE_PROVIDER,
       serviceUrl: 'https://approved-provider.xyz',
     })

@@ -53,7 +53,7 @@ describe('retriever.fetch', () => {
         pieceId,
       })
       await withApprovedProvider(env, {
-        id: 0,
+        id: i,
         beneficiary: storageProvider,
         serviceUrl,
       })
@@ -474,7 +474,7 @@ describe('retriever.fetch', () => {
     })
 
     await withApprovedProvider(env, {
-      id: 1,
+      id: 10,
       beneficiary: providerAddress,
       serviceUrl: 'https://mock-pdp-url.com',
     })

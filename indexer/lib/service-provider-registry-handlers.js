@@ -244,7 +244,9 @@ async function handleProviderServiceUrlUpdate(
           service_url
         )
         VALUES (?, ?, ?)
-        ON CONFLICT(id, owner) DO UPDATE SET service_url=excluded.service_url
+        ON CONFLICT(id) DO UPDATE SET
+          beneficiary=excluded.beneficiary,
+          service_url=excluded.service_url
       `,
   )
     .bind(providerId, beneficiary.toLowerCase(), serviceUrl)
