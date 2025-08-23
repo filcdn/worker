@@ -400,7 +400,7 @@ describe('retriever.fetch', () => {
               const actualBytes = content.byteLength
 
               const { results } = await env.DB.prepare(
-                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storageProvider_address = ?',
+                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider = ?',
               )
                 .bind(defaultClientAddress, storageProvider)
                 .all()
@@ -430,7 +430,7 @@ describe('retriever.fetch', () => {
           (o) => o.storageProvider,
         )
         throw new Error(
-          `❌ All storageProviders failed to fetch. StorageProviders checked: ${storageProvidersChecked.join(', ')}`,
+          `❌ All storage providers failed to fetch. Storage providers checked: ${storageProvidersChecked.join(', ')}`,
         )
       }
     },
