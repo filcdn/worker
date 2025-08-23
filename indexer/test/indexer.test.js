@@ -664,11 +664,11 @@ describe('retriever.indexer', () => {
         if (functionName === 'getPDPService') {
           expect(args).toBe([providerId])
           expect(_blockNumber).toBe(blockNumber)
-          return [{ serviceUrl }]
+          return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
           expect(args).toBe([providerId])
           expect(_blockNumber).toBe(blockNumber)
-          return [{ beneficiary }]
+          return [[beneficiary]]
         }
       }
       const ctx = createExecutionContext()
@@ -714,11 +714,11 @@ describe('retriever.indexer', () => {
         if (functionName === 'getPDPService') {
           expect(args).toBe([providerId])
           expect(_blockNumber).toBe(blockNumber)
-          return [{ serviceUrl }]
+          return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
           expect(args).toBe([providerId])
           expect(_blockNumber).toBe(blockNumber)
-          return [{ beneficiary }]
+          return [[beneficiary]]
         }
       }
       let ctx = createExecutionContext()
@@ -750,7 +750,7 @@ describe('retriever.indexer', () => {
         } else if (functionName === 'getProvider') {
           expect(args).toBe([providerId])
           expect(_blockNumber).toBe(blockNumber)
-          return [{ beneficiary }]
+          return [[beneficiary]]
         }
       }
       ctx = createExecutionContext()
@@ -796,9 +796,9 @@ describe('retriever.indexer', () => {
       // First, insert a provider
       const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          return [{ serviceUrl }]
+          return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          return [{ beneficiary }]
+          return [[beneficiary]]
         }
       }
       const insertReq = new Request(
