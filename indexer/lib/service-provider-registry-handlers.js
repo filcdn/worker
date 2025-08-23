@@ -166,9 +166,7 @@ export async function handleProductUpdated(
  */
 export async function handleProductRemoved(env, providerId, productType) {
   if (
-    !providerId ||
     (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    !productType ||
     (typeof productType !== 'string' && typeof productType !== 'number')
   ) {
     console.error('ServiceProviderRegistry.ProductRemoved: Invalid payload', {
@@ -181,13 +179,16 @@ export async function handleProductRemoved(env, providerId, productType) {
     return new Response('OK', { status: 200 })
   }
 
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `
         DELETE FROM providers WHERE id = ?
       `,
   )
     .bind(providerId)
     .run()
+  if (result.meta.changes === 0) {
+    return new Response('Provider Not Found', { status: 404 })
+  }
   return new Response('OK', { status: 200 })
 }
 
