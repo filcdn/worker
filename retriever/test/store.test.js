@@ -58,7 +58,7 @@ describe('getStorageProviderAndValidateClient', () => {
   const APPROVED_STORAGE_PROVIDER = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   beforeAll(async () => {
     await withApprovedProvider(env, {
-      id: 0,
+      id: 10,
       beneficiary: APPROVED_STORAGE_PROVIDER,
       serviceUrl: 'https://approved-provider.xyz',
     })
@@ -215,7 +215,7 @@ describe('getStorageProviderAndValidateClient', () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await withApprovedProvider(env, {
-      id: 0,
+      id: 20,
       beneficiary: mixedCaseStorageProvider,
     })
 
@@ -255,8 +255,8 @@ describe('getStorageProviderAndValidateClient', () => {
     const storageProvider1 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e7'
     const storageProvider2 = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
 
-    withApprovedProvider(env, { id: 0, beneficiary: storageProvider1 })
-    withApprovedProvider(env, { id: 0, beneficiary: storageProvider2 })
+    await withApprovedProvider(env, { id: 30, beneficiary: storageProvider1 })
+    await withApprovedProvider(env, { id: 31, beneficiary: storageProvider2 })
 
     // Insert both owners into separate sets with the same pieceCid
     await env.DB.prepare(
@@ -294,15 +294,15 @@ describe('getStorageProviderAndValidateClient', () => {
   })
 
   it('ignores owners that are not approved by Filecoin Warm Storage Service', async () => {
-    const dataSetId1 = 'data-set-a'
-    const dataSetId2 = 'data-set-b'
+    const dataSetId1 = 0
+    const dataSetId2 = 1
     const pieceCid = 'shared-piece-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
     const storageProvider1 = '0x1006D234246eD18b6C91de8349fF34C22C726801'
     const storageProvider2 = '0x2006D234246eD18b6C91de8349fF34C22C726802'
 
-    withApprovedProvider(env, {
-      id: 0,
+    await withApprovedProvider(env, {
+      id: 40,
       beneficiary: storageProvider1,
       serviceUrl: 'https://pdp-provider-1.xyz',
     })
@@ -310,7 +310,7 @@ describe('getStorageProviderAndValidateClient', () => {
     // NOTE: the second owner is not registered as an approved provider
 
     // Important: we must insert the unapproved provider first!
-    withDataSetPieces(env, {
+    await withDataSetPieces(env, {
       payer: clientAddress,
       storageProvider: storageProvider2,
       payee: storageProvider2,
@@ -319,7 +319,7 @@ describe('getStorageProviderAndValidateClient', () => {
       pieceCid,
     })
 
-    withDataSetPieces(env, {
+    await withDataSetPieces(env, {
       payer: clientAddress,
       storageProvider: storageProvider1,
       payee: storageProvider1,

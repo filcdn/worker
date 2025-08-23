@@ -474,7 +474,7 @@ describe('retriever.fetch', () => {
     })
 
     await withApprovedProvider(env, {
-      id: 0,
+      id: 1,
       beneficiary: providerAddress,
       serviceUrl: 'https://mock-pdp-url.com',
     })
