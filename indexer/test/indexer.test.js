@@ -174,12 +174,12 @@ describe('retriever.indexer', () => {
         .bind(dataSetId)
         .all()
       expect(pieces.length).toBe(2)
-      expect(pieces[0].piece_id).toBe(pieceIds[0])
+      expect(pieces[0].id).toBe(pieceIds[0])
       expect(pieces[0].data_set_id).toBe(dataSetId)
-      expect(pieces[0].piece_cid).toBe(pieceCids[0])
-      expect(pieces[1].piece_id).toBe(pieceIds[1])
+      expect(pieces[0].cid).toBe(pieceCids[0])
+      expect(pieces[1].id).toBe(pieceIds[1])
       expect(pieces[1].data_set_id).toBe(dataSetId)
-      expect(pieces[1].piece_cid).toBe(pieceCids[1])
+      expect(pieces[1].cid).toBe(pieceCids[1])
     })
 
     it('does not insert duplicate pieces for the same data set', async () => {
@@ -367,7 +367,7 @@ describe('retriever.indexer', () => {
         .all()
 
       expect(dataSets.length).toBe(1)
-      expect(dataSets[0].data_set_id).toBe(dataSetId)
+      expect(dataSets[0].id).toBe(dataSetId)
       expect(dataSets[0].payer).toBe('0xPayerAddress')
       expect(dataSets[0].payee).toBe('0xPayeeAddress')
       expect(dataSets[0].with_cdn).toBe(1)
