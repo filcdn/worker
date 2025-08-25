@@ -238,7 +238,7 @@ export default {
    * @param {typeof globalThis.fetch} [options.fetch]
    */
   async scheduled(_controller, _env, _ctx, { fetch = globalThis.fetch } = {}) {
-    const [subgraph, chainHead] = await Promise.all([
+    const [subgraph] = await Promise.all([
       (async () => {
         const res = await fetch(
           'https://api.goldsky.com/api/public/project_cmb91qc80slyu01wca6e2eupl/subgraphs/pdp-verifier/1.0.0/gn',
@@ -261,32 +261,13 @@ export default {
         const { data } = await res.json()
         return data
       })(),
-      (async () => {
-        const res = await fetch(
-          'https://calibration.filecoin.chain.love/rpc/v0',
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'Filecoin.ChainHead',
-              params: [],
-              id: 1,
-            }),
-          },
-        )
-        const { result } = await res.json()
-        return result
-      })(),
+      // (placeholder for more data-fetching steps)
     ])
     const alerts = []
     if (subgraph._meta.hasIndexingErrors) {
       alerts.push('Goldsky has indexing errors')
     }
-    const lag = chainHead.Height - subgraph._meta.block.number
-    if (lag > 2) {
-      // TODO: Even 2 blocks is too much, but this is where Goldksy is at
-      alerts.push(`Goldsky is ${lag} blocks behind`)
-    }
+    // (placeholder for more alerting conditions)
     if (alerts.length) {
       throw new Error(alerts.join(' & '))
     }
