@@ -6,9 +6,9 @@ import {
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import {
-  handleFilecoinWarmStorageServiceCDNServiceTerminated,
-  handleFilecoinWarmStorageServiceDataSetCreated,
-  handleFilecoinWarmStorageServiceStorageServiceTerminated,
+  handleCDNServiceTerminated,
+  handleDataSetCreated,
+  handleStorageServiceTerminated,
 } from '../lib/filecoin-warm-storage-service-handlers.js'
 import {
   removeDataSetPieces,
@@ -159,7 +159,7 @@ export default {
       )
 
       try {
-        await handleFilecoinWarmStorageServiceDataSetCreated(env, payload, {
+        await handleDataSetCreated(env, payload, {
           checkIfAddressIsSanctioned,
         })
       } catch (err) {
@@ -195,10 +195,7 @@ export default {
         `Terminating service for data set (data_set_id=${payload.data_set_id})`,
       )
 
-      await handleFilecoinWarmStorageServiceStorageServiceTerminated(
-        env,
-        payload,
-      )
+      await handleStorageServiceTerminated(env, payload)
       return new Response('OK', { status: 200 })
     } else if (
       pathname === '/filecoin-warm-storage-service/cdn-service-terminated'
@@ -221,7 +218,7 @@ export default {
         `Terminating CDN service for data set (data_set_id=${payload.data_set_id})`,
       )
 
-      await handleFilecoinWarmStorageServiceCDNServiceTerminated(env, payload)
+      await handleCDNServiceTerminated(env, payload)
       return new Response('OK', { status: 200 })
     } else if (pathname === '/service-provider-registry/product-added') {
       const {
@@ -278,13 +275,9 @@ export default {
     for (const message of batch.messages) {
       if (message.body.type === 'proof-set-rail-created') {
         try {
-          await handleFilecoinWarmStorageServiceDataSetCreated(
-            env,
-            message.body.payload,
-            {
-              checkIfAddressIsSanctioned,
-            },
-          )
+          await handleDataSetCreated(env, message.body.payload, {
+            checkIfAddressIsSanctioned,
+          })
 
           message.ack()
         } catch (err) {
