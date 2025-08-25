@@ -6,7 +6,11 @@ import {
   rpcRequest as defaultRpcRequest,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
-import { handleFilecoinWarmStorageServiceDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
+import {
+  handleCDNServiceTerminated,
+  handleDataSetCreated,
+  handleStorageServiceTerminated,
+} from '../lib/filecoin-warm-storage-service-handlers.js'
 import {
   removeDataSetPieces,
   insertDataSetPieces,
@@ -155,7 +159,7 @@ export default {
       )
 
       try {
-        await handleFilecoinWarmStorageServiceDataSetCreated(env, payload, {
+        await handleDataSetCreated(env, payload, {
           checkIfAddressIsSanctioned,
         })
       } catch (err) {
@@ -169,6 +173,52 @@ export default {
         })
       }
 
+      return new Response('OK', { status: 200 })
+    } else if (
+      pathname === '/filecoin-warm-storage-service/service-terminated'
+    ) {
+      if (
+        !payload.data_set_id ||
+        !(
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
+        )
+      ) {
+        console.error(
+          'FilecoinWarmStorageService.ServiceTerminated: Invalid payload',
+          payload,
+        )
+        return new Response('Bad Request', { status: 400 })
+      }
+
+      console.log(
+        `Terminating service for data set (data_set_id=${payload.data_set_id})`,
+      )
+
+      await handleStorageServiceTerminated(env, payload)
+      return new Response('OK', { status: 200 })
+    } else if (
+      pathname === '/filecoin-warm-storage-service/cdn-service-terminated'
+    ) {
+      if (
+        !payload.data_set_id ||
+        !(
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
+        )
+      ) {
+        console.error(
+          'FilecoinWarmStorageService.CDNServiceTerminated: Invalid payload',
+          payload,
+        )
+        return new Response('Bad Request', { status: 400 })
+      }
+
+      console.log(
+        `Terminating CDN service for data set (data_set_id=${payload.data_set_id})`,
+      )
+
+      await handleCDNServiceTerminated(env, payload)
       return new Response('OK', { status: 200 })
     } else if (pathname === '/service-provider-registry/product-added') {
       const {
@@ -228,13 +278,9 @@ export default {
     for (const message of batch.messages) {
       if (message.body.type === 'proof-set-rail-created') {
         try {
-          await handleFilecoinWarmStorageServiceDataSetCreated(
-            env,
-            message.body.payload,
-            {
-              checkIfAddressIsSanctioned,
-            },
-          )
+          await handleDataSetCreated(env, message.body.payload, {
+            checkIfAddressIsSanctioned,
+          })
 
           message.ack()
         } catch (err) {

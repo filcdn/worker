@@ -1,7 +1,7 @@
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from './chainalysis.js'
 
 /**
- * Handle proof set rail creation
+ * Handle data set creation
  *
  * @param {Env} env
  * @param {any} payload
@@ -10,7 +10,7 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
  * @throws {Error} If there is an error with fetching payer's address sanction
  *   status or during the database operation
  */
-export async function handleFilecoinWarmStorageServiceDataSetCreated(
+export async function handleDataSetCreated(
   env,
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
@@ -54,5 +54,38 @@ export async function handleFilecoinWarmStorageServiceDataSetCreated(
       payload.payee,
       payload.with_cdn,
     )
+    .run()
+}
+
+/**
+ * @param {Env} env
+ * @param {any} payload
+ * @throws {Error}
+ */
+export async function handleStorageServiceTerminated(env, payload) {
+  await env.DB.prepare(
+    `
+      DELETE FROM data_sets
+      WHERE id = ?
+    `,
+  )
+    .bind(String(payload.data_set_id))
+    .run()
+}
+
+/**
+ * @param {Env} env
+ * @param {any} payload
+ * @throws {Error}
+ */
+export async function handleCDNServiceTerminated(env, payload) {
+  await env.DB.prepare(
+    `
+      UPDATE data_sets
+      SET with_cdn = false
+      WHERE id = ?
+    `,
+  )
+    .bind(String(payload.data_set_id))
     .run()
 }
