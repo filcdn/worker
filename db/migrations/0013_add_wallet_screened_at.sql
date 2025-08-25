@@ -1,4 +1,4 @@
 ALTER TABLE wallet_details
-ADD COLUMN screened_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT 0;
+ADD COLUMN last_screened_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT 0;
 
-CREATE INDEX idx_wallet_details_screened_at ON wallet_details(screened_at);
+CREATE INDEX idx_wallet_details_last_screened_at ON wallet_details(last_screened_at);

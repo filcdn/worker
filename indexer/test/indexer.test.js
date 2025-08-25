@@ -426,7 +426,7 @@ describe('retriever.indexer', () => {
 
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].is_sanctioned).toBe(0)
-      assertCloseToNow(walletDetails[0].screened_at)
+      assertCloseToNow(walletDetails[0].last_screened_at)
     })
     it('does not insert duplicate proof set rails', async () => {
       const proofSetId = randomId()
@@ -629,13 +629,13 @@ describe('retriever.indexer', () => {
       expect(initialWalletDetails.length).toBe(1)
       expect(initialWalletDetails[0].address).toBe('0xPayerAddress')
       expect(initialWalletDetails[0].is_sanctioned).toBe(0)
-      assertCloseToNow(initialWalletDetails[0].screened_at)
+      assertCloseToNow(initialWalletDetails[0].last_screened_at)
 
       // When the wallet creates the second ProofSet some time later,
       // it's flagged as sanctioned
 
       await env.DB.exec(
-        'UPDATE wallet_details SET screened_at = datetime("now", "-1 day")',
+        'UPDATE wallet_details SET last_screened_at = datetime("now", "-1 day")',
       )
       mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
       req = new Request('https://host/proof-set-rail-created', {
@@ -666,7 +666,7 @@ describe('retriever.indexer', () => {
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].address).toBe('0xPayerAddress')
       expect(walletDetails[0].is_sanctioned).toBe(1)
-      assertCloseToNow(walletDetails[0].screened_at)
+      assertCloseToNow(walletDetails[0].last_screened_at)
     })
 
     it('sends message to queue if sanction check fails', async () => {
