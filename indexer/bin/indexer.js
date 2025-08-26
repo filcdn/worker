@@ -55,6 +55,14 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
     const payload = await request.json()
+
+    // Ensure addresses are in lower case
+    for (const [key, value] of Object.entries(payload)) {
+      if (typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value)) {
+        payload[key] = value.toLowerCase()
+      }
+    }
+
     const pathname = new URL(request.url).pathname
     if (pathname === '/pdp-verifier/data-set-created') {
       if (
