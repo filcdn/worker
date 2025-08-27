@@ -1,7 +1,7 @@
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from './chainalysis.js'
 
 /**
- * Handle data set creation
+ * Handle Filecoin Warm Storage Service data set creation
  *
  * @param {Env} env
  * @param {any} payload
@@ -10,7 +10,7 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
  * @throws {Error} If there is an error with fetching payer's address sanction
  *   status or during the database operation
  */
-export async function handleDataSetCreated(
+export async function handleFWSDataSetCreated(
   env,
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
@@ -61,11 +61,13 @@ export async function handleDataSetCreated(
 }
 
 /**
+ * Handle Filecoin Warm Storage Service service termination
+ *
  * @param {Env} env
  * @param {any} payload
  * @throws {Error}
  */
-export async function handleStorageServiceTerminated(env, payload) {
+export async function handleFWSServiceTerminated(env, payload) {
   await env.DB.prepare(
     `
       DELETE FROM data_sets
@@ -77,11 +79,13 @@ export async function handleStorageServiceTerminated(env, payload) {
 }
 
 /**
+ * Handle Filecoin Warm Storage Service CDN service termination
+ *
  * @param {Env} env
  * @param {any} payload
  * @throws {Error}
  */
-export async function handleCDNServiceTerminated(env, payload) {
+export async function handleFWSCdnServiceTerminated(env, payload) {
   await env.DB.prepare(
     `
       UPDATE data_sets

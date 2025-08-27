@@ -6,9 +6,9 @@ import {
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
 import {
-  handleCDNServiceTerminated,
-  handleDataSetCreated,
-  handleStorageServiceTerminated,
+  handleFWSCdnServiceTerminated,
+  handleFWSDataSetCreated,
+  handleFWSServiceTerminated,
 } from '../lib/filecoin-warm-storage-service-handlers.js'
 import {
   removeDataSetPieces,
@@ -159,7 +159,7 @@ export default {
       )
 
       try {
-        await handleDataSetCreated(env, payload, {
+        await handleFWSDataSetCreated(env, payload, {
           checkIfAddressIsSanctioned,
         })
       } catch (err) {
@@ -195,7 +195,7 @@ export default {
         `Terminating service for data set (data_set_id=${payload.data_set_id})`,
       )
 
-      await handleStorageServiceTerminated(env, payload)
+      await handleFWSServiceTerminated(env, payload)
       return new Response('OK', { status: 200 })
     } else if (
       pathname === '/filecoin-warm-storage-service/cdn-service-terminated'
@@ -218,7 +218,7 @@ export default {
         `Terminating CDN service for data set (data_set_id=${payload.data_set_id})`,
       )
 
-      await handleCDNServiceTerminated(env, payload)
+      await handleFWSCdnServiceTerminated(env, payload)
       return new Response('OK', { status: 200 })
     } else if (pathname === '/service-provider-registry/product-added') {
       const {
@@ -275,7 +275,7 @@ export default {
     for (const message of batch.messages) {
       if (message.body.type === 'proof-set-rail-created') {
         try {
-          await handleDataSetCreated(env, message.body.payload, {
+          await handleFWSDataSetCreated(env, message.body.payload, {
             checkIfAddressIsSanctioned,
           })
 
