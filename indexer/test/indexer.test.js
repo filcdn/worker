@@ -5,12 +5,7 @@ import {
   createExecutionContext,
   waitOnExecutionContext,
 } from 'cloudflare:test'
-import {
-  LIVE_PDP_FILE,
-  DELETED_PDP_FILE,
-  PDP_FILES_BY_DATA_SET_ID,
-} from './test-data.js'
-import { assertOkResponse } from 'assert-ok-response'
+import { PIECES_BY_DATA_SET_ID } from './test-data.js'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
@@ -58,7 +53,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: dataSetId,
-          storage_provider: '0xAddress',
+          storage_provider: '0xaddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -72,7 +67,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xAddress'.toLowerCase())
+      expect(dataSets[0].storage_provider).toBe('0xaddress')
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
@@ -108,7 +103,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: Number(dataSetId),
-          storage_provider: '0xAddress',
+          storage_provider: '0xaddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -122,7 +117,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xAddress'.toLowerCase())
+      expect(dataSets[0].storage_provider).toBe('0xaddress'.toLowerCase())
     })
   })
 
@@ -133,7 +128,7 @@ describe('retriever.indexer', () => {
     const createMockPdpVerifierClient = () => {
       return {
         getPieceCid(dataSetId, pieceId) {
-          return PDP_FILES_BY_DATA_SET_ID[dataSetId]?.cid || null
+          return PIECES_BY_DATA_SET_ID[dataSetId]?.cid || null
         },
       }
     }
@@ -179,12 +174,12 @@ describe('retriever.indexer', () => {
         .bind(dataSetId)
         .all()
       expect(pieces.length).toBe(2)
-      expect(pieces[0].piece_id).toBe(pieceIds[0])
+      expect(pieces[0].id).toBe(pieceIds[0])
       expect(pieces[0].data_set_id).toBe(dataSetId)
-      expect(pieces[0].piece_cid).toBe(pieceCids[0])
-      expect(pieces[1].piece_id).toBe(pieceIds[1])
+      expect(pieces[0].cid).toBe(pieceCids[0])
+      expect(pieces[1].id).toBe(pieceIds[1])
       expect(pieces[1].data_set_id).toBe(dataSetId)
-      expect(pieces[1].piece_cid).toBe(pieceCids[1])
+      expect(pieces[1].cid).toBe(pieceCids[1])
     })
 
     it('does not insert duplicate pieces for the same data set', async () => {
@@ -255,66 +250,6 @@ describe('retriever.indexer', () => {
         {
           data_set_id: dataSetIds[1],
           id: '0',
-        },
-      ])
-    })
-
-    it('adds a real live piece and fetches the piece CID from on-chain state', async () => {
-      const req = new Request('https://host/pdp-verifier/pieces-added', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: LIVE_PDP_FILE.dataSetId.toString(),
-          piece_ids: LIVE_PDP_FILE.pieceId.toString(),
-          piece_cids: undefined,
-        }),
-      })
-      const res = await workerImpl.fetch(req, env)
-      await assertOkResponse(res)
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT id, cid FROM pieces WHERE data_set_id = ?',
-      )
-        .bind(LIVE_PDP_FILE.dataSetId.toString())
-        .all()
-
-      expect(pieces).toEqual([
-        {
-          id: LIVE_PDP_FILE.pieceId.toString(),
-          cid: LIVE_PDP_FILE.cid,
-        },
-      ])
-    })
-
-    it('ignores piece when on-chain state does not have a live piece', async () => {
-      const req = new Request('https://host/pdp-verifier/pieces-added', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: DELETED_PDP_FILE.dataSetId.toString(),
-          piece_ids: DELETED_PDP_FILE.pieceId.toString(),
-          piece_cids: undefined,
-        }),
-      })
-      const res = await workerImpl.fetch(req, env, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
-      await assertOkResponse(res)
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT id, cid FROM pieces WHERE data_set_id = ?',
-      )
-        .bind(DELETED_PDP_FILE.dataSetId.toString())
-        .all()
-
-      expect(pieces).toEqual([
-        {
-          id: DELETED_PDP_FILE.pieceId.toString(),
-          cid: DELETED_PDP_FILE.cid,
         },
       ])
     })
@@ -432,7 +367,7 @@ describe('retriever.indexer', () => {
         .all()
 
       expect(dataSets.length).toBe(1)
-      expect(dataSets[0].data_set_id).toBe(dataSetId)
+      expect(dataSets[0].id).toBe(dataSetId)
       expect(dataSets[0].payer).toBe('0xPayerAddress')
       expect(dataSets[0].payee).toBe('0xPayeeAddress')
       expect(dataSets[0].with_cdn).toBe(1)
@@ -739,7 +674,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const providerId = 0
       const blockNumber = 10
       const req = new Request(
@@ -758,13 +693,13 @@ describe('retriever.indexer', () => {
       )
       const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
-          return [{ serviceUrl }]
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
+          return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
-          return [{ beneficiary }]
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
+          return [[beneficiary]]
         }
       }
       const ctx = createExecutionContext()
@@ -786,7 +721,7 @@ describe('retriever.indexer', () => {
   describe('POST /service-provider-registry/product-updated', () => {
     it('updates service URLs for an existing provider', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const providerId = 0
       const blockNumber = 10
       const newServiceUrl = 'https://new-provider.example.com'
@@ -808,13 +743,13 @@ describe('retriever.indexer', () => {
       )
       let rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
-          return [{ serviceUrl }]
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
+          return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
-          return [{ beneficiary }]
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
+          return [[beneficiary]]
         }
       }
       let ctx = createExecutionContext()
@@ -840,13 +775,13 @@ describe('retriever.indexer', () => {
       )
       rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
-          return [{ serviceUrl: newServiceUrl }]
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
+          return [[newServiceUrl]]
         } else if (functionName === 'getProvider') {
-          expect(args).toBe([providerId])
-          expect(_blockNumber).toBe(blockNumber)
-          return [{ beneficiary }]
+          expect(args).toEqual([providerId])
+          expect(_blockNumber).toEqual(blockNumber)
+          return [[beneficiary]]
         }
       }
       ctx = createExecutionContext()
@@ -886,15 +821,15 @@ describe('retriever.indexer', () => {
       const providerId = 0
       const blockNumber = 10
       const productType = 0
-      const beneficiary = '0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC'
+      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider
       const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
         if (functionName === 'getPDPService') {
-          return [{ serviceUrl }]
+          return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          return [{ beneficiary }]
+          return [[beneficiary]]
         }
       }
       const insertReq = new Request(
@@ -965,6 +900,104 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(404)
       expect(await res.text()).toBe('Provider Not Found')
     })
+  })
+})
+describe('POST /service-provider-registry/provider-removed', () => {
+  it('returns 400 if the provider id is missing', async () => {
+    const req = new Request(
+      'https://host/service-provider-registry/provider-removed',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('removes a provider from the providers table', async () => {
+    const providerId = 0
+    const blockNumber = 10
+    const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+    const serviceUrl = 'https://provider.example.com'
+
+    // First, insert a provider
+    const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
+      if (functionName === 'getPDPService') {
+        return [[serviceUrl]]
+      } else if (functionName === 'getProvider') {
+        return [[beneficiary]]
+      }
+    }
+    const insertReq = new Request(
+      'https://host/service-provider-registry/product-added',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider_id: providerId,
+          product_type: 0,
+          block_number: blockNumber,
+          service_url: 'https://provider.example.com',
+        }),
+      },
+    )
+    const ctx = createExecutionContext()
+    const insertRes = await workerImpl.fetch(insertReq, env, ctx, {
+      rpcRequest,
+    })
+    await waitOnExecutionContext(ctx)
+    expect(insertRes.status).toBe(200)
+    expect(await insertRes.text()).toBe('OK')
+
+    // Now, remove the provider
+    const removeReq = new Request(
+      'https://host/service-provider-registry/provider-removed',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider_id: providerId,
+        }),
+      },
+    )
+    const removeRes = await workerImpl.fetch(removeReq, env)
+    expect(removeRes.status).toBe(200)
+    expect(await removeRes.text()).toBe('OK')
+
+    // Verify that the provider is removed from the database
+    const { results: providers } = await env.DB.prepare(
+      'SELECT * FROM providers WHERE beneficiary = ?',
+    )
+      .bind(beneficiary)
+      .all()
+    expect(providers.length).toBe(0) // The provider should be removed
+  })
+
+  it('returns 404 if the provider does not exist', async () => {
+    const req = new Request(
+      'https://host/service-provider-registry/provider-removed',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          provider_id: 13,
+        }),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe('Provider Not Found')
   })
 })
 

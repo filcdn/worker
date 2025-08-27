@@ -8,6 +8,8 @@ const serviceProviderRegistryAbi = [
 ]
 const serviceProviderRegistryIface = new Interface(serviceProviderRegistryAbi)
 
+const PRODUCT_TYPE_PDP = 0
+
 /**
  * @param {string} to
  * @param {string} functionName
@@ -84,9 +86,7 @@ export async function handleProductAdded(
   serviceProviderRegistryAddress,
 ) {
   if (
-    !providerId ||
     (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    !productType ||
     (typeof productType !== 'string' && typeof productType !== 'number')
   ) {
     console.error('ServiceProviderRegistry.ProductAdded: Invalid payload', {
@@ -95,7 +95,7 @@ export async function handleProductAdded(
     })
     return new Response('Bad Request', { status: 400 })
   }
-  if (Number(productType) !== 0) {
+  if (Number(productType) !== PRODUCT_TYPE_PDP) {
     return new Response('OK', { status: 200 })
   }
 
@@ -132,9 +132,7 @@ export async function handleProductUpdated(
   serviceProviderRegistryAddress,
 ) {
   if (
-    !providerId ||
     (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    !productType ||
     (typeof productType !== 'string' && typeof productType !== 'number')
   ) {
     console.error('ServiceProviderRegistry.ProductUpdated: Invalid payload', {
@@ -143,7 +141,7 @@ export async function handleProductUpdated(
     })
     return new Response('Bad Request', { status: 400 })
   }
-  if (Number(productType) !== 0) {
+  if (Number(productType) !== PRODUCT_TYPE_PDP) {
     return new Response('OK', { status: 200 })
   }
 
@@ -166,9 +164,7 @@ export async function handleProductUpdated(
  */
 export async function handleProductRemoved(env, providerId, productType) {
   if (
-    !providerId ||
     (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    !productType ||
     (typeof productType !== 'string' && typeof productType !== 'number')
   ) {
     console.error('ServiceProviderRegistry.ProductRemoved: Invalid payload', {
@@ -177,17 +173,46 @@ export async function handleProductRemoved(env, providerId, productType) {
     })
     return new Response('Bad Request', { status: 400 })
   }
-  if (Number(productType) !== 0) {
+  if (Number(productType) !== PRODUCT_TYPE_PDP) {
     return new Response('OK', { status: 200 })
   }
 
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `
         DELETE FROM providers WHERE id = ?
       `,
   )
     .bind(providerId)
     .run()
+  if (result.meta.changes === 0) {
+    return new Response('Provider Not Found', { status: 404 })
+  }
+  return new Response('OK', { status: 200 })
+}
+
+/**
+ * @param {Env} env
+ * @param {string | number} providerId
+ * @returns {Promise<Response>}
+ */
+export async function handleProviderRemoved(env, providerId) {
+  if (typeof providerId !== 'string' && typeof providerId !== 'number') {
+    console.error('ServiceProviderRegistry.ProviderRemoved: Invalid payload', {
+      providerId,
+    })
+    return new Response('Bad Request', { status: 400 })
+  }
+
+  const result = await env.DB.prepare(
+    `
+        DELETE FROM providers WHERE id = ?
+      `,
+  )
+    .bind(providerId)
+    .run()
+  if (result.meta.changes === 0) {
+    return new Response('Provider Not Found', { status: 404 })
+  }
   return new Response('OK', { status: 200 })
 }
 
@@ -247,36 +272,12 @@ async function handleProviderServiceUrlUpdate(
           service_url
         )
         VALUES (?, ?, ?)
-        ON CONFLICT(id, owner) DO UPDATE SET service_url=excluded.service_url
+        ON CONFLICT(id) DO UPDATE SET
+          beneficiary=excluded.beneficiary,
+          service_url=excluded.service_url
       `,
   )
     .bind(providerId, beneficiary.toLowerCase(), serviceUrl)
     .run()
-  return new Response('OK', { status: 200 })
-}
-
-/**
- * @param {Env} env
- * @param {string} provider
- * @returns {Promise<Response>}
- */
-export async function handleProviderRemoved(env, provider) {
-  if (!provider || typeof provider !== 'string') {
-    console.error('ProviderRemoved: Invalid payload', { provider })
-    return new Response('Bad Request', { status: 400 })
-  }
-
-  console.log(`Provider removed (provider=${provider})`)
-
-  /** @type {D1Result<Record<string, unknown>>} */
-  const result = await env.DB.prepare(`DELETE FROM providers WHERE owner = ?`)
-    .bind(provider.toLowerCase())
-    .run()
-
-  // SQLite-specific: result.changes may indicate rows affected
-  if (result.meta.changes === 0) {
-    return new Response('Provider Not Found', { status: 404 })
-  }
-
   return new Response('OK', { status: 200 })
 }

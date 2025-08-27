@@ -45,10 +45,7 @@ export async function handleFWSSDataSetCreated(
         with_cdn
       )
       VALUES (?, ?, ?, ?)
-      ON CONFLICT DO UPDATE SET
-        payer=excluded.payer,
-        payee=excluded.payee,
-        with_cdn=excluded.with_cdn
+      ON CONFLICT DO NOTHING
     `,
   )
     .bind(

@@ -53,7 +53,7 @@ describe('retriever.fetch', () => {
         pieceId,
       })
       await withApprovedProvider(env, {
-        id: 0,
+        id: i,
         beneficiary: storageProvider,
         serviceUrl,
       })
@@ -400,7 +400,7 @@ describe('retriever.fetch', () => {
               const actualBytes = content.byteLength
 
               const { results } = await env.DB.prepare(
-                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storageProvider_address = ?',
+                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider = ?',
               )
                 .bind(defaultClientAddress, storageProvider)
                 .all()
@@ -430,7 +430,7 @@ describe('retriever.fetch', () => {
           (o) => o.storageProvider,
         )
         throw new Error(
-          `❌ All storageProviders failed to fetch. StorageProviders checked: ${storageProvidersChecked.join(', ')}`,
+          `❌ All storage providers failed to fetch. Storage providers checked: ${storageProvidersChecked.join(', ')}`,
         )
       }
     },
@@ -458,13 +458,11 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 402)
   })
-  it('reads the provider URL from the database, comparing storageProvider address case-insensitively', async () => {
-    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
+  it('reads the provider URL from the database', async () => {
+    const providerAddress = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
     const pieceCid = 'bagaTest'
     const body = 'file content'
-
-    expect(providerAddress.toLowerCase()).not.toEqual(providerAddress)
 
     await withDataSetPieces(env, {
       storageProvider: providerAddress,
@@ -474,7 +472,7 @@ describe('retriever.fetch', () => {
     })
 
     await withApprovedProvider(env, {
-      id: 0,
+      id: 10,
       beneficiary: providerAddress,
       serviceUrl: 'https://mock-pdp-url.com',
     })
@@ -520,7 +518,7 @@ describe('retriever.fetch', () => {
     // Expect an error because no URL was found
     expect(res.status).toBe(404)
     expect(await res.text()).toBe(
-      `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and root_cid 'bagaTest'.`,
+      `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and piece_cid 'bagaTest'.`,
     )
   })
 

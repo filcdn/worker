@@ -54,7 +54,7 @@ export async function withApprovedProvider(
     VALUES (?, ?, ?)
   `,
   )
-    .bind(id, beneficiary, serviceUrl)
+    .bind(String(id), beneficiary, serviceUrl)
     .run()
 }
 

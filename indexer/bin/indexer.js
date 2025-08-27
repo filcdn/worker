@@ -2,6 +2,7 @@ import {
   handleProductAdded,
   handleProductUpdated,
   handleProductRemoved,
+  handleProviderRemoved,
   rpcRequest as defaultRpcRequest,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
@@ -58,6 +59,14 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
     const payload = await request.json()
+
+    // Ensure addresses are in lower case
+    for (const [key, value] of Object.entries(payload)) {
+      if (typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value)) {
+        payload[key] = value.toLowerCase()
+      }
+    }
+
     const pathname = new URL(request.url).pathname
     if (pathname === '/pdp-verifier/data-set-created') {
       if (
@@ -80,11 +89,10 @@ export default {
             storage_provider
           )
           VALUES (?, ?)
-          ON CONFLICT DO UPDATE SET
-            storage_provider=excluded.storage_provider
+          ON CONFLICT DO NOTHING
         `,
       )
-        .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
+        .bind(String(payload.set_id), payload.storage_provider)
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {
@@ -255,6 +263,9 @@ export default {
     } else if (pathname === '/service-provider-registry/product-removed') {
       const { provider_id: providerId, product_type: productType } = payload
       return await handleProductRemoved(env, providerId, productType)
+    } else if (pathname === '/service-provider-registry/provider-removed') {
+      const { provider_id: providerId } = payload
+      return await handleProviderRemoved(env, providerId)
     } else {
       return new Response('Not Found', { status: 404 })
     }
