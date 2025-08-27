@@ -3,7 +3,7 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
 /**
  * Handle proof set rail creation
  *
- * @param {Env} env
+ * @param {{ CHAINALYSIS_API_KEY: string; DB: D1Database }} env
  * @param {any} payload
  * @param {object} opts
  * @param {typeof defaultCheckIfAddressIsSanctioned} opts.checkIfAddressIsSanctioned
@@ -15,10 +15,7 @@ export async function handleProofSetRailCreated(
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
 ) {
-  const {
-    // @ts-ignore
-    CHAINALYSIS_API_KEY,
-  } = env
+  const { CHAINALYSIS_API_KEY } = env
 
   if (payload.with_cdn) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {
