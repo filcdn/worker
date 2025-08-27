@@ -10,7 +10,7 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
  * @throws {Error} If there is an error with fetching payer's address sanction
  *   status or during the database operation
  */
-export async function handleFWSDataSetCreated(
+export async function handleFWSSDataSetCreated(
   env,
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
@@ -67,7 +67,7 @@ export async function handleFWSDataSetCreated(
  * @param {any} payload
  * @throws {Error}
  */
-export async function handleFWSServiceTerminated(env, payload) {
+export async function handleFWSSServiceTerminated(env, payload) {
   await env.DB.prepare(
     `
       DELETE FROM data_sets
@@ -85,7 +85,7 @@ export async function handleFWSServiceTerminated(env, payload) {
  * @param {any} payload
  * @throws {Error}
  */
-export async function handleFWSCdnServiceTerminated(env, payload) {
+export async function handleFWSSCdnServiceTerminated(env, payload) {
   await env.DB.prepare(
     `
       UPDATE data_sets
