@@ -22,7 +22,7 @@ export async function screenWallets(
     .bind(staleThresholdMs, batchSize)
     .all()
 
-  // No wallets in the system, nothing to do.
+  // No wallets with a stale sanction check, nothing to do.
   if (!wallets || !wallets.length) return
 
   const updateStatementTemplate = env.DB.prepare(
