@@ -178,7 +178,7 @@ export async function withWalletDetails(
   )
     .bind(
       address.toLowerCase(),
-      isSanctioned ? 1 : 0,
+      isSanctioned,
       lastScreenedAt?.toISOString() ?? null,
     )
     .run()

@@ -40,9 +40,7 @@ export async function screenWallets(
       const isSanctioned = await checkIfAddressIsSanctioned(address, {
         CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
       })
-      updateStatements.push(
-        updateStatementTemplate.bind(isSanctioned ? 1 : 0, address),
-      )
+      updateStatements.push(updateStatementTemplate.bind(isSanctioned, address))
     } catch (error) {
       console.error({
         message: `Failed to screen wallet ${address}: ${/** @type {Error} */ (error).message}`,
