@@ -36,12 +36,21 @@ export async function screenWallets(
   for (const w of wallets) {
     const address = /** @type {string} */ (w.address)
 
-    const isSanctioned = await checkIfAddressIsSanctioned(address, {
-      CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
-    })
-    updateStatements.push(
-      updateStatementTemplate.bind(isSanctioned ? 1 : 0, address),
-    )
+    try {
+      const isSanctioned = await checkIfAddressIsSanctioned(address, {
+        CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
+      })
+      updateStatements.push(
+        updateStatementTemplate.bind(isSanctioned ? 1 : 0, address),
+      )
+    } catch (error) {
+      console.error({
+        message: `Failed to screen wallet ${address}: ${/** @type {Error} */ (error).message}`,
+        error,
+        stack: /** @type {Error} */ (error).stack,
+      })
+      // Do not update the wallet, we'll retry next time.
+    }
   }
 
   await env.DB.batch(updateStatements)

@@ -116,6 +116,46 @@ describe('screenClientWallets', async () => {
       { address: '0xabcd003', is_sanctioned: 0 },
     ])
   })
+
+  it('continues processing the batch when some screening API calls fail', async () => {
+    await withWalletDetails(env, {
+      address: '0xabcd001',
+      isSanctioned: 0,
+      lastScreenedAt: new Date('2025-01-01T00:00:00Z'),
+    })
+    await withWalletDetails(env, {
+      address: '0xabcd002',
+      isSanctioned: 0,
+      lastScreenedAt: new Date('2025-01-01T00:00:00Z'),
+    })
+
+    await screenWallets(env, {
+      staleThresholdMs: 1_000,
+      batchSize: 10,
+      checkIfAddressIsSanctioned: async (address) => {
+        if (address === '0xabcd001') throw new Error('Simulated API failure')
+        return true // Simulate that the address is now sanctioned
+      },
+    })
+
+    const { results: wallets } = await env.DB.prepare(
+      'SELECT * FROM wallet_details ORDER BY address ASC',
+    ).all()
+
+    // The first wallet was not updated due to the simulated failure
+    expect(wallets[0]).toEqual({
+      address: '0xabcd001',
+      is_sanctioned: 0,
+      last_screened_at: '2025-01-01T00:00:00.000Z',
+    })
+
+    // The second wallet was screened successfully
+    expect(wallets[1]).toMatchObject({
+      address: '0xabcd002',
+      is_sanctioned: 1,
+    })
+    assertCloseToNow(wallets[1].last_screened_at)
+  })
 })
 
 /**
