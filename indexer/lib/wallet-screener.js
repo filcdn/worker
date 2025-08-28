@@ -14,7 +14,7 @@ export async function screenWallets(
   const { results: wallets } = await env.DB.prepare(
     `
     SELECT address FROM wallet_details
-    WHERE last_screened_at IS NULL OR unixepoch('subsec') - unixepoch(last_screened_at, 'subsec') >= ?
+    WHERE last_screened_at IS NULL OR unixepoch('subsec') - unixepoch(last_screened_at, 'subsec') >= (? / 1000)
     ORDER BY last_screened_at ASC
     LIMIT ?
   `,

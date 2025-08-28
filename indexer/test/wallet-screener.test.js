@@ -79,17 +79,19 @@ describe('screenClientWallets', async () => {
   })
 
   it('ignores addresses that we screened less than `staleThresholdMs` in the past', async () => {
+    const staleThresholdMs = 2_000
+
     // Not screened yet
     await withWalletDetails(env, {
       address: '0xabcd001',
       isSanctioned: false,
       lastScreenedAt: null,
     })
-    // Screened a long time ago
+    // Screened slightly more than staleThresholdMs ago
     await withWalletDetails(env, {
       address: '0xabcd002',
       isSanctioned: false,
-      lastScreenedAt: new Date('2025-01-01T00:00:00Z'),
+      lastScreenedAt: new Date(Date.now() - staleThresholdMs - 200),
     })
     // Screened recently
     await withWalletDetails(env, {
@@ -99,7 +101,7 @@ describe('screenClientWallets', async () => {
     })
 
     await screenWallets(env, {
-      staleThresholdMs: 60_000,
+      staleThresholdMs,
       batchSize: 10,
       checkIfAddressIsSanctioned: async (address) => true,
     })
