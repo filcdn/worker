@@ -970,7 +970,7 @@ async function withDataSet(
     ON CONFLICT DO NOTHING
   `,
   )
-    .bind(String(dataSetId), withCDN ? 1 : 0, payer, payee)
+    .bind(String(dataSetId), withCDN, payer, payee)
     .run()
 
   return dataSetId
