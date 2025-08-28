@@ -7,7 +7,7 @@ import {
 import {
   getStorageProviderAndValidateClient,
   logRetrievalResult,
-  updateDataSetSats,
+  updateDataSetStats,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
@@ -148,7 +148,7 @@ export default {
             dataSetId,
           })
 
-          await updateDataSetSats(env, { dataSetId, egressBytes })
+          await updateDataSetStats(env, { dataSetId, egressBytes })
         })(),
       )
 

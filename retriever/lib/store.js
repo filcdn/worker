@@ -196,7 +196,7 @@ export async function getStorageProviderAndValidateClient(
  * @param {string} params.dataSetId - The ID of the data set to update.
  * @param {number} params.egressBytes - The egress bytes used for the response.
  */
-export async function updateDataSetSats(env, { dataSetId, egressBytes }) {
+export async function updateDataSetStats(env, { dataSetId, egressBytes }) {
   await env.DB.prepare(
     `
     INSERT INTO data_sets (id, total_egress_bytes_used)

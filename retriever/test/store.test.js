@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   logRetrievalResult,
   getStorageProviderAndValidateClient,
-  updateDataSetSats,
+  updateDataSetStats,
 } from '../lib/store.js'
 import { env } from 'cloudflare:test'
 import {
@@ -338,7 +338,7 @@ describe('updateDataSetStats', () => {
     const DATA_SET_ID = 'test-data-set-1'
     const EGRESS_BYTES = 123456
 
-    await updateDataSetSats(env, {
+    await updateDataSetStats(env, {
       dataSetId: DATA_SET_ID,
       egressBytes: EGRESS_BYTES,
     })
@@ -359,7 +359,7 @@ describe('updateDataSetStats', () => {
     ])
 
     // Update the egress stats
-    await updateDataSetSats(env, {
+    await updateDataSetStats(env, {
       dataSetId: DATA_SET_ID,
       egressBytes: 1000,
     })
