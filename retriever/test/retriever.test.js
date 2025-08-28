@@ -37,24 +37,24 @@ describe('retriever.fetch', () => {
 
     let i = 1
     for (const {
-      storageProvider,
+      storageProviderAddress,
       serviceUrl,
       pieceCid,
       dataSetId,
     } of CONTENT_STORED_ON_CALIBRATION) {
       const pieceId = `root-${i}`
       await withDataSetPieces(env, {
-        storageProvider,
+        storageProviderAddress,
         pieceCid,
         payer: defaultClientAddress,
-        payee: storageProvider,
+        payee: storageProviderAddress,
         withCDN: true,
         dataSetId,
         pieceId,
       })
       await withApprovedProvider(env, {
         id: i,
-        beneficiaryAddress: storageProvider,
+        beneficiaryAddress: storageProviderAddress,
         serviceUrl,
       })
       i++
@@ -386,7 +386,7 @@ describe('retriever.fetch', () => {
     { timeout: 10000 },
     async () => {
       const tasks = CONTENT_STORED_ON_CALIBRATION.map(
-        ({ storageProvider, pieceCid }) => {
+        ({ storageProviderAddress, pieceCid }) => {
           return (async () => {
             try {
               const ctx = createExecutionContext()
@@ -400,18 +400,18 @@ describe('retriever.fetch', () => {
               const actualBytes = content.byteLength
 
               const { results } = await env.DB.prepare(
-                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider = ?',
+                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider_address = ?',
               )
-                .bind(defaultClientAddress, storageProvider)
+                .bind(defaultClientAddress, storageProviderAddress)
                 .all()
 
               assert.strictEqual(results.length, 1)
               assert.strictEqual(results[0].egress_bytes, actualBytes)
 
-              return { storageProvider, success: true }
+              return { storageProviderAddress, success: true }
             } catch (err) {
               console.warn(
-                `⚠️ Warning: Fetch or verification failed for storageProvider ${storageProvider}:`,
+                `⚠️ Warning: Fetch or verification failed for storageProvider ${storageProviderAddress}:`,
                 err,
               )
               throw err
@@ -427,7 +427,7 @@ describe('retriever.fetch', () => {
         }
       } catch (err) {
         const storageProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
-          (o) => o.storageProvider,
+          (o) => o.storageProviderAddress,
         )
         throw new Error(
           `❌ All storage providers failed to fetch. Storage providers checked: ${storageProvidersChecked.join(', ')}`,
@@ -441,10 +441,10 @@ describe('retriever.fetch', () => {
     const pieceId = 'root-no-cdn'
     const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const storageProvider = '0xStorageProvider'
+    const storageProviderAddress = '0xStorageProvider'
     await withDataSetPieces(env, {
-      storageProvider,
-      payee: storageProvider,
+      storageProviderAddress,
+      payee: storageProviderAddress,
       pieceCid,
       dataSetId,
       withCDN: false,
@@ -459,21 +459,21 @@ describe('retriever.fetch', () => {
     assert.strictEqual(res.status, 402)
   })
   it('reads the provider URL from the database', async () => {
-    const providerAddress = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
+    const storageProviderAddress = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
     const pieceCid = 'bagaTest'
     const body = 'file content'
 
     await withDataSetPieces(env, {
-      storageProvider: providerAddress,
-      payee: providerAddress,
+      storageProviderAddress,
+      payee: storageProviderAddress,
       pieceCid,
       payer: clientAddress,
     })
 
     await withApprovedProvider(env, {
       id: 10,
-      beneficiaryAddress: providerAddress,
+      beneficiaryAddress: storageProviderAddress,
       serviceUrl: 'https://mock-pdp-url.com',
     })
 
@@ -499,13 +499,13 @@ describe('retriever.fetch', () => {
   })
 
   it('throws an error if the providerAddress is not found in the database', async () => {
-    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
+    const storageProviderAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
     const clientAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     const pieceCid = 'bagaTest'
 
     await withDataSetPieces(env, {
-      storageProvider: providerAddress,
-      payee: providerAddress,
+      storageProviderAddress,
+      payee: storageProviderAddress,
       pieceCid,
       payer: clientAddress,
     })
@@ -630,11 +630,11 @@ describe('retriever.fetch', () => {
     const pieceId = 'root-data-set-client-sanctioned'
     const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const storageProvider = '0xStorageProvider'
+    const storageProviderAddress = '0xStorageProvider'
     const clientAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
     await withDataSetPieces(env, {
-      storageProvider,
-      payee: storageProvider,
+      storageProviderAddress,
+      payee: storageProviderAddress,
       payer: clientAddress,
       pieceCid,
       dataSetId,
@@ -673,17 +673,17 @@ describe('retriever.fetch', () => {
   it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
     const invalidPieceCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
     const dataSetId = 'unsupported-storageProvider-test'
-    const unsupportedStorageProvider =
+    const unsupportedStorageProviderAddress =
       '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
-        unsupportedStorageProvider,
+        unsupportedStorageProviderAddress,
         defaultClientAddress,
-        unsupportedStorageProvider,
+        unsupportedStorageProviderAddress,
         true,
       ),
       env.DB.prepare(
@@ -700,7 +700,7 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toContain('No approved storage provider found')
 
     const result = await env.DB.prepare(
-      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND storage_provider IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
+      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND storage_provider_address IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
     )
       .bind(defaultClientAddress)
       .first()

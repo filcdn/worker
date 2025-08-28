@@ -14,7 +14,7 @@ CREATE TABLE providers (
 
 CREATE TABLE data_sets (
   id TEXT NOT NULL,
-  storage_provider TEXT,
+  storage_provider_address TEXT,
   payer TEXT,
   payee TEXT,
   with_cdn BOOLEAN,
@@ -34,7 +34,7 @@ CREATE TABLE retrieval_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp DATETIME NOT NULL,
   data_set_id TEXT,
-  storage_provider TEXT,
+  storage_provider_address TEXT,
   client_address TEXT NOT NULL,
   response_status INTEGER,
   egress_bytes INTEGER,

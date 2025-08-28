@@ -82,7 +82,7 @@ export default {
         `
           INSERT INTO data_sets (
             id,
-            storage_provider
+            storage_provider_address
           )
           VALUES (?, ?)
           ON CONFLICT DO NOTHING

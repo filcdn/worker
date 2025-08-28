@@ -65,7 +65,7 @@ export default {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
 
-      const [{ storageProvider, serviceUrl, dataSetId }, isBadBit] =
+      const [{ storageProviderAddress, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
           getStorageProviderAndValidateClient(
             env,
@@ -82,9 +82,9 @@ export default {
       )
 
       httpAssert(
-        storageProvider,
+        storageProviderAddress,
         404,
-        `Unsupported Storage Provider: ${storageProvider}`,
+        `Unsupported Storage Provider: ${storageProviderAddress}`,
       )
 
       const { response: originResponse, cacheMiss } = await retrieveFile(
@@ -101,7 +101,7 @@ export default {
         ctx.waitUntil(
           logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
-            storageProvider,
+            storageProviderAddress,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes: 0,
@@ -134,7 +134,7 @@ export default {
 
           await logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
-            storageProvider,
+            storageProviderAddress,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes,
@@ -171,7 +171,7 @@ export default {
       ctx.waitUntil(
         logRetrievalResult(env, {
           clientAddress: clientWalletAddress,
-          storageProvider: null,
+          storageProviderAddress: null,
           cacheMiss: null,
           responseStatus: status,
           egressBytes: null,

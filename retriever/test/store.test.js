@@ -13,11 +13,12 @@ import {
 
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
-    const STORAGE_PROVIDER = '0x1234567890abcdef1234567890abcdef12345678'
+    const STORAGE_PROVIDER_ADDRESS =
+      '0x1234567890abcdef1234567890abcdef12345678'
     const CLIENT_ADDRESS = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await logRetrievalResult(env, {
-      storageProvider: STORAGE_PROVIDER,
+      storageProviderAddress: STORAGE_PROVIDER_ADDRESS,
       clientAddress: CLIENT_ADDRESS,
       cacheMiss: false,
       egressBytes: 1234,
@@ -29,7 +30,7 @@ describe('logRetrievalResult', () => {
 
     const readOutput = await env.DB.prepare(
       `SELECT 
-        storage_provider,
+        storage_provider_address,
         client_address,
         response_status,
         egress_bytes,
@@ -37,12 +38,12 @@ describe('logRetrievalResult', () => {
         request_country_code,
         data_set_id 
       FROM retrieval_logs 
-      WHERE storage_provider = '${STORAGE_PROVIDER}' AND client_address = '${CLIENT_ADDRESS}'`,
+      WHERE storage_provider_address = '${STORAGE_PROVIDER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`,
     ).all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
       {
-        storage_provider: STORAGE_PROVIDER,
+        storage_provider_address: STORAGE_PROVIDER_ADDRESS,
         client_address: CLIENT_ADDRESS,
         response_status: 200,
         egress_bytes: 1234,
@@ -55,11 +56,12 @@ describe('logRetrievalResult', () => {
 })
 
 describe('getStorageProviderAndValidateClient', () => {
-  const APPROVED_STORAGE_PROVIDER = '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
+  const APPROVED_STORAGE_PROVIDER_ADDRESS =
+    '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   beforeAll(async () => {
     await withApprovedProvider(env, {
       id: 20,
-      beneficiaryAddress: APPROVED_STORAGE_PROVIDER,
+      beneficiaryAddress: APPROVED_STORAGE_PROVIDER_ADDRESS,
       serviceUrl: 'https://approved-provider.xyz',
     })
   })
@@ -70,13 +72,13 @@ describe('getStorageProviderAndValidateClient', () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
       .bind(
         dataSetId,
-        APPROVED_STORAGE_PROVIDER,
+        APPROVED_STORAGE_PROVIDER_ADDRESS,
         clientAddress,
-        APPROVED_STORAGE_PROVIDER,
+        APPROVED_STORAGE_PROVIDER_ADDRESS,
         true,
       )
       .run()
@@ -91,7 +93,10 @@ describe('getStorageProviderAndValidateClient', () => {
       clientAddress,
       pieceCid,
     )
-    assert.strictEqual(result.storageProvider, APPROVED_STORAGE_PROVIDER)
+    assert.strictEqual(
+      result.storageProviderAddress,
+      APPROVED_STORAGE_PROVIDER_ADDRESS,
+    )
   })
 
   it('throws error if pieceCid not found', async () => {
@@ -131,17 +136,17 @@ describe('getStorageProviderAndValidateClient', () => {
   it('returns error if no payment rail', async () => {
     const cid = 'cid-unapproved'
     const dataSetId = 'data-set-unapproved'
-    const storageProvider = APPROVED_STORAGE_PROVIDER
+    const storageProviderAddress = APPROVED_STORAGE_PROVIDER_ADDRESS
     const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
-        storageProvider,
+        storageProviderAddress,
         clientAddress.replace('a', 'b'),
-        APPROVED_STORAGE_PROVIDER,
+        APPROVED_STORAGE_PROVIDER_ADDRESS,
         true,
       ),
       env.DB.prepare(
@@ -159,13 +164,19 @@ describe('getStorageProviderAndValidateClient', () => {
   it('returns error if withCDN=false', async () => {
     const cid = 'cid-unapproved'
     const dataSetId = 'data-set-unapproved'
-    const owner = APPROVED_STORAGE_PROVIDER
+    const storageProviderAddress = APPROVED_STORAGE_PROVIDER_ADDRESS
     const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
-      ).bind(dataSetId, owner, clientAddress, APPROVED_STORAGE_PROVIDER, false),
+        'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(
+        dataSetId,
+        storageProviderAddress,
+        clientAddress,
+        APPROVED_STORAGE_PROVIDER_ADDRESS,
+        false,
+      ),
       env.DB.prepare(
         'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
       ).bind('piece-2', dataSetId, cid),
@@ -178,19 +189,19 @@ describe('getStorageProviderAndValidateClient', () => {
     )
   })
 
-  it('returns storageProvider for approved owner', async () => {
+  it('returns storageProviderAddress for approved owner', async () => {
     const cid = 'cid-approved'
     const dataSetId = 'data-set-approved'
     const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef12'
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
-        APPROVED_STORAGE_PROVIDER,
+        APPROVED_STORAGE_PROVIDER_ADDRESS,
         clientAddress,
-        APPROVED_STORAGE_PROVIDER,
+        APPROVED_STORAGE_PROVIDER_ADDRESS,
         true,
       ),
       env.DB.prepare(
@@ -204,36 +215,51 @@ describe('getStorageProviderAndValidateClient', () => {
       cid,
     )
 
-    assert.strictEqual(result.storageProvider, APPROVED_STORAGE_PROVIDER)
+    assert.strictEqual(
+      result.storageProviderAddress,
+      APPROVED_STORAGE_PROVIDER_ADDRESS,
+    )
   })
   it('returns the storage provider first in the ordering when multiple storage providers share the same pieceCid', async () => {
     const dataSetId1 = 'data-set-a'
     const dataSetId2 = 'data-set-b'
     const pieceCid = 'shared-piece-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-    const storageProvider1 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e7'
-    const storageProvider2 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
+    const storageProviderAddress1 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e7'
+    const storageProviderAddress2 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
 
     await withApprovedProvider(env, {
       id: 30,
-      beneficiaryAddress: storageProvider1,
+      beneficiaryAddress: storageProviderAddress1,
     })
     await withApprovedProvider(env, {
       id: 31,
-      beneficiaryAddress: storageProvider2,
+      beneficiaryAddress: storageProviderAddress2,
     })
 
     // Insert both owners into separate sets with the same pieceCid
     await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(dataSetId1, storageProvider1, clientAddress, storageProvider1, true)
+      .bind(
+        dataSetId1,
+        storageProviderAddress1,
+        clientAddress,
+        storageProviderAddress1,
+        true,
+      )
       .run()
 
     await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
-      .bind(dataSetId2, storageProvider2, clientAddress, storageProvider2, true)
+      .bind(
+        dataSetId2,
+        storageProviderAddress2,
+        clientAddress,
+        storageProviderAddress2,
+        true,
+      )
       .run()
 
     // Insert same pieceCid for both sets
@@ -249,13 +275,13 @@ describe('getStorageProviderAndValidateClient', () => {
       .bind('piece-b', dataSetId2, pieceCid)
       .run()
 
-    // Should return only the storageProvider1 which is the first in the ordering
+    // Should return only the storageProviderAddress1 which is the first in the ordering
     const result = await getStorageProviderAndValidateClient(
       env,
       clientAddress,
       pieceCid,
     )
-    assert.strictEqual(result.storageProvider, storageProvider1)
+    assert.strictEqual(result.storageProviderAddress, storageProviderAddress1)
   })
 
   it('ignores owners that are not approved by Filecoin Warm Storage Service', async () => {
@@ -263,12 +289,12 @@ describe('getStorageProviderAndValidateClient', () => {
     const dataSetId2 = '1'
     const pieceCid = 'shared-piece-cid'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-    const storageProvider1 = '0x1006d234246ed18b6c91de8349ff34c22c726801'
-    const storageProvider2 = '0x2006d234246ed18b6c91de8349ff34c22c726801'
+    const storageProviderAddress1 = '0x1006d234246ed18b6c91de8349ff34c22c726801'
+    const storageProviderAddress2 = '0x2006d234246ed18b6c91de8349ff34c22c726801'
 
     await withApprovedProvider(env, {
       id: 40,
-      beneficiaryAddress: storageProvider1,
+      beneficiaryAddress: storageProviderAddress1,
       serviceUrl: 'https://pdp-provider-1.xyz',
     })
 
@@ -277,8 +303,8 @@ describe('getStorageProviderAndValidateClient', () => {
     // Important: we must insert the unapproved provider first!
     await withDataSetPieces(env, {
       payer: clientAddress,
-      storageProvider: storageProvider2,
-      payee: storageProvider2,
+      storageProviderAddress: storageProviderAddress2,
+      payee: storageProviderAddress2,
       dataSetId: dataSetId2,
       withCDN: true,
       pieceCid,
@@ -286,14 +312,14 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await withDataSetPieces(env, {
       payer: clientAddress,
-      storageProvider: storageProvider1,
-      payee: storageProvider1,
+      storageProviderAddress: storageProviderAddress1,
+      payee: storageProviderAddress1,
       dataSetId: dataSetId1,
       withCDN: true,
       pieceCid,
     })
 
-    // Should return storageProvider1 because storageProvider2 is not approved
+    // Should return storageProviderAddress1 because storageProviderAddress2 is not approved
     const result = await getStorageProviderAndValidateClient(
       env,
       clientAddress,
@@ -301,7 +327,7 @@ describe('getStorageProviderAndValidateClient', () => {
     )
     assert.deepStrictEqual(result, {
       dataSetId: dataSetId1,
-      storageProvider: storageProvider1.toLowerCase(),
+      storageProviderAddress: storageProviderAddress1.toLowerCase(),
       serviceUrl: 'https://pdp-provider-1.xyz',
     })
   })

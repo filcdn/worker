@@ -67,7 +67,7 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xaddress')
+      expect(dataSets[0].storage_provider_address).toBe('0xaddress')
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
@@ -117,7 +117,9 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xaddress'.toLowerCase())
+      expect(dataSets[0].storage_provider_address).toBe(
+        '0xaddress'.toLowerCase(),
+      )
     })
   })
 
