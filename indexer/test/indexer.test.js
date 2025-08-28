@@ -370,7 +370,7 @@ describe('retriever.indexer', () => {
 
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].payer).toBe('0xPayerAddress')
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress')
       expect(dataSets[0].payee).toBe('0xPayeeAddress')
       expect(dataSets[0].with_cdn).toBe(1)
 
@@ -515,7 +515,7 @@ describe('retriever.indexer', () => {
         .all()
 
       expect(dataSets.length).toBe(1)
-      expect(dataSets[0].payer).toBe('0xPayerAddress')
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress')
 
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].address).toBe('0xPayerAddress')

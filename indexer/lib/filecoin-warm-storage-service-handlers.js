@@ -40,7 +40,7 @@ export async function handleFilecoinWarmStorageServiceDataSetCreated(
     `
       INSERT INTO data_sets (
         id,
-        payer,
+        payer_address,
         payee,
         with_cdn
       )

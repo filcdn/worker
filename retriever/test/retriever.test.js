@@ -46,7 +46,7 @@ describe('retriever.fetch', () => {
       await withDataSetPieces(env, {
         storageProviderAddress,
         pieceCid,
-        payer: defaultClientAddress,
+        payerAddress: defaultClientAddress,
         payee: storageProviderAddress,
         withCDN: true,
         dataSetId,
@@ -468,7 +468,7 @@ describe('retriever.fetch', () => {
       storageProviderAddress,
       payee: storageProviderAddress,
       pieceCid,
-      payer: clientAddress,
+      payerAddress: clientAddress,
     })
 
     await withApprovedProvider(env, {
@@ -507,7 +507,7 @@ describe('retriever.fetch', () => {
       storageProviderAddress,
       payee: storageProviderAddress,
       pieceCid,
-      payer: clientAddress,
+      payerAddress: clientAddress,
     })
 
     const ctx = createExecutionContext()
@@ -635,7 +635,7 @@ describe('retriever.fetch', () => {
     await withDataSetPieces(env, {
       storageProviderAddress,
       payee: storageProviderAddress,
-      payer: clientAddress,
+      payerAddress: clientAddress,
       pieceCid,
       dataSetId,
       withCDN: true,
@@ -678,7 +678,7 @@ describe('retriever.fetch', () => {
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider_address, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
         unsupportedStorageProviderAddress,

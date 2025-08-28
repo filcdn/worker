@@ -15,7 +15,7 @@ CREATE TABLE providers (
 CREATE TABLE data_sets (
   id TEXT NOT NULL,
   storage_provider_address TEXT,
-  payer TEXT,
+  payer_address TEXT,
   payee TEXT,
   with_cdn BOOLEAN,
   total_egress_bytes_used INTEGER NOT NULL DEFAULT 0,

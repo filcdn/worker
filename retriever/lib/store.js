@@ -98,14 +98,14 @@ export async function getStorageProviderAndValidateClient(
   pieceCid,
 ) {
   const query = `
-   SELECT pieces.data_set_id, data_sets.storage_provider_address, data_sets.payer, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
+   SELECT pieces.data_set_id, data_sets.storage_provider_address, data_sets.payer_address, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
    FROM pieces
    LEFT OUTER JOIN data_sets
      ON pieces.data_set_id = data_sets.id
    LEFT OUTER JOIN providers
      ON data_sets.storage_provider_address = providers.beneficiary_address
    LEFT OUTER JOIN wallet_details
-     ON lower(data_sets.payer) = wallet_details.address
+     ON lower(data_sets.payer_address) = wallet_details.address
    WHERE pieces.cid = ?
  `
 
@@ -113,7 +113,7 @@ export async function getStorageProviderAndValidateClient(
    * @type {{
    *   storage_provider_address: string
    *   data_set_id: string
-   *   payer: string | undefined
+   *   payer_address: string | undefined
    *   with_cdn: number | undefined
    *   service_url: string | undefined
    *   is_sanctioned: number | undefined
@@ -139,7 +139,8 @@ export async function getStorageProviderAndValidateClient(
   )
 
   const withPaymentRail = withStorageProvider.filter(
-    (row) => row.payer && row.payer.toLowerCase() === clientAddress,
+    (row) =>
+      row.payer_address && row.payer_address.toLowerCase() === clientAddress,
   )
   httpAssert(
     withPaymentRail.length > 0,
