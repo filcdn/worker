@@ -578,53 +578,6 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('Bad Request')
     })
 
-    it('deletes a data set', async () => {
-      const dataSetId = await withDataSet(env, {
-        payer: '0xPayerAddress',
-        payee: '0xPayeeAddress',
-      })
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/service-terminated',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: dataSetId,
-          }),
-        },
-      )
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets.length).toBe(0)
-    })
-  })
-
-  describe('POST /filecoin-warm-storage-service/cdn-service-terminated', () => {
-    it('returns 400 if data_set_id is missing', async () => {
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/cdn-service-terminated',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({}),
-        },
-      )
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(400)
-      expect(await res.text()).toBe('Bad Request')
-    })
-
     it('sets `withCDN` flag to `false`', async () => {
       const dataSetId = await withDataSet(env, {
         withCDN: true,
@@ -632,7 +585,7 @@ describe('retriever.indexer', () => {
         payee: '0xPayeeAddress',
       })
       const req = new Request(
-        'https://host/filecoin-warm-storage-service/cdn-service-terminated',
+        'https://host/filecoin-warm-storage-service/service-terminated',
         {
           method: 'POST',
           headers: {
