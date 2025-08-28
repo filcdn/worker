@@ -33,9 +33,7 @@ export async function screenWallets(
     `,
   )
   const updateStatements = []
-  for (const w of wallets) {
-    const address = /** @type {string} */ (w.address)
-
+  for (const { address } of /** @type {{ address: string }[]} */ (wallets)) {
     try {
       const isSanctioned = await checkIfAddressIsSanctioned(address, {
         CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
