@@ -182,7 +182,8 @@ export default {
 
       return new Response('OK', { status: 200 })
     } else if (
-      pathname === '/filecoin-warm-storage-service/service-terminated'
+      pathname === '/filecoin-warm-storage-service/service-terminated' ||
+      pathname === '/filecoin-warm-storage-service/cdn-service-terminated'
     ) {
       if (
         !payload.data_set_id ||
