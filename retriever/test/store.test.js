@@ -59,7 +59,7 @@ describe('getStorageProviderAndValidateClient', () => {
   beforeAll(async () => {
     await withApprovedProvider(env, {
       id: 20,
-      beneficiary: APPROVED_STORAGE_PROVIDER,
+      beneficiaryAddress: APPROVED_STORAGE_PROVIDER,
       serviceUrl: 'https://approved-provider.xyz',
     })
   })
@@ -214,8 +214,14 @@ describe('getStorageProviderAndValidateClient', () => {
     const storageProvider1 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e7'
     const storageProvider2 = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
 
-    await withApprovedProvider(env, { id: 30, beneficiary: storageProvider1 })
-    await withApprovedProvider(env, { id: 31, beneficiary: storageProvider2 })
+    await withApprovedProvider(env, {
+      id: 30,
+      beneficiaryAddress: storageProvider1,
+    })
+    await withApprovedProvider(env, {
+      id: 31,
+      beneficiaryAddress: storageProvider2,
+    })
 
     // Insert both owners into separate sets with the same pieceCid
     await env.DB.prepare(
@@ -262,7 +268,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await withApprovedProvider(env, {
       id: 40,
-      beneficiary: storageProvider1,
+      beneficiaryAddress: storageProvider1,
       serviceUrl: 'https://pdp-provider-1.xyz',
     })
 

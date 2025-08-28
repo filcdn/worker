@@ -235,7 +235,7 @@ async function handleProviderServiceUrlUpdate(
   blockNumber,
   serviceProviderRegistryAddress,
 ) {
-  const [[[serviceUrl]], [[beneficiary]]] = await Promise.all([
+  const [[[serviceUrl]], [[beneficiaryAddress]]] = await Promise.all([
     rpcRequest(
       serviceProviderRegistryAddress,
       'getPDPService',
@@ -261,23 +261,23 @@ async function handleProviderServiceUrlUpdate(
   }
 
   console.log(
-    `Product added (providerId=${providerId}, serviceUrl=${serviceUrl}, beneficiary=${beneficiary})`,
+    `Product added (providerId=${providerId}, serviceUrl=${serviceUrl}, beneficiaryAddress=${beneficiaryAddress})`,
   )
 
   await env.DB.prepare(
     `
         INSERT INTO providers (
           id,
-          beneficiary,
+          beneficiary_address,
           service_url
         )
         VALUES (?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
-          beneficiary=excluded.beneficiary,
+          beneficiary_address=excluded.beneficiary_address,
           service_url=excluded.service_url
       `,
   )
-    .bind(providerId, beneficiary.toLowerCase(), serviceUrl)
+    .bind(providerId, beneficiaryAddress.toLowerCase(), serviceUrl)
     .run()
   return new Response('OK', { status: 200 })
 }

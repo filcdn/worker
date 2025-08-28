@@ -102,7 +102,7 @@ export async function getStorageProviderAndValidateClient(
    LEFT OUTER JOIN data_sets
      ON pieces.data_set_id = data_sets.id
    LEFT OUTER JOIN providers
-     ON data_sets.storage_provider = providers.beneficiary
+     ON data_sets.storage_provider = providers.beneficiary_address
    LEFT OUTER JOIN wallet_details
      ON lower(data_sets.payer) = wallet_details.address
    WHERE pieces.cid = ?

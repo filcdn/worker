@@ -578,7 +578,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const providerId = 0
       const blockNumber = 10
       const req = new Request(
@@ -603,7 +603,7 @@ describe('retriever.indexer', () => {
         } else if (functionName === 'getProvider') {
           expect(args).toEqual([providerId])
           expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       const ctx = createExecutionContext()
@@ -612,20 +612,20 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: providerUrls } = await env.DB.prepare(
+      const { results: providers } = await env.DB.prepare(
         'SELECT * FROM providers WHERE id = ?',
       )
         .bind(providerId)
         .all()
-      expect(providerUrls.length).toBe(1)
-      expect(providerUrls[0].beneficiary).toBe(beneficiary)
-      expect(providerUrls[0].service_url).toBe(serviceUrl)
+      expect(providers.length).toBe(1)
+      expect(providers[0].beneficiary_address).toBe(beneficiaryAddress)
+      expect(providers[0].service_url).toBe(serviceUrl)
     })
   })
   describe('POST /service-provider-registry/product-updated', () => {
     it('updates service URLs for an existing provider', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const providerId = 0
       const blockNumber = 10
       const newServiceUrl = 'https://new-provider.example.com'
@@ -653,7 +653,7 @@ describe('retriever.indexer', () => {
         } else if (functionName === 'getProvider') {
           expect(args).toEqual([providerId])
           expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       let ctx = createExecutionContext()
@@ -685,7 +685,7 @@ describe('retriever.indexer', () => {
         } else if (functionName === 'getProvider') {
           expect(args).toEqual([providerId])
           expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       ctx = createExecutionContext()
@@ -694,14 +694,14 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: providerUrls } = await env.DB.prepare(
+      const { results: providers } = await env.DB.prepare(
         'SELECT * FROM providers WHERE id = ?',
       )
         .bind(providerId)
         .all()
-      expect(providerUrls.length).toBe(1)
-      expect(providerUrls[0].beneficiary).toBe(beneficiary)
-      expect(providerUrls[0].service_url).toBe(newServiceUrl)
+      expect(providers.length).toBe(1)
+      expect(providers[0].beneficiary_address).toBe(beneficiaryAddress)
+      expect(providers[0].service_url).toBe(newServiceUrl)
     })
   })
   describe('POST /service-provider-registry/product-removed', () => {
@@ -725,7 +725,7 @@ describe('retriever.indexer', () => {
       const providerId = 0
       const blockNumber = 10
       const productType = 0
-      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
       const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider
@@ -733,7 +733,7 @@ describe('retriever.indexer', () => {
         if (functionName === 'getPDPService') {
           return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       const insertReq = new Request(
@@ -779,9 +779,9 @@ describe('retriever.indexer', () => {
 
       // Verify that the provider is removed from the database
       const { results: providers } = await env.DB.prepare(
-        'SELECT * FROM providers WHERE beneficiary = ?',
+        'SELECT * FROM providers WHERE beneficiary_address = ?',
       )
-        .bind(beneficiary)
+        .bind(beneficiaryAddress)
         .all()
       expect(providers.length).toBe(0) // The provider should be removed
     })
@@ -826,7 +826,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
   it('removes a provider from the providers table', async () => {
     const providerId = 0
     const blockNumber = 10
-    const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+    const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
     const serviceUrl = 'https://provider.example.com'
 
     // First, insert a provider
@@ -834,7 +834,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
       if (functionName === 'getPDPService') {
         return [[serviceUrl]]
       } else if (functionName === 'getProvider') {
-        return [[beneficiary]]
+        return [[beneficiaryAddress]]
       }
     }
     const insertReq = new Request(
@@ -879,9 +879,9 @@ describe('POST /service-provider-registry/provider-removed', () => {
 
     // Verify that the provider is removed from the database
     const { results: providers } = await env.DB.prepare(
-      'SELECT * FROM providers WHERE beneficiary = ?',
+      'SELECT * FROM providers WHERE beneficiary_address = ?',
     )
-      .bind(beneficiary)
+      .bind(beneficiaryAddress)
       .all()
     expect(providers.length).toBe(0) // The provider should be removed
   })

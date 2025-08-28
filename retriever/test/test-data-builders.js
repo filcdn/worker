@@ -41,20 +41,20 @@ export async function withDataSetPieces(
  * @param {Env} env
  * @param {Object} options
  * @param {number} id
- * @param {string} options.beneficiary
+ * @param {string} options.beneficiaryAddress
  * @param {string} [options.serviceUrl]
  */
 export async function withApprovedProvider(
   env,
-  { id, beneficiary, serviceUrl = 'https://pdp.xyz/' } = {},
+  { id, beneficiaryAddress, serviceUrl = 'https://pdp.xyz/' } = {},
 ) {
   await env.DB.prepare(
     `
-    INSERT INTO providers (id, beneficiary, service_url)
+    INSERT INTO providers (id, beneficiary_address, service_url)
     VALUES (?, ?, ?)
   `,
   )
-    .bind(String(id), beneficiary, serviceUrl)
+    .bind(String(id), beneficiaryAddress, serviceUrl)
     .run()
 }
 

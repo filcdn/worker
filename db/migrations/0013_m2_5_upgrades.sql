@@ -7,7 +7,7 @@ DROP TABLE retrieval_logs;
 
 CREATE TABLE providers (
   id TEXT NOT NULL,
-  beneficiary TEXT NOT NULL,
+  beneficiary_address TEXT NOT NULL,
   service_url TEXT,
   PRIMARY KEY (id)
 );
