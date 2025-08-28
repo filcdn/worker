@@ -16,7 +16,7 @@ CREATE TABLE data_sets (
   id TEXT NOT NULL,
   storage_provider_address TEXT,
   payer_address TEXT,
-  payee TEXT,
+  payee_address TEXT,
   with_cdn BOOLEAN,
   total_egress_bytes_used INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (id)

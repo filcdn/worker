@@ -72,7 +72,7 @@ describe('getStorageProviderAndValidateClient', () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
       .bind(
         dataSetId,
@@ -141,7 +141,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
         storageProviderAddress,
@@ -169,7 +169,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
         storageProviderAddress,
@@ -196,7 +196,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
         APPROVED_STORAGE_PROVIDER_ADDRESS,
@@ -239,7 +239,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     // Insert both owners into separate sets with the same pieceCid
     await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
       .bind(
         dataSetId1,
@@ -251,7 +251,7 @@ describe('getStorageProviderAndValidateClient', () => {
       .run()
 
     await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
       .bind(
         dataSetId2,
@@ -304,7 +304,7 @@ describe('getStorageProviderAndValidateClient', () => {
     await withDataSetPieces(env, {
       payerAddress: clientAddress,
       storageProviderAddress: storageProviderAddress2,
-      payee: storageProviderAddress2,
+      payeeAddress: storageProviderAddress2,
       dataSetId: dataSetId2,
       withCDN: true,
       pieceCid,
@@ -313,7 +313,7 @@ describe('getStorageProviderAndValidateClient', () => {
     await withDataSetPieces(env, {
       payerAddress: clientAddress,
       storageProviderAddress: storageProviderAddress1,
-      payee: storageProviderAddress1,
+      payeeAddress: storageProviderAddress1,
       dataSetId: dataSetId1,
       withCDN: true,
       pieceCid,

@@ -47,7 +47,7 @@ describe('retriever.fetch', () => {
         storageProviderAddress,
         pieceCid,
         payerAddress: defaultClientAddress,
-        payee: storageProviderAddress,
+        payeeAddress: storageProviderAddress,
         withCDN: true,
         dataSetId,
         pieceId,
@@ -444,7 +444,7 @@ describe('retriever.fetch', () => {
     const storageProviderAddress = '0xStorageProvider'
     await withDataSetPieces(env, {
       storageProviderAddress,
-      payee: storageProviderAddress,
+      payeeAddress: storageProviderAddress,
       pieceCid,
       dataSetId,
       withCDN: false,
@@ -466,7 +466,7 @@ describe('retriever.fetch', () => {
 
     await withDataSetPieces(env, {
       storageProviderAddress,
-      payee: storageProviderAddress,
+      payeeAddress: storageProviderAddress,
       pieceCid,
       payerAddress: clientAddress,
     })
@@ -505,7 +505,7 @@ describe('retriever.fetch', () => {
 
     await withDataSetPieces(env, {
       storageProviderAddress,
-      payee: storageProviderAddress,
+      payeeAddress: storageProviderAddress,
       pieceCid,
       payerAddress: clientAddress,
     })
@@ -634,7 +634,7 @@ describe('retriever.fetch', () => {
     const clientAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
     await withDataSetPieces(env, {
       storageProviderAddress,
-      payee: storageProviderAddress,
+      payeeAddress: storageProviderAddress,
       payerAddress: clientAddress,
       pieceCid,
       dataSetId,
@@ -678,7 +678,7 @@ describe('retriever.fetch', () => {
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
         unsupportedStorageProviderAddress,
