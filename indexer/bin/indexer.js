@@ -6,7 +6,7 @@ import {
   rpcRequest as defaultRpcRequest,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
-import { handleFilecoinWarmStorageServiceDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
+import { handleFWSSDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
 import {
   removeDataSetPieces,
   insertDataSetPieces,
@@ -151,24 +151,21 @@ export default {
         !payload.payee ||
         typeof payload.with_cdn !== 'boolean'
       ) {
-        console.error(
-          'FilecoinWarmStorageService.DataSetCreated: Invalid payload',
-          payload,
-        )
+        console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       console.log(
-        `New FilecoinWarmStorageService data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
       )
 
       try {
-        await handleFilecoinWarmStorageServiceDataSetCreated(env, payload, {
+        await handleFWSSDataSetCreated(env, payload, {
           checkIfAddressIsSanctioned,
         })
       } catch (err) {
         console.log(
-          `Error handling FilecoinWarmStorageService data set creation: ${err}. Retrying...`,
+          `Error handling FWSS data set creation: ${err}. Retrying...`,
         )
         // @ts-ignore
         env.RETRY_QUEUE.send({
@@ -236,18 +233,14 @@ export default {
     for (const message of batch.messages) {
       if (message.body.type === 'proof-set-rail-created') {
         try {
-          await handleFilecoinWarmStorageServiceDataSetCreated(
-            env,
-            message.body.payload,
-            {
-              checkIfAddressIsSanctioned,
-            },
-          )
+          await handleFWSSDataSetCreated(env, message.body.payload, {
+            checkIfAddressIsSanctioned,
+          })
 
           message.ack()
         } catch (err) {
           console.log(
-            `Error handling FilecoinWarmStorageService data set creation: ${err}. Retrying...`,
+            `Error handling FWSS data set creation: ${err}. Retrying...`,
           )
           message.retry({ delaySeconds: 10 })
         }
