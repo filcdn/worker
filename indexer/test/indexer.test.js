@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { assertCloseToNow } from './test-helpers.js'
 import workerImpl from '../bin/indexer.js'
 import { env } from 'cloudflare:test'
 import {
@@ -1002,11 +1003,4 @@ async function withRoots(env, setId, rootIds, rootCids) {
       ]),
     )
     .run()
-}
-
-function assertCloseToNow(sqliteDateString) {
-  // D1 returns dates as UTC without timezone info, append 'Z' to parse as UTC
-  const date = new Date(sqliteDateString + 'Z')
-  // Assert that the timestamp is within 5 seconds of now
-  expect(date).toBeCloseTo(new Date(), -4)
 }
