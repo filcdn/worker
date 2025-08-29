@@ -31,9 +31,9 @@ export async function withDataSetPieces(
     `,
     ).bind(
       String(dataSetId),
-      storageProviderAddress,
-      payerAddress,
-      payeeAddress,
+      storageProviderAddress.toLowerCase(),
+      payerAddress.toLowerCase(),
+      payeeAddress.toLowerCase(),
       withCDN,
     ),
 
