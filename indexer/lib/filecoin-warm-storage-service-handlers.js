@@ -1,4 +1,4 @@
-import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
+import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from './chainalysis.js'
 
 /**
  * Handle proof set rail creation
@@ -10,7 +10,7 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
  * @throws {Error} If there is an error with fetching payer's address sanction
  *   status or during the database operation
  */
-export async function handleProofSetRailCreated(
+export async function handleFWSSDataSetCreated(
   env,
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
@@ -32,29 +32,27 @@ export async function handleProofSetRailCreated(
         ON CONFLICT (address) DO UPDATE SET is_sanctioned = excluded.is_sanctioned
       `,
     )
-      .bind(payload.payer, isPayerSanctioned)
+      .bind(payload.payer.toLowerCase(), isPayerSanctioned)
       .run()
   }
 
   await env.DB.prepare(
     `
-      INSERT INTO indexer_proof_set_rails (
-        proof_set_id,
-        rail_id,
-        payer,
-        payee,
+      INSERT INTO data_sets (
+        id,
+        payer_address,
+        payee_address,
         with_cdn
       )
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?)
       ON CONFLICT DO NOTHING
     `,
   )
     .bind(
-      String(payload.proof_set_id),
-      String(payload.rail_id),
-      payload.payer,
-      payload.payee,
-      payload.with_cdn ?? null,
+      String(payload.data_set_id),
+      payload.payer.toLowerCase(),
+      payload.payee.toLowerCase(),
+      payload.with_cdn,
     )
     .run()
 }
