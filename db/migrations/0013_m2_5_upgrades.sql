@@ -11,6 +11,7 @@ CREATE TABLE providers (
   service_url TEXT,
   PRIMARY KEY (id)
 );
+CREATE INDEX providers_beneficiary_address ON providers(beneficiary_address);
 
 CREATE TABLE data_sets (
   id TEXT NOT NULL,
@@ -28,7 +29,7 @@ CREATE TABLE pieces (
   cid TEXT NOT NULL,
   PRIMARY KEY (id, data_set_id)
 );
-CREATE INDEX IF NOT EXISTS pieces_cid ON pieces(cid);
+CREATE INDEX pieces_cid ON pieces(cid);
 
 CREATE TABLE retrieval_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
