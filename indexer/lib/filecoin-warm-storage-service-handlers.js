@@ -24,11 +24,6 @@ export async function handleFWSSDataSetCreated(
     payload.metadata_keys,
     payload.metadata_values,
   )
-  console.log({
-    withCDN,
-    keys: payload.metadata_keys,
-    values: payload.metadata_values,
-  })
 
   if (withCDN) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {
