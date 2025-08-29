@@ -159,14 +159,14 @@ export default {
         ) ||
         !payload.payer ||
         !payload.payee ||
-        typeof payload.with_cdn !== 'boolean'
+        !Array.isArray(payload.metadata_keys)
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       console.log(
-        `New FWSS data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, metadata_keys=${payload.metadata_keys}`,
       )
 
       try {
