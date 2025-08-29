@@ -199,11 +199,11 @@ export async function getStorageProviderAndValidateClient(
 export async function updateDataSetStats(env, { dataSetId, egressBytes }) {
   await env.DB.prepare(
     `
-    INSERT INTO data_sets (id, total_egress_bytes_used)
-    VALUES (?, ?)
-    ON CONFLICT(id) DO UPDATE SET total_egress_bytes_used = data_sets.total_egress_bytes_used + excluded.total_egress_bytes_used
+    UPDATE data_sets
+    SET total_egress_bytes_used = total_egress_bytes_used + ?
+    WHERE id = ?
     `,
   )
-    .bind(dataSetId, egressBytes)
+    .bind(egressBytes, dataSetId)
     .run()
 }

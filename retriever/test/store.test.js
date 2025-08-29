@@ -334,10 +334,13 @@ describe('getStorageProviderAndValidateClient', () => {
 })
 
 describe('updateDataSetStats', () => {
-  it('inserts and updates egress stats', async () => {
+  it('updates egress stats', async () => {
     const DATA_SET_ID = 'test-data-set-1'
     const EGRESS_BYTES = 123456
 
+    await withDataSetPieces(env, {
+      dataSetId: DATA_SET_ID,
+    })
     await updateDataSetStats(env, {
       dataSetId: DATA_SET_ID,
       egressBytes: EGRESS_BYTES,
