@@ -7,6 +7,8 @@ import {
   waitOnExecutionContext,
 } from 'cloudflare:test'
 import { PIECES_BY_DATA_SET_ID } from './test-data.js'
+import { keccak256 } from '@ethersproject/keccak256'
+import { pack } from '@ethersproject/solidity'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
@@ -347,7 +349,8 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
+            metadata_values: [pack(['string'], ['true'])],
           }),
         },
       )
@@ -395,7 +398,8 @@ describe('retriever.indexer', () => {
               data_set_id: dataSetId,
               payer: '0xPayerAddress',
               payee: '0xPayeeAddress',
-              with_cdn: true,
+              metadata_keys: ['withCDN'],
+              metadata_values: [pack(['string'], ['true'])],
             }),
           },
         )
@@ -428,7 +432,8 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
+            metadata_values: [pack(['string'], ['true'])],
           }),
         },
       )
@@ -463,7 +468,8 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
+            metadata_values: [pack(['string'], ['true'])],
           }),
         },
       )
@@ -487,7 +493,8 @@ describe('retriever.indexer', () => {
             data_set_id: randomId(),
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: false,
+            metadata_keys: ['withCDN'],
+            metadata_values: [keccak256(pack(['string'], ['false']))],
           }),
         },
       )
@@ -539,7 +546,8 @@ describe('retriever.indexer', () => {
             data_set_id: randomId(),
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
+            metadata_values: [pack(['string'], ['true'])],
           }),
         },
       )
@@ -581,7 +589,8 @@ describe('retriever.indexer', () => {
             data_set_id: randomId(),
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
+            metadata_values: [pack(['string'], ['true'])],
           }),
         },
       )
@@ -609,7 +618,8 @@ describe('retriever.indexer', () => {
         data_set_id: dataSetId,
         payer: '0xPayerAddress',
         payee: '0xPayeeAddress',
-        with_cdn: true,
+        metadata_keys: ['withCDN'],
+        metadata_values: [pack(['string'], ['true'])],
       }
       const req = new Request(
         'https://host/filecoin-warm-storage-service/data-set-created',

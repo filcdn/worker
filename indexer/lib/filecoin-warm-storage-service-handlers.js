@@ -1,4 +1,7 @@
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from './chainalysis.js'
+import { keccak256 } from '@ethersproject/keccak256'
+import { pack } from '@ethersproject/solidity'
+import { defaultAbiCoder } from '@ethersproject/abi'
 
 /**
  * Handle proof set rail creation
@@ -17,7 +20,17 @@ export async function handleFWSSDataSetCreated(
 ) {
   const { CHAINALYSIS_API_KEY } = env
 
-  if (payload.with_cdn) {
+  const withCDN = checkMetadataWithCDNEnabled(
+    payload.metadata_keys,
+    payload.metadata_values,
+  )
+  console.log({
+    withCDN,
+    keys: payload.metadata_keys,
+    values: payload.metadata_values,
+  })
+
+  if (withCDN) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {
       CHAINALYSIS_API_KEY,
     })
@@ -51,7 +64,60 @@ export async function handleFWSSDataSetCreated(
       String(payload.data_set_id),
       payload.payer.toLowerCase(),
       payload.payee.toLowerCase(),
-      payload.with_cdn,
+      withCDN,
     )
     .run()
+}
+
+/**
+ * Ported from FilecoinWarmStorageService.sol
+ *
+ * @param {string[]} keys
+ * @param {string[]} values
+ * @returns {boolean}
+ */
+function checkMetadataWithCDNEnabled(keys, values) {
+  const keyHash = keccak256(pack(['string'], ['withCDN']))
+
+  for (let i = 0; i < keys.length; i++) {
+    if (keccak256(pack(['string'], [keys[i]])) === keyHash) {
+      if (isEmptyOrTrue(values[i])) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
+/**
+ * Ported from FilecoinWarmStorageService.sol
+ *
+ * @param {string} value
+ * @returns {boolean}
+ */
+function isEmptyOrTrue(value) {
+  // Treat truly empty bytes as enabled
+  if (value.length === 0) {
+    return true
+  }
+
+  const valueHash = keccak256(value)
+
+  if (valueHash === keccak256(defaultAbiCoder.encode(['string'], ['']))) {
+    return true
+  }
+  if (valueHash === keccak256(pack(['string'], ['']))) {
+    return true
+  }
+
+  // Common encodings for the string "true"
+  if (valueHash === keccak256(pack(['string'], ['true']))) {
+    return true
+  }
+  if (valueHash === keccak256(defaultAbiCoder.encode(['string'], ['true']))) {
+    return true
+  }
+
+  return false
 }
