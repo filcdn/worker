@@ -32,7 +32,7 @@ export async function handleFWSSDataSetCreated(
         ON CONFLICT (address) DO UPDATE SET is_sanctioned = excluded.is_sanctioned
       `,
     )
-      .bind(payload.payer, isPayerSanctioned)
+      .bind(payload.payer.toLowerCase(), isPayerSanctioned)
       .run()
   }
 
@@ -50,8 +50,8 @@ export async function handleFWSSDataSetCreated(
   )
     .bind(
       String(payload.data_set_id),
-      payload.payer,
-      payload.payee,
+      payload.payer.toLowerCase(),
+      payload.payee.toLowerCase(),
       payload.with_cdn,
     )
     .run()

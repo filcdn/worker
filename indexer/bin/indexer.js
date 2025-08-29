@@ -56,13 +56,6 @@ export default {
     }
     const payload = await request.json()
 
-    // Ensure addresses are in lower case
-    for (const [key, value] of Object.entries(payload)) {
-      if (typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value)) {
-        payload[key] = value.toLowerCase()
-      }
-    }
-
     const pathname = new URL(request.url).pathname
     if (pathname === '/pdp-verifier/data-set-created') {
       if (
@@ -88,7 +81,7 @@ export default {
           ON CONFLICT DO NOTHING
         `,
       )
-        .bind(String(payload.set_id), payload.storage_provider)
+        .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {

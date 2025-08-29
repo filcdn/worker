@@ -53,7 +53,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: dataSetId,
-          storage_provider: '0xaddress',
+          storage_provider: '0xAddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -67,7 +67,9 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider_address).toBe('0xaddress')
+      expect(dataSets[0].storage_provider_address).toBe(
+        '0xAddress'.toLowerCase(),
+      )
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
@@ -103,7 +105,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: Number(dataSetId),
-          storage_provider: '0xaddress',
+          storage_provider: '0xAddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -118,7 +120,7 @@ describe('retriever.indexer', () => {
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
       expect(dataSets[0].storage_provider_address).toBe(
-        '0xaddress'.toLowerCase(),
+        '0xAddress'.toLowerCase(),
       )
     })
   })
@@ -365,13 +367,13 @@ describe('retriever.indexer', () => {
       const { results: walletDetails } = await env.DB.prepare(
         'SELECT * FROM wallet_details WHERE address = ?',
       )
-        .bind('0xPayerAddress')
+        .bind('0xPayerAddress'.toLowerCase())
         .all()
 
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].payer_address).toBe('0xPayerAddress')
-      expect(dataSets[0].payee_address).toBe('0xPayeeAddress')
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
+      expect(dataSets[0].payee_address).toBe('0xPayeeAddress'.toLowerCase())
       expect(dataSets[0].with_cdn).toBe(1)
 
       expect(walletDetails.length).toBe(1)
@@ -511,14 +513,14 @@ describe('retriever.indexer', () => {
       const { results: walletDetails } = await env.DB.prepare(
         'SELECT * FROM wallet_details WHERE address = ?',
       )
-        .bind('0xPayerAddress')
+        .bind('0xPayerAddress'.toLowerCase())
         .all()
 
       expect(dataSets.length).toBe(1)
-      expect(dataSets[0].payer_address).toBe('0xPayerAddress')
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
 
       expect(walletDetails.length).toBe(1)
-      expect(walletDetails[0].address).toBe('0xPayerAddress')
+      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
       expect(walletDetails[0].is_sanctioned).toBe(1)
     })
 
@@ -580,7 +582,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const providerId = 0
       const blockNumber = 10
       const req = new Request(
@@ -620,14 +622,16 @@ describe('retriever.indexer', () => {
         .bind(providerId)
         .all()
       expect(providers.length).toBe(1)
-      expect(providers[0].beneficiary_address).toBe(beneficiaryAddress)
+      expect(providers[0].beneficiary_address).toBe(
+        beneficiaryAddress.toLowerCase(),
+      )
       expect(providers[0].service_url).toBe(serviceUrl)
     })
   })
   describe('POST /service-provider-registry/product-updated', () => {
     it('updates service URLs for an existing provider', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const providerId = 0
       const blockNumber = 10
       const newServiceUrl = 'https://new-provider.example.com'
@@ -702,7 +706,9 @@ describe('retriever.indexer', () => {
         .bind(providerId)
         .all()
       expect(providers.length).toBe(1)
-      expect(providers[0].beneficiary_address).toBe(beneficiaryAddress)
+      expect(providers[0].beneficiary_address).toBe(
+        beneficiaryAddress.toLowerCase(),
+      )
       expect(providers[0].service_url).toBe(newServiceUrl)
     })
   })
@@ -727,7 +733,7 @@ describe('retriever.indexer', () => {
       const providerId = 0
       const blockNumber = 10
       const productType = 0
-      const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider
@@ -783,7 +789,7 @@ describe('retriever.indexer', () => {
       const { results: providers } = await env.DB.prepare(
         'SELECT * FROM providers WHERE beneficiary_address = ?',
       )
-        .bind(beneficiaryAddress)
+        .bind(beneficiaryAddress.toLowerCase())
         .all()
       expect(providers.length).toBe(0) // The provider should be removed
     })
@@ -828,7 +834,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
   it('removes a provider from the providers table', async () => {
     const providerId = 0
     const blockNumber = 10
-    const beneficiaryAddress = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+    const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
     const serviceUrl = 'https://provider.example.com'
 
     // First, insert a provider
@@ -883,7 +889,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
     const { results: providers } = await env.DB.prepare(
       'SELECT * FROM providers WHERE beneficiary_address = ?',
     )
-      .bind(beneficiaryAddress)
+      .bind(beneficiaryAddress.toLowerCase())
       .all()
     expect(providers.length).toBe(0) // The provider should be removed
   })
