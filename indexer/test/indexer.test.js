@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { assertCloseToNow } from './test-helpers.js'
 import workerImpl from '../bin/indexer.js'
 import {
   env,
@@ -378,6 +379,7 @@ describe('retriever.indexer', () => {
 
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(walletDetails[0].last_screened_at)
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
@@ -522,6 +524,83 @@ describe('retriever.indexer', () => {
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
       expect(walletDetails[0].is_sanctioned).toBe(1)
+    })
+
+    it('updates is_sanctioned status of existing wallet', async () => {
+      // When the wallet creates the first ProofSet, it's not sanctioned yet
+      let req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: randomId(),
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            with_cdn: true,
+          }),
+        },
+      )
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(false)
+      let res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: initialWalletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+      expect(initialWalletDetails.length).toBe(1)
+      expect(initialWalletDetails[0].address).toBe(
+        '0xPayerAddress'.toLowerCase(),
+      )
+      expect(initialWalletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(initialWalletDetails[0].last_screened_at)
+
+      // When the wallet creates the second ProofSet some time later,
+      // it's flagged as sanctioned
+
+      await env.DB.exec(
+        'UPDATE wallet_details SET last_screened_at = datetime("now", "-1 day")',
+      )
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
+      req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: randomId(),
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            with_cdn: true,
+          }),
+        },
+      )
+      res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
+      expect(walletDetails[0].is_sanctioned).toBe(1)
+      assertCloseToNow(walletDetails[0].last_screened_at)
     })
 
     it('sends message to queue if sanction check fails', async () => {

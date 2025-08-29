@@ -6,7 +6,7 @@ import { assertOkResponse } from 'assert-ok-response'
  * @param {string} address - Ethereum address to check
  * @param {Object} options - Additional options
  * @param {Function} [options.fetch] - Custom fetch function for testing
- * @param {Function} [options.CHAINALYSIS_API_KEY] - Chainalysis API key
+ * @param {string} [options.CHAINALYSIS_API_KEY] - Chainalysis API key
  * @returns {Promise<boolean | null>}
  */
 export async function checkIfAddressIsSanctioned(
@@ -22,7 +22,7 @@ export async function checkIfAddressIsSanctioned(
     },
   })
 
-  assertOkResponse(response)
+  await assertOkResponse(response)
 
   const data = await response.json()
 

@@ -483,3 +483,11 @@ author: "Protocol Labs"
 //feb8d1187e4a9d3323afc79262dc0e7b19db7712124c4d5644b1dd8cd264185e
 //ff458967b7dced386a7b62b6d2efa01920ab360530f375f150766c17c6d83da7
 //ffd22396953872981b398ed3961239a99260b2459c4ec46af5fb68e737309fae`
+
+export const testDataHashes = new Set(
+  testData
+    .split('\n')
+    .filter((line) => line.startsWith('//'))
+    .map((line) => line.substring(2).trim())
+    .filter(Boolean),
+)

@@ -3,7 +3,7 @@ import { httpAssert } from './http-assert.js'
 /**
  * Logs the result of a file retrieval attempt to the D1 database.
  *
- * @param {Env} env - Worker environment (contains D1 binding).
+ * @param {Pick<Env, 'DB'>} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the retrieval log.
  * @param {string | null} params.storageProviderAddress - The storage provider's
  *   address.
@@ -83,7 +83,8 @@ export async function logRetrievalResult(env, params) {
 /**
  * Retrieves the owner address for a given root CID.
  *
- * @param {Env} env - Cloudflare Worker environment with D1 DB binding
+ * @param {Pick<Env, 'DB'>} env - Cloudflare Worker environment with D1 DB
+ *   binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} pieceCid - The piece CID to look up
  * @returns {Promise<{
@@ -191,7 +192,7 @@ export async function getStorageProviderAndValidateClient(
 }
 
 /**
- * @param {Env} env - Worker environment (contains D1 binding).
+ * @param {Pick<Env, 'DB'>} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the data set update.
  * @param {string} params.dataSetId - The ID of the data set to update.
  * @param {number} params.egressBytes - The egress bytes used for the response.

@@ -3,7 +3,7 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
 /**
  * Handle proof set rail creation
  *
- * @param {Env} env
+ * @param {{ CHAINALYSIS_API_KEY: string; DB: D1Database }} env
  * @param {any} payload
  * @param {object} opts
  * @param {typeof defaultCheckIfAddressIsSanctioned} opts.checkIfAddressIsSanctioned
@@ -15,10 +15,7 @@ export async function handleFWSSDataSetCreated(
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
 ) {
-  const {
-    // @ts-ignore
-    CHAINALYSIS_API_KEY,
-  } = env
+  const { CHAINALYSIS_API_KEY } = env
 
   if (payload.with_cdn) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {
@@ -27,9 +24,11 @@ export async function handleFWSSDataSetCreated(
 
     await env.DB.prepare(
       `
-        INSERT INTO wallet_details (address, is_sanctioned)
-        VALUES (?, ?)
-        ON CONFLICT (address) DO UPDATE SET is_sanctioned = excluded.is_sanctioned
+      INSERT INTO wallet_details (address, is_sanctioned, last_screened_at)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT (address) DO UPDATE SET
+        is_sanctioned = excluded.is_sanctioned,
+        last_screened_at = excluded.last_screened_at
       `,
     )
       .bind(payload.payer.toLowerCase(), isPayerSanctioned)

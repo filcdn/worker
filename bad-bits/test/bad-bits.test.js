@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fetchAndStoreBadBits } from '../lib/bad-bits.js'
 import { getAllBadBitHashes, getBadBitsHistory } from './util.js'
 import { env } from 'cloudflare:test'
-import { testData } from './testData.js'
+import { testData, testDataHashes } from './testData.js'
 
 describe('fetchAndStoreBadBits', () => {
   beforeEach(async () => {
@@ -21,22 +21,15 @@ describe('fetchAndStoreBadBits', () => {
 
   it('fetches and stores bad bits from the denylist', async () => {
     const text = testData
-    const expectedHashes = new Set(
-      text
-        .split('\n')
-        .filter((line) => line.startsWith('//'))
-        .map((line) => line.substring(2).trim())
-        .filter(Boolean),
-    )
 
     await fetchAndStoreBadBits(env, {
-      fetch: () =>
+      fetch: async () =>
         new Response(text, { headers: { 'Content-Type': 'text/plain' } }),
     })
     const storedHashes = new Set(await getAllBadBitHashes(env))
 
     // Verify the database contains the expected hashes
-    expect(storedHashes).toEqual(expectedHashes)
+    expect(storedHashes).toEqual(testDataHashes)
   })
 
   it('removes hashes not in the current denylist', async () => {
@@ -51,13 +44,6 @@ describe('fetchAndStoreBadBits', () => {
     )
 
     const text = testData
-    const currentHashes = new Set(
-      text
-        .split('\n')
-        .filter((line) => line.startsWith('//'))
-        .map((line) => line.substring(2).trim())
-        .filter(Boolean),
-    )
 
     await fetchAndStoreBadBits(env, {
       fetch: () =>
@@ -66,7 +52,34 @@ describe('fetchAndStoreBadBits', () => {
     const storedHashes = new Set(await getAllBadBitHashes(env))
 
     // Verify the database contains only the current hashes
-    expect(storedHashes).toEqual(currentHashes)
+    expect(storedHashes).toEqual(testDataHashes)
+  })
+
+  it('retries on 5xx server errors and eventually succeeds', async () => {
+    vi.useRealTimers()
+    const text = testData
+
+    let fetchCallCount = 0
+    await fetchAndStoreBadBits(env, {
+      fetch: () => {
+        console.log(`Fetch attempt #${fetchCallCount + 1}`)
+        fetchCallCount++
+        // Return 500 error for first 2 attempts, then succeed
+        if (fetchCallCount <= 2) {
+          return new Response('Test Server Error', { status: 500 })
+        }
+        return new Response(text, {
+          headers: { 'Content-Type': 'text/plain' },
+        })
+      },
+    })
+
+    // Verify that fetch was called multiple times due to retries
+    expect(fetchCallCount).toBe(3)
+
+    const storedHashes = new Set(await getAllBadBitHashes(env))
+    // Verify the database contains the expected hashes after successful retry
+    expect(storedHashes).toEqual(testDataHashes)
   })
 
   it('uses ETag to detect when the bad bit list was not changed since the last check', async () => {
