@@ -63,13 +63,13 @@ export async function measureStreamedEgress(reader) {
 }
 
 /**
- * @param {string} pieceRetrievalBaseUrl
+ * @param {string} serviceUrl
  * @param {string} pieceCid
  * @returns {string}
  */
-export function getRetrievalUrl(pieceRetrievalBaseUrl, pieceCid) {
-  if (!pieceRetrievalBaseUrl.endsWith('/')) {
-    pieceRetrievalBaseUrl += '/'
+export function getRetrievalUrl(serviceUrl, pieceCid) {
+  if (!serviceUrl.endsWith('/')) {
+    serviceUrl += '/'
   }
-  return `${pieceRetrievalBaseUrl}piece/${pieceCid}`
+  return `${serviceUrl}piece/${pieceCid}`
 }
