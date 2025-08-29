@@ -5,7 +5,7 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {Env} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the retrieval log.
- * @param {string | null} params.storageProviderAddress - The storage provier's
+ * @param {string | null} params.storageProviderAddress - The storage provider's
  *   address.
  * @param {string} params.clientAddress - The client's address.
  * @param {number | null} params.egressBytes - The egress bytes of the response.
