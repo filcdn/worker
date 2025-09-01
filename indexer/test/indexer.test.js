@@ -1130,8 +1130,8 @@ async function withDataSet(
     INSERT INTO data_sets (
       id,
       with_cdn,
-      payer,
-      payee
+      payer_address,
+      payee_address
     )
     VALUES (?, ?, ?, ?)`,
   )
