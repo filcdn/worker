@@ -14,11 +14,33 @@ import {
   removeDataSetPieces,
   insertDataSetPieces,
 } from '../lib/pdp-verifier-handlers.js'
+import { screenWallets } from '../lib/wallet-screener.js'
+
+// We need to keep an explicit definition of IndexerEnv because our monorepo has multiple
+// worker-configuration.d.ts files, each file (re)defining the global Env interface, causing the
+// final Env interface to contain only properties available to all workers.
+/**
+ * @typedef {{
+ *   GLIF_TOKEN: string
+ *   ENVIRONMENT: 'dev' | 'calibration' | 'mainnet'
+ *   RPC_URL:
+ *     | 'https://api.calibration.node.glif.io/'
+ *     | 'https://api.node.glif.io/'
+ *   SERVICE_PROVIDER_REGISTRY_ADDRESS: string
+ *   WALLET_SCREENING_BATCH_SIZE: 1 | 10
+ *   WALLET_SCREENING_STALE_THRESHOLD_MS: 86400000 | 21600000
+ *   DB: D1Database
+ *   RETRY_QUEUE: Queue
+ *   SECRET_HEADER_KEY: string
+ *   SECRET_HEADER_VALUE: string
+ *   CHAINALYSIS_API_KEY: string
+ * }} IndexerEnv
+ */
 
 export default {
   /**
    * @param {Request} request
-   * @param {Env} env
+   * @param {IndexerEnv} env
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
@@ -39,15 +61,10 @@ export default {
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
     const {
-      // @ts-ignore
       GLIF_TOKEN,
-      // @ts-ignore
       RPC_URL,
-      // @ts-ignore
       SERVICE_PROVIDER_REGISTRY_ADDRESS,
-      // @ts-ignore
       SECRET_HEADER_KEY,
-      // @ts-ignore
       SECRET_HEADER_VALUE,
     } = env
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
@@ -58,13 +75,6 @@ export default {
       return new Response('Method Not Allowed', { status: 405 })
     }
     const payload = await request.json()
-
-    // Ensure addresses are in lower case
-    for (const [key, value] of Object.entries(payload)) {
-      if (typeof value === 'string' && /^0x[0-9a-fA-F]+$/.test(value)) {
-        payload[key] = value.toLowerCase()
-      }
-    }
 
     const pathname = new URL(request.url).pathname
     if (pathname === '/pdp-verifier/data-set-created') {
@@ -85,13 +95,13 @@ export default {
         `
           INSERT INTO data_sets (
             id,
-            storage_provider
+            storage_provider_address
           )
           VALUES (?, ?)
           ON CONFLICT DO NOTHING
         `,
       )
-        .bind(String(payload.set_id), payload.storage_provider)
+        .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
         .run()
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {
@@ -152,17 +162,14 @@ export default {
         ) ||
         !payload.payer ||
         !payload.payee ||
-        typeof payload.with_cdn !== 'boolean'
+        !Array.isArray(payload.metadata_keys)
       ) {
-        console.error(
-          'FilecoinWarmStorageService.DataSetCreated: Invalid payload',
-          payload,
-        )
+        console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       console.log(
-        `New FilecoinWarmStorageService data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, metadata_keys=${payload.metadata_keys}`,
       )
 
       try {
@@ -171,7 +178,7 @@ export default {
         })
       } catch (err) {
         console.log(
-          `Error handling FilecoinWarmStorageService data set creation: ${err}. Retrying...`,
+          `Error handling FWSS data set creation: ${err}. Retrying...`,
         )
         // @ts-ignore
         env.RETRY_QUEUE.send({
@@ -251,7 +258,7 @@ export default {
    * Handles incoming messages from the retry queue.
    *
    * @param {MessageBatch<{ type: string; payload: any }>} batch
-   * @param {Env} env
+   * @param {IndexerEnv} env
    * @param {object} options
    * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
    */
@@ -270,7 +277,7 @@ export default {
           message.ack()
         } catch (err) {
           console.log(
-            `Error handling FilecoinWarmStorageService data set creation: ${err}. Retrying...`,
+            `Error handling FWSS data set creation: ${err}. Retrying...`,
           )
           message.retry({ delaySeconds: 10 })
         }
@@ -283,13 +290,45 @@ export default {
 
   /**
    * @param {any} _controller
-   * @param {Env} _env
+   * @param {IndexerEnv} env
    * @param {ExecutionContext} _ctx
    * @param {object} [options]
    * @param {typeof globalThis.fetch} [options.fetch]
+   * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
    */
-  async scheduled(_controller, _env, _ctx, { fetch = globalThis.fetch } = {}) {
-    const [subgraph, chainHead] = await Promise.all([
+  async scheduled(
+    _controller,
+    env,
+    _ctx,
+    {
+      fetch = globalThis.fetch,
+      checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
+    } = {},
+  ) {
+    const results = await Promise.allSettled([
+      this.checkGoldskyStatus({ fetch }),
+      screenWallets(env, {
+        batchSize: Number(env.WALLET_SCREENING_BATCH_SIZE),
+        staleThresholdMs: Number(env.WALLET_SCREENING_STALE_THRESHOLD_MS),
+        checkIfAddressIsSanctioned,
+      }),
+    ])
+    const errors = results
+      .filter((r) => r.status === 'rejected')
+      .map((r) => r.reason)
+    if (errors.length === 1) {
+      throw errors[0]
+    } else if (errors.length) {
+      throw new AggregateError(errors, 'One or more scheduled tasks failed')
+    }
+  },
+
+  /**
+   * @param {object} options
+   * @param {typeof globalThis.fetch} options.fetch
+   */
+  async checkGoldskyStatus({ fetch }) {
+    const [subgraph] = await Promise.all([
       (async () => {
         const res = await fetch(
           'https://api.goldsky.com/api/public/project_cmb91qc80slyu01wca6e2eupl/subgraphs/pdp-verifier/1.0.0/gn',
@@ -312,32 +351,13 @@ export default {
         const { data } = await res.json()
         return data
       })(),
-      (async () => {
-        const res = await fetch(
-          'https://calibration.filecoin.chain.love/rpc/v0',
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'Filecoin.ChainHead',
-              params: [],
-              id: 1,
-            }),
-          },
-        )
-        const { result } = await res.json()
-        return result
-      })(),
+      // (placeholder for more data-fetching steps)
     ])
     const alerts = []
     if (subgraph._meta.hasIndexingErrors) {
       alerts.push('Goldsky has indexing errors')
     }
-    const lag = chainHead.Height - subgraph._meta.block.number
-    if (lag > 2) {
-      // TODO: Even 2 blocks is too much, but this is where Goldksy is at
-      alerts.push(`Goldsky is ${lag} blocks behind`)
-    }
+    // (placeholder for more alerting conditions)
     if (alerts.length) {
       throw new Error(alerts.join(' & '))
     }

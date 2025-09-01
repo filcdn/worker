@@ -1,9 +1,9 @@
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from './chainalysis.js'
 
 /**
- * Handle Filecoin Warm Storage Service data set creation
+ * Handle proof set rail creation
  *
- * @param {Env} env
+ * @param {{ CHAINALYSIS_API_KEY: string; DB: D1Database }} env
  * @param {any} payload
  * @param {object} opts
  * @param {typeof defaultCheckIfAddressIsSanctioned} opts.checkIfAddressIsSanctioned
@@ -15,24 +15,25 @@ export async function handleFWSSDataSetCreated(
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
 ) {
-  const {
-    // @ts-ignore
-    CHAINALYSIS_API_KEY,
-  } = env
+  const { CHAINALYSIS_API_KEY } = env
 
-  if (payload.with_cdn) {
+  const withCDN = payload.metadata_keys.includes('withCDN')
+
+  if (withCDN) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {
       CHAINALYSIS_API_KEY,
     })
 
     await env.DB.prepare(
       `
-        INSERT INTO wallet_details (address, is_sanctioned)
-        VALUES (?, ?)
-        ON CONFLICT (address) DO UPDATE SET is_sanctioned = excluded.is_sanctioned
+      INSERT INTO wallet_details (address, is_sanctioned, last_screened_at)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT (address) DO UPDATE SET
+        is_sanctioned = excluded.is_sanctioned,
+        last_screened_at = excluded.last_screened_at
       `,
     )
-      .bind(payload.payer, isPayerSanctioned)
+      .bind(payload.payer.toLowerCase(), isPayerSanctioned)
       .run()
   }
 
@@ -40,8 +41,8 @@ export async function handleFWSSDataSetCreated(
     `
       INSERT INTO data_sets (
         id,
-        payer,
-        payee,
+        payer_address,
+        payee_address,
         with_cdn
       )
       VALUES (?, ?, ?, ?)

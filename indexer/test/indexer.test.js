@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { assertCloseToNow } from './test-helpers.js'
 import workerImpl from '../bin/indexer.js'
 import {
   env,
@@ -53,7 +54,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: dataSetId,
-          storage_provider: '0xaddress',
+          storage_provider: '0xAddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -67,7 +68,9 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xaddress')
+      expect(dataSets[0].storage_provider_address).toBe(
+        '0xAddress'.toLowerCase(),
+      )
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
@@ -103,7 +106,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({
           set_id: Number(dataSetId),
-          storage_provider: '0xaddress',
+          storage_provider: '0xAddress',
         }),
       })
       const res = await workerImpl.fetch(req, env)
@@ -117,7 +120,9 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider).toBe('0xaddress'.toLowerCase())
+      expect(dataSets[0].storage_provider_address).toBe(
+        '0xAddress'.toLowerCase(),
+      )
     })
   })
 
@@ -342,7 +347,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -363,17 +368,18 @@ describe('retriever.indexer', () => {
       const { results: walletDetails } = await env.DB.prepare(
         'SELECT * FROM wallet_details WHERE address = ?',
       )
-        .bind('0xPayerAddress')
+        .bind('0xPayerAddress'.toLowerCase())
         .all()
 
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].payer).toBe('0xPayerAddress')
-      expect(dataSets[0].payee).toBe('0xPayeeAddress')
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
+      expect(dataSets[0].payee_address).toBe('0xPayeeAddress'.toLowerCase())
       expect(dataSets[0].with_cdn).toBe(1)
 
       expect(walletDetails.length).toBe(1)
       expect(walletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(walletDetails[0].last_screened_at)
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
@@ -389,7 +395,7 @@ describe('retriever.indexer', () => {
               data_set_id: dataSetId,
               payer: '0xPayerAddress',
               payee: '0xPayeeAddress',
-              with_cdn: true,
+              metadata_keys: ['withCDN'],
             }),
           },
         )
@@ -422,7 +428,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -457,7 +463,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -481,7 +487,7 @@ describe('retriever.indexer', () => {
             data_set_id: randomId(),
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: false,
+            metadata_keys: [],
           }),
         },
       )
@@ -509,15 +515,92 @@ describe('retriever.indexer', () => {
       const { results: walletDetails } = await env.DB.prepare(
         'SELECT * FROM wallet_details WHERE address = ?',
       )
-        .bind('0xPayerAddress')
+        .bind('0xPayerAddress'.toLowerCase())
         .all()
 
       expect(dataSets.length).toBe(1)
-      expect(dataSets[0].payer).toBe('0xPayerAddress')
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
 
       expect(walletDetails.length).toBe(1)
-      expect(walletDetails[0].address).toBe('0xPayerAddress')
+      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
       expect(walletDetails[0].is_sanctioned).toBe(1)
+    })
+
+    it('updates is_sanctioned status of existing wallet', async () => {
+      // When the wallet creates the first ProofSet, it's not sanctioned yet
+      let req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: randomId(),
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            metadata_keys: ['withCDN'],
+          }),
+        },
+      )
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(false)
+      let res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: initialWalletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+      expect(initialWalletDetails.length).toBe(1)
+      expect(initialWalletDetails[0].address).toBe(
+        '0xPayerAddress'.toLowerCase(),
+      )
+      expect(initialWalletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(initialWalletDetails[0].last_screened_at)
+
+      // When the wallet creates the second ProofSet some time later,
+      // it's flagged as sanctioned
+
+      await env.DB.exec(
+        'UPDATE wallet_details SET last_screened_at = datetime("now", "-1 day")',
+      )
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
+      req = new Request(
+        'https://host/filecoin-warm-storage-service/data-set-created',
+        {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            data_set_id: randomId(),
+            payer: '0xPayerAddress',
+            payee: '0xPayeeAddress',
+            metadata_keys: ['withCDN'],
+          }),
+        },
+      )
+      res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
+      expect(walletDetails[0].is_sanctioned).toBe(1)
+      assertCloseToNow(walletDetails[0].last_screened_at)
     })
 
     it('sends message to queue if sanction check fails', async () => {
@@ -526,7 +609,7 @@ describe('retriever.indexer', () => {
         data_set_id: dataSetId,
         payer: '0xPayerAddress',
         payee: '0xPayeeAddress',
-        with_cdn: true,
+        metadata_keys: ['withCDN'],
       }
       const req = new Request(
         'https://host/filecoin-warm-storage-service/data-set-created',
@@ -560,111 +643,6 @@ describe('retriever.indexer', () => {
       expect(dataSets.length).toBe(0)
     })
   })
-
-  describe('POST /filecoin-warm-storage-service/service-terminated', () => {
-    beforeEach(async () => {
-      await env.DB.exec('DELETE FROM data_sets')
-    })
-
-    it('returns 400 if data_set_id is missing', async () => {
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/service-terminated',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({}),
-        },
-      )
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(400)
-      expect(await res.text()).toBe('Bad Request')
-    })
-
-    it('sets `withCDN` flag to `false`', async () => {
-      const dataSetId = await withDataSet(env, {
-        withCDN: true,
-        payer: '0xPayerAddress',
-        payee: '0xPayeeAddress',
-      })
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/service-terminated',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: dataSetId,
-          }),
-        },
-      )
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT id, with_cdn FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
-    })
-  })
-
-  describe('POST /filecoin-warm-storage-service/cdn-service-terminated', () => {
-    beforeEach(async () => {
-      await env.DB.exec('DELETE FROM data_sets')
-    })
-
-    it('returns 400 if data_set_id is missing', async () => {
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/cdn-service-terminated',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({}),
-        },
-      )
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(400)
-      expect(await res.text()).toBe('Bad Request')
-    })
-
-    it('sets `withCDN` flag to `false`', async () => {
-      const dataSetId = await withDataSet(env, {
-        withCDN: true,
-        payer: '0xPayerAddress',
-        payee: '0xPayeeAddress',
-      })
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/cdn-service-terminated',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: dataSetId,
-          }),
-        },
-      )
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT id, with_cdn FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
-    })
-  })
-
   describe('POST /service-provider-registry/product-added', () => {
     it('returns 400 if provider_id and product_type are missing', async () => {
       const req = new Request(
@@ -683,7 +661,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const providerId = 0
       const blockNumber = 10
       const req = new Request(
@@ -708,7 +686,7 @@ describe('retriever.indexer', () => {
         } else if (functionName === 'getProvider') {
           expect(args).toEqual([providerId])
           expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       const ctx = createExecutionContext()
@@ -717,20 +695,22 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: providerUrls } = await env.DB.prepare(
+      const { results: providers } = await env.DB.prepare(
         'SELECT * FROM providers WHERE id = ?',
       )
         .bind(providerId)
         .all()
-      expect(providerUrls.length).toBe(1)
-      expect(providerUrls[0].beneficiary).toBe(beneficiary)
-      expect(providerUrls[0].service_url).toBe(serviceUrl)
+      expect(providers.length).toBe(1)
+      expect(providers[0].beneficiary_address).toBe(
+        beneficiaryAddress.toLowerCase(),
+      )
+      expect(providers[0].service_url).toBe(serviceUrl)
     })
   })
   describe('POST /service-provider-registry/product-updated', () => {
     it('updates service URLs for an existing provider', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const providerId = 0
       const blockNumber = 10
       const newServiceUrl = 'https://new-provider.example.com'
@@ -758,7 +738,7 @@ describe('retriever.indexer', () => {
         } else if (functionName === 'getProvider') {
           expect(args).toEqual([providerId])
           expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       let ctx = createExecutionContext()
@@ -790,7 +770,7 @@ describe('retriever.indexer', () => {
         } else if (functionName === 'getProvider') {
           expect(args).toEqual([providerId])
           expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       ctx = createExecutionContext()
@@ -799,14 +779,16 @@ describe('retriever.indexer', () => {
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
-      const { results: providerUrls } = await env.DB.prepare(
+      const { results: providers } = await env.DB.prepare(
         'SELECT * FROM providers WHERE id = ?',
       )
         .bind(providerId)
         .all()
-      expect(providerUrls.length).toBe(1)
-      expect(providerUrls[0].beneficiary).toBe(beneficiary)
-      expect(providerUrls[0].service_url).toBe(newServiceUrl)
+      expect(providers.length).toBe(1)
+      expect(providers[0].beneficiary_address).toBe(
+        beneficiaryAddress.toLowerCase(),
+      )
+      expect(providers[0].service_url).toBe(newServiceUrl)
     })
   })
   describe('POST /service-provider-registry/product-removed', () => {
@@ -830,7 +812,7 @@ describe('retriever.indexer', () => {
       const providerId = 0
       const blockNumber = 10
       const productType = 0
-      const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider
@@ -838,7 +820,7 @@ describe('retriever.indexer', () => {
         if (functionName === 'getPDPService') {
           return [[serviceUrl]]
         } else if (functionName === 'getProvider') {
-          return [[beneficiary]]
+          return [[beneficiaryAddress]]
         }
       }
       const insertReq = new Request(
@@ -884,9 +866,9 @@ describe('retriever.indexer', () => {
 
       // Verify that the provider is removed from the database
       const { results: providers } = await env.DB.prepare(
-        'SELECT * FROM providers WHERE beneficiary = ?',
+        'SELECT * FROM providers WHERE beneficiary_address = ?',
       )
-        .bind(beneficiary)
+        .bind(beneficiaryAddress.toLowerCase())
         .all()
       expect(providers.length).toBe(0) // The provider should be removed
     })
@@ -931,7 +913,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
   it('removes a provider from the providers table', async () => {
     const providerId = 0
     const blockNumber = 10
-    const beneficiary = '0x5a23b7df87f59a291c26a2a1d684ad03ce9b68dc'
+    const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
     const serviceUrl = 'https://provider.example.com'
 
     // First, insert a provider
@@ -939,7 +921,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
       if (functionName === 'getPDPService') {
         return [[serviceUrl]]
       } else if (functionName === 'getProvider') {
-        return [[beneficiary]]
+        return [[beneficiaryAddress]]
       }
     }
     const insertReq = new Request(
@@ -984,9 +966,9 @@ describe('POST /service-provider-registry/provider-removed', () => {
 
     // Verify that the provider is removed from the database
     const { results: providers } = await env.DB.prepare(
-      'SELECT * FROM providers WHERE beneficiary = ?',
+      'SELECT * FROM providers WHERE beneficiary_address = ?',
     )
-      .bind(beneficiary)
+      .bind(beneficiaryAddress.toLowerCase())
       .all()
     expect(providers.length).toBe(0) // The provider should be removed
   })
@@ -1009,26 +991,6 @@ describe('POST /service-provider-registry/provider-removed', () => {
     expect(await res.text()).toBe('Provider Not Found')
   })
 })
-
-async function withDataSet(
-  env,
-  { dataSetId = randomId(), withCDN = true, payer, payee },
-) {
-  await env.DB.prepare(
-    `
-    INSERT INTO data_sets (
-      id,
-      with_cdn,
-      payer,
-      payee
-    )
-    VALUES (?, ?, ?, ?)`,
-  )
-    .bind(String(dataSetId), withCDN, payer, payee)
-    .run()
-
-  return dataSetId
-}
 
 async function withPieces(env, dataSetId, pieceIds, pieceCids) {
   await env.DB.prepare(
@@ -1053,4 +1015,128 @@ async function withPieces(env, dataSetId, pieceIds, pieceCids) {
       ]),
     )
     .run()
+}
+
+describe('POST /filecoin-warm-storage-service/service-terminated', () => {
+  beforeEach(async () => {
+    await env.DB.exec('DELETE FROM data_sets')
+  })
+
+  it('returns 400 if data_set_id is missing', async () => {
+    const req = new Request(
+      'https://host/filecoin-warm-storage-service/service-terminated',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('sets `withCDN` flag to `false`', async () => {
+    const dataSetId = await withDataSet(env, {
+      withCDN: true,
+      payer: '0xPayerAddress',
+      payee: '0xPayeeAddress',
+    })
+    const req = new Request(
+      'https://host/filecoin-warm-storage-service/service-terminated',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          data_set_id: dataSetId,
+        }),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: dataSets } = await env.DB.prepare(
+      'SELECT id, with_cdn FROM data_sets WHERE id = ?',
+    )
+      .bind(dataSetId)
+      .all()
+    expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
+  })
+})
+
+describe('POST /filecoin-warm-storage-service/cdn-service-terminated', () => {
+  beforeEach(async () => {
+    await env.DB.exec('DELETE FROM data_sets')
+  })
+
+  it('returns 400 if data_set_id is missing', async () => {
+    const req = new Request(
+      'https://host/filecoin-warm-storage-service/cdn-service-terminated',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('sets `withCDN` flag to `false`', async () => {
+    const dataSetId = await withDataSet(env, {
+      withCDN: true,
+      payer: '0xPayerAddress',
+      payee: '0xPayeeAddress',
+    })
+    const req = new Request(
+      'https://host/filecoin-warm-storage-service/cdn-service-terminated',
+      {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          data_set_id: dataSetId,
+        }),
+      },
+    )
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: dataSets } = await env.DB.prepare(
+      'SELECT id, with_cdn FROM data_sets WHERE id = ?',
+    )
+      .bind(dataSetId)
+      .all()
+    expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
+  })
+})
+
+async function withDataSet(
+  env,
+  { dataSetId = randomId(), withCDN = true, payer, payee },
+) {
+  await env.DB.prepare(
+    `
+    INSERT INTO data_sets (
+      id,
+      with_cdn,
+      payer,
+      payee
+    )
+    VALUES (?, ?, ?, ?)`,
+  )
+    .bind(String(dataSetId), withCDN, payer, payee)
+    .run()
+
+  return dataSetId
 }

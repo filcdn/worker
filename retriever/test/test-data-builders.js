@@ -3,17 +3,20 @@ import { getBadBitsEntry } from '../lib/bad-bits-util'
 /**
  * @param {Env} env
  * @param {Object} options
- * @param {string} options.storageProvider
+ * @param {string} options.storageProviderAddress
  * @param {string} options.pieceCid
  * @param {number} options.dataSetId
- * @param {boolean} options.with_cdn
+ * @param {boolean} options.withCDN
+ * @param {string} options.payerAddress
+ * @param {string} options.payeeAddress
+ * @param {string} options.pieceId
  */
 export async function withDataSetPieces(
   env,
   {
-    storageProvider = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
-    payee = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
-    payer = '0x1234567890abcdef1234567890abcdef12345608',
+    storageProviderAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
+    payeeAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
+    payerAddress = '0x1234567890abcdef1234567890abcdef12345608',
     pieceCid = 'bagaTEST',
     dataSetId = 0,
     withCDN = true,
@@ -23,10 +26,16 @@ export async function withDataSetPieces(
   await env.DB.batch([
     env.DB.prepare(
       `
-      INSERT INTO data_sets (id, storage_provider, payer, payee, with_cdn)
+      INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn)
       VALUES (?, ?, ?, ?, ?)
     `,
-    ).bind(String(dataSetId), storageProvider, payer, payee, withCDN),
+    ).bind(
+      String(dataSetId),
+      storageProviderAddress.toLowerCase(),
+      payerAddress.toLowerCase(),
+      payeeAddress.toLowerCase(),
+      withCDN,
+    ),
 
     env.DB.prepare(
       `
@@ -41,20 +50,20 @@ export async function withDataSetPieces(
  * @param {Env} env
  * @param {Object} options
  * @param {number} id
- * @param {string} options.beneficiary
+ * @param {string} options.beneficiaryAddress
  * @param {string} [options.serviceUrl]
  */
 export async function withApprovedProvider(
   env,
-  { id, beneficiary, serviceUrl = 'https://pdp.xyz/' } = {},
+  { id, beneficiaryAddress, serviceUrl = 'https://pdp.xyz/' } = {},
 ) {
   await env.DB.prepare(
     `
-    INSERT INTO providers (id, beneficiary, service_url)
+    INSERT INTO providers (id, beneficiary_address, service_url)
     VALUES (?, ?, ?)
   `,
   )
-    .bind(String(id), beneficiary, serviceUrl)
+    .bind(String(id), beneficiaryAddress, serviceUrl)
     .run()
 }
 
