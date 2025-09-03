@@ -8,7 +8,8 @@ export async function terminateCDNServiceForSanctionedClients(
   env,
   filecoinWarmStorageServiceContract,
 ) {
-  const { results: dataSets } = env.DB.prepare(`
+  const { results: dataSets } = await env.DB.prepare(
+    `
       SELECT DISTINCT ds.id
       FROM data_sets ds
         LEFT JOIN wallet_details sp ON ds.storage_provider_address = sp.address
@@ -18,12 +19,19 @@ export async function terminateCDNServiceForSanctionedClients(
         OR pa.is_sanctioned = 1
         OR pe.is_sanctioned = 1
         AND ds.with_cdn = 1;
-  `)
+  `,
+  ).run()
 
   const instances = []
   for (const { id: dataSetId } of dataSets) {
     const id = `terminate-cdn-sanctioned-${dataSetId}`
-    const instance = await env.TERMINATE_CDN_SERVICE_WORKFLOW.get(id)
+    let instance
+    try {
+      instance = await env.TERMINATE_CDN_SERVICE_WORKFLOW.get(id)
+    } catch (error) {
+      console.log(`Failed to get workflow instance for ${id}`)
+    }
+
     const status = instance?.status || 'unknown'
     const error = instance?.error
 

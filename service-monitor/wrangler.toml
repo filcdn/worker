@@ -53,3 +53,12 @@ crons = ["*/1 * * * *"]  # Run every minute
 name = "terminate-cdn-service-workflow"
 binding = "TERMINATE_CDN_SERVICE_WORKFLOW"
 class_name = "TerminateCDNServiceWorkflow"
+
+[[env.dev.durable_objects.bindings]]
+name = "NONCE_MANAGER"
+class_name = "NonceManager"
+
+[[migrations]]
+tag = "v1"
+new_classes = [ "NonceManager" ]
+  
