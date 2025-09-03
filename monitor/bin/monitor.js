@@ -1,8 +1,7 @@
 /** @import {WorkflowEvent, WorkflowStep} from 'cloudflare:workers' */
 import { WorkflowEntrypoint } from 'cloudflare:workers'
-import { createWalletClient, getContract, http } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { filecoinCalibration } from 'viem/chains'
+import { getFilecoinWarmStorageServiceContract as defaultGetFilecoinWarmStorageServiceContract } from '../lib/contract.js'
+import { terminateCDNServiceForSanctionedClients } from '../lib/terminate-cdn-service.js'
 
 /**
  * @typedef {{
@@ -14,6 +13,7 @@ import { filecoinCalibration } from 'viem/chains'
  *   FILECOIN_WARM_STORAGE_SERVICE_ADDRESS: string
  *   FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY: string
  *   DB: D1Database
+ *   TERMINATE_CDN_SERVICE_WORKFLOW: WorkflowEntrypoint
  * }} IndexerEnv
  */
 
@@ -22,74 +22,36 @@ export default {
    * @param {any} _controller
    * @param {IndexerEnv} env
    * @param {ExecutionContext} _ctx
+   * @param {object} options
+   * @param {typeof defaultGetFilecoinWarmStorageServiceContract} options.getFilecoinWarmStorageServiceContract
+   *   - Function to get the contract instance
    */
-  async scheduled(_controller, env, _ctx) {
-    await this.terminateCDNServiceForSanctionedClients(env)
-    // const results = await Promise.allSettled([
-    //   this.terminateCDNServiceForSanctionedClients(env),
-    // ])
-    // const errors = results
-    //   .filter((r) => r.status === 'rejected')
-    //   .map((r) => r.reason)
-    // if (errors.length === 1) {
-    //   throw errors[0]
-    // } else if (errors.length) {
-    //   throw new AggregateError(errors, 'One or more scheduled tasks failed')
-    // }
-  },
-
-  /** @param {IndexerEnv} env */
-  async terminateCDNServiceForSanctionedClients(env) {
-  //   const { results: dataSets } = env.DB.prepare(`
-  //     SELECT DISTINCT ds.id
-  //     FROM data_sets ds
-  //       LEFT JOIN wallet_details sp ON ds.storage_provider_address = sp.address
-  //       LEFT JOIN wallet_details pa ON ds.payer_address = pa.address
-  //       LEFT JOIN wallet_details pe ON ds.payee_address = pe.address
-  //     WHERE sp.is_sanctioned = 1
-  //       OR pa.is_sanctioned = 1
-  //       OR pe.is_sanctioned = 1;
-  // `)
-
-    const account = privateKeyToAccount(env.FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY)
-    const client = createWalletClient({
-      account,
-      chain: filecoinCalibration,
-      transport: http()
-    })
-    const contract = getContract({
-      address: env.FILECOIN_WARM_STORAGE_SERVICE_ADDRESS,
-      abi: [
-        'function terminateCDNService(uint256 dataSetId) external'
-      ],
-      client,
-    })
-    
-    const dataSets = [{id: '1'}]
-    for (const { id } of dataSets) {
-      console.log('create')
-      await env.TERMINATE_CDN_SERVICE_WORKFLOW.create({
-        id,
-        contract: contract,
-      })
-      console.log('created')
-    }
+  async scheduled(
+    _controller,
+    env,
+    _ctx,
+    {
+      getFilecoinWarmStorageServiceContract = defaultGetFilecoinWarmStorageServiceContract,
+    },
+  ) {
+    const filecoinWarmStorageServiceContract =
+      await getFilecoinWarmStorageServiceContract(env)
+    await terminateCDNServiceForSanctionedClients(
+      env,
+      filecoinWarmStorageServiceContract,
+    )
   },
 }
 
 export class TerminateCDNServiceWorkflow extends WorkflowEntrypoint {
   /**
-   * @param {WorkflowEvent<{
-   *   id: string
-   *   contract: { terminateService: (BigInt) => Promise<void> }
-   * }>} event
+   * @param {WorkflowEvent} event
    * @param {WorkflowStep} step
    */
-  async run({ id, contract }, step) {
-    // Logic to terminate the CDN service for the sanctioned client
-    console.log('terminate')
+  async run({ payload: { dataSetId, contract } }, step) {
+    console.log(`Terminating CDN service for dataSetId ${dataSetId}`)
     const tx = await step.do(
-      'terminateCDNService',
+      `terminate CDN service for data set ${dataSetId}`,
       {
         retries: {
           limit: 5,
@@ -98,22 +60,21 @@ export class TerminateCDNServiceWorkflow extends WorkflowEntrypoint {
         },
         timeout: '15 minutes',
       },
-      async () => contract.terminateService(BigInt(id)),
+      async () => {
+        return await contract.write.terminateCDNService(BigInt(dataSetId))
+      },
     )
-    console.log('terminate')
 
     const receipt = await step.do(
-      'waitForReceipt',
+      `wait for termination transaction receipt for data set ${dataSetId}`,
       { timeout: '15 minutes' },
       async () => {
         return await tx.wait()
       },
     )
-    console.log('done')
 
     console.log(
-      `Terminated CDN service for dataSetId ${id}, tx hash: ${receipt.transactionHash}`,
+      `Terminated CDN service for dataSetId ${dataSetId}, tx hash: ${receipt.transactionHash}`,
     )
   }
 }
-
