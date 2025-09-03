@@ -15,7 +15,7 @@ import { terminateCDNServiceForSanctionedClients } from '../lib/terminate-cdn-se
  * }} ServiceMonitorEnv
  */
 
-export default{
+export default {
   /**
    * @param {any} _controller
    * @param {ServiceMonitorEnv} env

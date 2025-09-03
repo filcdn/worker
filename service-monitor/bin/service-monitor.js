@@ -17,7 +17,7 @@ import { terminateCDNServiceForSanctionedClients } from '../lib/terminate-cdn-se
  * }} ServiceMonitorEnv
  */
 
-export default{
+export default {
   /**
    * @param {any} _controller
    * @param {ServiceMonitorEnv} env
@@ -29,7 +29,6 @@ export default{
     await terminateCDNServiceForSanctionedClients(env)
   },
 }
-
 
 // Re-export workflows and durable objects
 export { NonceManager, TerminateCDNServiceWorkflow }
