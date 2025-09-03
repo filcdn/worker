@@ -1,6 +1,4 @@
 /** @import {WorkflowEntrypoint} from 'cloudflare:workers' */
-import { NonceManager } from '../lib/nonce-manager.js'
-import { TerminateCDNServiceWorkflow } from '../lib/terminate-cdn-service-workflow.js'
 import { terminateCDNServiceForSanctionedClients } from '../lib/terminate-cdn-service.js'
 
 /**
@@ -29,7 +27,3 @@ export default{
     await terminateCDNServiceForSanctionedClients(env)
   },
 }
-
-
-// Re-export workflows and durable objects
-export { NonceManager, TerminateCDNServiceWorkflow }
