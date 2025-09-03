@@ -15,9 +15,9 @@ export class NonceManager extends DurableObject {
 
   async consume({ address, chainId, client }) {
     const key = this.#getKey({ address, chainId })
-    const promise = this.nonceManager.get({ address, chainId, client })
+    const promise = this.get({ address, chainId, client })
 
-    this.nonceManager.increment({ address, chainId })
+    this.increment({ address, chainId })
     const nonce = await promise
 
     await this.#setNonceInSource({ address, chainId }, nonce)
@@ -51,7 +51,7 @@ export class NonceManager extends DurableObject {
           this.nonceMap.delete(key)
           return nonce
         } finally {
-          this.nonceManager.reset({ address, chainId })
+          this.reset({ address, chainId })
         }
       })()
       this.promiseMap.set(key, promise)
