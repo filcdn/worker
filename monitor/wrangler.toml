@@ -1,5 +1,5 @@
-name = "filcdn-indexer"
-main = "bin/indexer.js"
+name = "filcdn-monitor"
+main = "bin/monitor.js"
 compatibility_date = "2024-12-05"
 compatibility_flags = ["nodejs_compat"]
 logpush = true
@@ -16,7 +16,7 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf100"
 [env.dev.vars]
 ENVIRONMENT = "dev"
 RPC_URL = "https://api.calibration.node.glif.io/"
-FILECOIN_WARM_STORAGE_SERVICE_ADDRESS = "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC" # TODO
+FILECOIN_WARM_STORAGE_SERVICE_ADDRESS = "0xD9df508aC49161e1E0A8382a3c833728b89bED8C" # TODO
 
 [[env.dev.d1_databases]]
 binding = "DB"
@@ -26,7 +26,7 @@ database_id = "8cc92155-16f6-426a-b782-2965e0daf101"
 [env.calibration.vars]
 ENVIRONMENT = "calibration"
 RPC_URL = "https://api.calibration.node.glif.io/"
-FILECOIN_WARM_STORAGE_SERVICE_ADDRESS = "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC" # TODO
+FILECOIN_WARM_STORAGE_SERVICE_ADDRESS = "0xD9df508aC49161e1E0A8382a3c833728b89bED8C" # TODO
 
 [[env.calibration.d1_databases]]
 binding = "DB"
@@ -39,7 +39,7 @@ crons = ["*/1 * * * *"]  # Run every minute
 [env.mainnet.vars]
 ENVIRONMENT = "mainnet"
 RPC_URL = "https://api.node.glif.io/"
-FILECOIN_WARM_STORAGE_SERVICE_ADDRESS = "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC" # TODO
+FILECOIN_WARM_STORAGE_SERVICE_ADDRESS = "0xD9df508aC49161e1E0A8382a3c833728b89bED8C" # TODO
 
 [[env.mainnet.d1_databases]]
 binding = "DB"
@@ -48,3 +48,8 @@ database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"
 
 [env.mainnet.triggers]
 crons = ["*/1 * * * *"]  # Run every minute
+
+[[env.dev.workflows]]
+name = "terminate-cdn-service-workflow"
+binding = "TERMINATE_CDN_SERVICE_WORKFLOW"
+class_name = "TerminateCDNServiceWorkflow"
