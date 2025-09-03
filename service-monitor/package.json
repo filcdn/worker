@@ -1,11 +1,11 @@
 {
-  "name": "@filcdn/monitor",
+  "name": "@filcdn/service-monitor",
   "version": "1.0.0",
   "private": true,
-  "description": "FilCDN Monitor Worker",
+  "description": "FilCDN Service Monitor Worker",
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
-  "main": "bin/monitor.js",
+  "main": "bin/service-monitor.js",
   "scripts": {
     "build:types": "wrangler types",
     "deploy:calibration": "wrangler deploy --env calibration",

@@ -1,5 +1,7 @@
 /**
- * @param {import('../bin/monitor.js').IndexerEnv} env
+ * @param {{
+ *   TERMINATE_CDN_SERVICE_WORKFLOW: import('clouflare:workers').WorkflowEntrypoint
+ * }} env
  * @param {any} filecoinWarmStorageServiceContract
  */
 export async function terminateCDNServiceForSanctionedClients(

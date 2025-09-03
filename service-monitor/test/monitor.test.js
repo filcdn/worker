@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import monitor, { TerminateCDNServiceWorkflow } from '../bin/monitor.js'
+import monitor, { TerminateCDNServiceWorkflow } from '../bin/service-monitor.js'
 import { env } from 'cloudflare:test'
 import { withDataSet, withSanctionedWallet } from './test-helpers.js'
 

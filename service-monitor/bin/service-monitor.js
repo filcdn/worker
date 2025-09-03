@@ -14,13 +14,13 @@ import { terminateCDNServiceForSanctionedClients } from '../lib/terminate-cdn-se
  *   FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY: string
  *   DB: D1Database
  *   TERMINATE_CDN_SERVICE_WORKFLOW: WorkflowEntrypoint
- * }} IndexerEnv
+ * }} ServiceMonitorEnv
  */
 
 export default {
   /**
    * @param {any} _controller
-   * @param {IndexerEnv} env
+   * @param {ServiceMonitorEnv} env
    * @param {ExecutionContext} _ctx
    * @param {object} options
    * @param {typeof defaultGetFilecoinWarmStorageServiceContract} options.getFilecoinWarmStorageServiceContract
