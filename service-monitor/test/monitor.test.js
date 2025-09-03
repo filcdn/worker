@@ -10,7 +10,7 @@ describe('scheduled entrypoint', () => {
     vi.clearAllMocks()
   })
 
-  it('calls terminateCDNServiceForSanctionedClients with injected contract', async () => {
+  it('calls terminateCDNServiceForSanctionedClients with correct env', async () => {
     const dataSetId = '1'
     const sanctionedAddress = '0xSanctionedAddress'
     await withSanctionedWallet(env, sanctionedAddress)
@@ -29,12 +29,7 @@ describe('scheduled entrypoint', () => {
       ...env,
       TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
     }
-    const mockContract = {}
-    const mockGetContract = vi.fn().mockResolvedValue(mockContract)
-    await monitor.scheduled(null, envOverride, null, {
-      getFilecoinWarmStorageServiceContract: mockGetContract,
-    })
-    expect(mockGetContract).toHaveBeenCalledWith(envOverride)
+    await monitor.scheduled(null, envOverride, null)
     expect(mockWorkflow.createBatch).toHaveBeenCalled()
   })
 })
@@ -49,12 +44,16 @@ describe('TerminateCDNServiceWorkflow', () => {
         }),
       },
     }
+    const mockGetContract = vi.fn().mockReturnValue(mockContract)
     const workflow = new TerminateCDNServiceWorkflow()
     const step = {
       do: vi.fn(async (_desc, _opts, fn) => await fn()),
     }
-    const payload = { dataSetId, contract: mockContract }
-    await workflow.run({ payload }, step)
+    const payload = { dataSetId }
+    await workflow.run({ payload }, step, {
+      getFilecoinWarmStorageServiceContract: mockGetContract,
+    })
+    expect(mockGetContract).toHaveBeenCalled()
     expect(mockContract.write.terminateCDNService).toHaveBeenCalledWith(
       BigInt(dataSetId),
     )

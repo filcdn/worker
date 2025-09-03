@@ -29,8 +29,7 @@ describe('terminateCDNServiceForSanctionedClients', () => {
       ...env,
       TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
     }
-    const mockContract = {}
-    await terminateCDNServiceForSanctionedClients(envOverride, mockContract)
+    await terminateCDNServiceForSanctionedClients(envOverride)
     expect(mockWorkflow.createBatch).toHaveBeenCalled()
   })
 
@@ -54,8 +53,7 @@ describe('terminateCDNServiceForSanctionedClients', () => {
       ...env,
       TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
     }
-    const mockContract = {}
-    await terminateCDNServiceForSanctionedClients(envOverride, mockContract)
+    await terminateCDNServiceForSanctionedClients(envOverride)
     expect(mockWorkflow.createBatch).not.toHaveBeenCalled()
   })
 
@@ -77,8 +75,7 @@ describe('terminateCDNServiceForSanctionedClients', () => {
       ...env,
       TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
     }
-    const mockContract = {}
-    await terminateCDNServiceForSanctionedClients(envOverride, mockContract)
+    await terminateCDNServiceForSanctionedClients(envOverride)
     expect(mockWorkflow.createBatch).not.toHaveBeenCalled()
   })
 
@@ -102,8 +99,7 @@ describe('terminateCDNServiceForSanctionedClients', () => {
       ...env,
       TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
     }
-    const mockContract = {}
-    await terminateCDNServiceForSanctionedClients(envOverride, mockContract)
+    await terminateCDNServiceForSanctionedClients(envOverride)
     expect(mockWorkflow.restart).toHaveBeenCalled()
   })
 })

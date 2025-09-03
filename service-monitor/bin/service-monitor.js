@@ -1,6 +1,6 @@
 /** @import {WorkflowEvent, WorkflowStep} from 'cloudflare:workers' */
 import { WorkflowEntrypoint } from 'cloudflare:workers'
-import { getFilecoinWarmStorageServiceContract as defaultGetFilecoinWarmStorageServiceContract } from '../lib/contract.js'
+import { getFilecoinWarmStorageServiceContract as defaultGetFilecoinWarmStorageServiceContract } from '../lib/contracts.js'
 import { terminateCDNServiceForSanctionedClients } from '../lib/terminate-cdn-service.js'
 
 /**
@@ -22,24 +22,11 @@ export default {
    * @param {any} _controller
    * @param {ServiceMonitorEnv} env
    * @param {ExecutionContext} _ctx
-   * @param {object} options
-   * @param {typeof defaultGetFilecoinWarmStorageServiceContract} options.getFilecoinWarmStorageServiceContract
+   *
    *   - Function to get the contract instance
    */
-  async scheduled(
-    _controller,
-    env,
-    _ctx,
-    {
-      getFilecoinWarmStorageServiceContract = defaultGetFilecoinWarmStorageServiceContract,
-    },
-  ) {
-    const filecoinWarmStorageServiceContract =
-      await getFilecoinWarmStorageServiceContract(env)
-    await terminateCDNServiceForSanctionedClients(
-      env,
-      filecoinWarmStorageServiceContract,
-    )
+  async scheduled(_controller, env, _ctx) {
+    await terminateCDNServiceForSanctionedClients(env)
   },
 }
 
@@ -47,8 +34,16 @@ export class TerminateCDNServiceWorkflow extends WorkflowEntrypoint {
   /**
    * @param {WorkflowEvent} event
    * @param {WorkflowStep} step
+   * @param {object} options
+   * @param {typeof defaultGetFilecoinWarmStorageServiceContract} options.getFilecoinWarmStorageServiceContract
    */
-  async run({ payload: { dataSetId, contract } }, step) {
+  async run(
+    { payload: { dataSetId } },
+    step,
+    {
+      getFilecoinWarmStorageServiceContract = defaultGetFilecoinWarmStorageServiceContract,
+    } = {},
+  ) {
     console.log(`Terminating CDN service for dataSetId ${dataSetId}`)
     const tx = await step.do(
       `terminate CDN service for data set ${dataSetId}`,
@@ -61,6 +56,7 @@ export class TerminateCDNServiceWorkflow extends WorkflowEntrypoint {
         timeout: '15 minutes',
       },
       async () => {
+        const contract = getFilecoinWarmStorageServiceContract(this.env)
         return await contract.write.terminateCDNService(BigInt(dataSetId))
       },
     )

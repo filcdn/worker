@@ -1,14 +1,13 @@
 import { createWalletClient, getContract, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { filecoinCalibration, filecoinMainnet } from 'viem/chains'
+import { filecoinCalibration, filecoin } from 'viem/chains'
 
 const filecoinWarmStorageServiceAbi = [
   'function terminateCDNService(uint256) external',
 ]
 
-export async function getFilecoinWarmStorageServiceContract(env) {
-  const chain =
-    env.ENVIRONMENT === 'mainnet' ? filecoinMainnet : filecoinCalibration
+export function getFilecoinWarmStorageServiceContract(env) {
+  const chain = env.ENVIRONMENT === 'mainnet' ? filecoin : filecoinCalibration
 
   const walletClient = createWalletClient({
     chain,
