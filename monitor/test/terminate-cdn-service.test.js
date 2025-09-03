@@ -34,6 +34,31 @@ describe('terminateCDNServiceForSanctionedClients', () => {
     expect(mockWorkflow.createBatch).toHaveBeenCalled()
   })
 
+  it('skips workflow if `with_cdn` is `false`', async () => {
+    const dataSetId = '1'
+    const sanctionedAddress = '0xSanctionedAddress'
+    await withSanctionedWallet(env, sanctionedAddress)
+    await withDataSet(env, {
+      id: dataSetId,
+      storageProviderAddress: sanctionedAddress,
+      payerAddress: '0xPayer',
+      payeeAddress: '0xPayee',
+      withCDN: false,
+    })
+
+    const mockWorkflow = {
+      get: vi.fn().mockResolvedValue(undefined),
+      createBatch: vi.fn().mockResolvedValue(undefined),
+    }
+    const envOverride = {
+      ...env,
+      TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
+    }
+    const mockContract = {}
+    await terminateCDNServiceForSanctionedClients(envOverride, mockContract)
+    expect(mockWorkflow.createBatch).not.toHaveBeenCalled()
+  })
+
   it('skips workflow if already running', async () => {
     const dataSetId = '1'
     const sanctionedAddress = '0xSanctionedAddress'
@@ -55,5 +80,30 @@ describe('terminateCDNServiceForSanctionedClients', () => {
     const mockContract = {}
     await terminateCDNServiceForSanctionedClients(envOverride, mockContract)
     expect(mockWorkflow.createBatch).not.toHaveBeenCalled()
+  })
+
+  it('restarts workflow if errorred', async () => {
+    const dataSetId = '1'
+    const sanctionedAddress = '0xSanctionedAddress'
+    await withSanctionedWallet(env, sanctionedAddress)
+    await withDataSet(env, {
+      id: dataSetId,
+      storageProviderAddress: sanctionedAddress,
+      payerAddress: '0xPayer',
+      payeeAddress: '0xPayee',
+    })
+    const mockWorkflow = {
+      get: vi
+        .fn()
+        .mockResolvedValue({ status: 'errored', error: 'Some error' }),
+      restart: vi.fn(),
+    }
+    const envOverride = {
+      ...env,
+      TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
+    }
+    const mockContract = {}
+    await terminateCDNServiceForSanctionedClients(envOverride, mockContract)
+    expect(mockWorkflow.restart).toHaveBeenCalled()
   })
 })

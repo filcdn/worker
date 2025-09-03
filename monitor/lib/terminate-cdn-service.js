@@ -14,12 +14,14 @@ export async function terminateCDNServiceForSanctionedClients(
         LEFT JOIN wallet_details pe ON ds.payee_address = pe.address
       WHERE sp.is_sanctioned = 1
         OR pa.is_sanctioned = 1
-        OR pe.is_sanctioned = 1;
+        OR pe.is_sanctioned = 1
+        AND ds.with_cdn = 1;
   `)
 
   const instances = []
   for (const { id: dataSetId } of dataSets) {
-    const instance = await env.TERMINATE_CDN_SERVICE_WORKFLOW.get(dataSetId)
+    const id = `terminate-cdn-sanctioned-${dataSetId}`
+    const instance = await env.TERMINATE_CDN_SERVICE_WORKFLOW.get(id)
     const status = instance?.status || 'unknown'
     const error = instance?.error
 
@@ -50,7 +52,7 @@ export async function terminateCDNServiceForSanctionedClients(
     // Status is unknown, create a new workflow
     console.log(`Creating new workflow for dataSetId ${dataSetId}`)
     instances.push({
-      id: dataSetId,
+      id,
       params: { dataSetId, contract: filecoinWarmStorageServiceContract },
     })
   }

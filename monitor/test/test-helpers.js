@@ -10,11 +10,11 @@ export async function withSanctionedWallet(env, address) {
 // Helper to seed a data set
 export async function withDataSet(
   env,
-  { id, storageProviderAddress, payerAddress, payeeAddress },
+  { id, storageProviderAddress, payerAddress, payeeAddress, withCDN = true },
 ) {
   await env.DB.prepare(
-    `INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, 1)`,
+    `INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)`,
   )
-    .bind(id, storageProviderAddress, payerAddress, payeeAddress)
+    .bind(id, storageProviderAddress, payerAddress, payeeAddress, withCDN)
     .run()
 }
