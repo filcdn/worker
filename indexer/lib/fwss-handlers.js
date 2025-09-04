@@ -41,7 +41,7 @@ export async function handleFWSSDataSetCreated(
     `
       INSERT INTO data_sets (
         id,
-        provider_id,
+        service_provider_id,
         payer_address,
         with_cdn
       )

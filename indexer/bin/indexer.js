@@ -3,10 +3,9 @@ import {
   handleProductUpdated,
   handleProductRemoved,
   handleProviderRemoved,
-  rpcRequest as defaultRpcRequest,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
-import { handleFWSSDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
+import { handleFWSSDataSetCreated } from '../lib/fwss-handlers.js'
 import {
   removeDataSetPieces,
   insertDataSetPieces,
@@ -18,12 +17,7 @@ import { screenWallets } from '../lib/wallet-screener.js'
 // final Env interface to contain only properties available to all workers.
 /**
  * @typedef {{
- *   GLIF_TOKEN: string
  *   ENVIRONMENT: 'dev' | 'calibration' | 'mainnet'
- *   RPC_URL:
- *     | 'https://api.calibration.node.glif.io/'
- *     | 'https://api.node.glif.io/'
- *   SERVICE_PROVIDER_REGISTRY_ADDRESS: string
  *   WALLET_SCREENING_BATCH_SIZE: 1 | 10
  *   WALLET_SCREENING_STALE_THRESHOLD_MS: 86400000 | 21600000
  *   DB: D1Database
@@ -41,7 +35,6 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
-   * @param {typeof defaultRpcRequest} [options.rpcRequest]
    * @returns {Promise<Response>}
    */
   async fetch(
@@ -50,7 +43,6 @@ export default {
     ctx,
     {
       checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
-      rpcRequest = defaultRpcRequest,
     } = {},
   ) {
     // TypeScript setup is broken in our monorepo
@@ -58,9 +50,6 @@ export default {
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
     const {
-      GLIF_TOKEN,
-      RPC_URL,
-      SERVICE_PROVIDER_REGISTRY_ADDRESS,
       SECRET_HEADER_KEY,
       SECRET_HEADER_VALUE,
     } = env
@@ -165,33 +154,25 @@ export default {
       const {
         provider_id: providerId,
         product_type: productType,
-        block_number: blockNumber,
+        service_url: serviceUrl,
       } = payload
       return await handleProductAdded(
         env,
-        rpcRequest,
         providerId,
         productType,
-        RPC_URL,
-        GLIF_TOKEN,
-        blockNumber,
-        SERVICE_PROVIDER_REGISTRY_ADDRESS,
+        serviceUrl
       )
     } else if (pathname === '/service-provider-registry/product-updated') {
       const {
         provider_id: providerId,
         product_type: productType,
-        block_number: blockNumber,
+        service_url: serviceUrl,
       } = payload
       return await handleProductUpdated(
         env,
-        rpcRequest,
         providerId,
         productType,
-        RPC_URL,
-        GLIF_TOKEN,
-        blockNumber,
-        SERVICE_PROVIDER_REGISTRY_ADDRESS,
+        serviceUrl,
       )
     } else if (pathname === '/service-provider-registry/product-removed') {
       const { provider_id: providerId, product_type: productType } = payload

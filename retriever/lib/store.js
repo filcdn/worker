@@ -5,8 +5,6 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {Pick<Env, 'DB'>} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the retrieval log.
- * @param {string | null} params.providerId - The storage provider's address.
- * @param {string} params.clientAddress - The client's address.
  * @param {number | null} params.egressBytes - The egress bytes of the response.
  * @param {number} params.responseStatus - The HTTP response status code.
  * @param {boolean | null} params.cacheMiss - Whether the retrieval was a cache
@@ -28,8 +26,6 @@ import { httpAssert } from './http-assert.js'
 export async function logRetrievalResult(env, params) {
   console.log('retrieval log', params)
   const {
-    providerId,
-    clientAddress,
     cacheMiss,
     egressBytes,
     responseStatus,
@@ -44,8 +40,6 @@ export async function logRetrievalResult(env, params) {
       `
       INSERT INTO retrieval_logs (
         timestamp,
-        provider_id,
-        client_address,
         response_status,
         egress_bytes,
         cache_miss,
@@ -55,13 +49,11 @@ export async function logRetrievalResult(env, params) {
         request_country_code,
         data_set_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
     )
       .bind(
         timestamp,
-        providerId,
-        clientAddress,
         responseStatus,
         egressBytes,
         cacheMiss,
@@ -98,7 +90,7 @@ export async function getStorageProviderAndValidateClient(
   pieceCid,
 ) {
   const query = `
-   SELECT pieces.data_set_id, data_sets.storage_provider_address, data_sets.payer_address, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
+   SELECT pieces.data_set_id, data_sets.payer_address, data_sets.with_cdn, providers.service_url, wallet_details.is_sanctioned
    FROM pieces
    LEFT OUTER JOIN data_sets
      ON pieces.data_set_id = data_sets.id

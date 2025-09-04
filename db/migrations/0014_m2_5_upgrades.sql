@@ -13,9 +13,9 @@ CREATE TABLE service_providers (
 
 CREATE TABLE data_sets (
   id TEXT NOT NULL,
-  service_provider_id TEXT,
-  payer_address TEXT,
-  with_cdn BOOLEAN,
+  service_provider_id TEXT NOT NULL,
+  payer_address TEXT NOT NULL,
+  with_cdn BOOLEAN NOT NULL,
   total_egress_bytes_used INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
@@ -32,8 +32,6 @@ CREATE TABLE retrieval_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp DATETIME NOT NULL,
   data_set_id TEXT,
-  service_provider_id TEXT,
-  payer_address TEXT NOT NULL,
   response_status INTEGER,
   egress_bytes INTEGER,
   cache_miss BOOLEAN,

@@ -108,8 +108,6 @@ export default {
         // return the original response object.
         ctx.waitUntil(
           logRetrievalResult(env, {
-            clientAddress: clientWalletAddress,
-            providerId,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes: 0,
@@ -141,8 +139,6 @@ export default {
           const lastByteFetchedAt = performance.now()
 
           await logRetrievalResult(env, {
-            clientAddress: clientWalletAddress,
-            providerId,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes,
@@ -178,8 +174,6 @@ export default {
 
       ctx.waitUntil(
         logRetrievalResult(env, {
-          clientAddress: clientWalletAddress,
-          providerId: null,
           cacheMiss: null,
           responseStatus: status,
           egressBytes: null,
