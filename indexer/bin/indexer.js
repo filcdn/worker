@@ -86,14 +86,14 @@ export default {
           typeof payload.provider_id === 'number' ||
           typeof payload.provider_id === 'string'
         ) ||
-        typeof payload.with_cdn !== 'boolean'
+        !Array.isArray(payload.metadata_keys)
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       console.log(
-        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, with_cdn=${payload.with_cdn})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, metadata_keys=${payload.metadata_keys})`,
       )
 
       try {
@@ -111,7 +111,7 @@ export default {
         })
       }
 
-      return new Response('OK', { status: 200 })
+      return new Response('OK', { status: 200 })å
     } else if (pathname === '/pdp-verifier/pieces-added') {
       if (
         !(

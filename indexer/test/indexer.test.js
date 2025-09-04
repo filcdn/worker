@@ -348,7 +348,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             providerId,
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -396,7 +396,7 @@ describe('retriever.indexer', () => {
               data_set_id: dataSetId,
               payer: '0xPayerAddress',
               payee: '0xPayeeAddress',
-              with_cdn: true,
+              metadata_keys: ['withCDN'],
             }),
           },
         )
@@ -429,7 +429,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -464,7 +464,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -488,7 +488,7 @@ describe('retriever.indexer', () => {
             data_set_id: randomId(),
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: false,
+            metadata_keys: [],
           }),
         },
       )
@@ -540,7 +540,7 @@ describe('retriever.indexer', () => {
             data_set_id: randomId(),
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -582,7 +582,7 @@ describe('retriever.indexer', () => {
             data_set_id: randomId(),
             payer: '0xPayerAddress',
             payee: '0xPayeeAddress',
-            with_cdn: true,
+            metadata_keys: ['withCDN'],
           }),
         },
       )
@@ -610,7 +610,7 @@ describe('retriever.indexer', () => {
         data_set_id: dataSetId,
         payer: '0xPayerAddress',
         payee: '0xPayeeAddress',
-        with_cdn: true,
+        metadata_keys: ['withCDN'],
       }
       const req = new Request(
         'https://host/filecoin-warm-storage-service/data-set-created',
