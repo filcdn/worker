@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   handleTerminateServiceQueueMessage,
-  // handleTransactionCancelQueueMessage,
+  handleTransactionCancelQueueMessage,
 } from '../lib/queue-handlers.js'
 import { env } from 'cloudflare:test'
 
@@ -26,6 +26,20 @@ const createMockChainClient = (env) => ({
   },
   publicClient: {
     simulateContract: vi.fn().mockResolvedValue({}),
+    getTransactionReceipt: vi.fn().mockResolvedValue({
+      blockHash: '0xblockhash',
+      blockNumber: 123,
+      from: '0xfrom',
+      to: '0xto',
+      value: '1000000000000000000',
+    }),
+    getTransaction: vi.fn().mockResolvedValue({
+      blockHash: '0xblockhash',
+      blockNumber: 123,
+      from: '0xfrom',
+      to: '0xto',
+      value: '1000000000000000000',
+    }),
   },
 })
 
@@ -126,239 +140,262 @@ describe('handleTerminateServiceQueueMessage', () => {
   // })
 })
 
-// describe('handleTransactionCancelQueueMessage', () => {
-//   let mockEnv
-//   let mockChainClient
-//   let mockAccount
+describe('handleTransactionCancelQueueMessage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-//   beforeEach(() => {
-//     vi.clearAllMocks()
+  describe('when original transaction is still pending', () => {
+    it('cancels pending transaction successfully', async () => {
+      const message = {
+        transactionHash: '0xoriginalhash123',
+      }
+      const mockEnv = createMockEnv(env)
+      const mockChainClient = createMockChainClient(env)
 
-//     mockEnv = createMockEnv()
-//     mockAccount = createMockAccount()
-//     mockChainClient = createMockChainClient()
+      // Mock that original transaction is still pending
+      mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
+        new Error('Transaction not found'),
+      )
+      // Mock original transaction details
+      mockChainClient.publicClient.getTransaction.mockResolvedValue({
+        to: '0xcontract',
+        nonce: 42,
+        gasPrice: 1000000000n,
+        maxFeePerGas: 2000000000n,
+        maxPriorityFeePerGas: 1000000000n,
+      })
+      mockChainClient.walletClient.sendTransaction = vi
+        .fn()
+        .mockResolvedValue('0xtxhash123')
 
-//     privateKeyToAccount.mockReturnValue(mockAccount)
-//     getChainClient.mockReturnValue(mockChainClient)
-//   })
+      await handleTransactionCancelQueueMessage(message, mockEnv, {
+        getChainClient: () => mockChainClient,
+      })
 
-//   describe('when original transaction is still pending', () => {
-//     beforeEach(() => {
-//       // Mock that original transaction is still pending
-//       mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
-//         new Error('Transaction not found'),
-//       )
+      expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
+        {
+          to: '0xcontract',
+          value: 0n,
+          nonce: 42,
+          gasPrice: 1500000000n,
+          maxFeePerGas: 3000000000n,
+          maxPriorityFeePerGas: 1500000000n,
+        },
+      )
 
-//       // Mock original transaction details
-//       mockChainClient.publicClient.getTransaction.mockResolvedValue({
-//         to: '0xcontract',
-//         nonce: 42,
-//         gasPrice: 1000000000n,
-//         maxFeePerGas: 2000000000n,
-//         maxPriorityFeePerGas: 1000000000n,
-//       })
-//     })
+      expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).toHaveBeenCalledWith({
+        transactionHash: '0xtxhash123',
+      })
+    })
 
-//     it('cancels pending transaction successfully', async () => {
-//       const message = {
-//         transactionHash: '0xoriginalhash123',
-//         nonce: 42,
-//         dataSetId: 123,
-//       }
+    it('handles legacy gas price only transactions', async () => {
+      const message = {
+        transactionHash: '0xoriginalhash123',
+      }
+      const mockEnv = createMockEnv(env)
+      const mockChainClient = createMockChainClient(env)
 
-//       await handleTransactionCancelQueueMessage(message, mockEnv)
+      mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
+        new Error('Transaction not found'),
+      )
+      mockChainClient.publicClient.getTransaction.mockResolvedValue({
+        to: '0xcontract',
+        nonce: 42,
+        gasPrice: 1000000000n,
+      })
+      mockChainClient.walletClient.sendTransaction = vi
+        .fn()
+        .mockResolvedValue('0xtxhash123')
 
-//       expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
-//         {
-//           to: '0xcontract',
-//           value: 0n,
-//           nonce: 42,
-//           gasPrice: 1500000000n, // 150% of original
-//           maxFeePerGas: 3000000000n, // 150% of original
-//           maxPriorityFeePerGas: 1500000000n, // 150% of original
-//         },
-//       )
+      await handleTransactionCancelQueueMessage(message, mockEnv, {
+        getChainClient: () => mockChainClient,
+      })
 
-//       expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).toHaveBeenCalledWith({
-//         transactionHash: '0xtxhash123',
-//         nonce: 42,
-//         dataSetId: undefined, // dataSetId not available in current implementation
-//         isCancellation: true,
-//         originalTransactionHash: '0xoriginalhash123',
-//       })
-//     })
+      expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
+        {
+          to: '0xcontract',
+          value: 0n,
+          nonce: 42,
+          gasPrice: 1500000000n,
+          maxFeePerGas: undefined,
+          maxPriorityFeePerGas: undefined,
+        },
+      )
+    })
 
-//     it('handles legacy gas price only transactions', async () => {
-//       const message = {
-//         transactionHash: '0xoriginalhash123',
-//         nonce: 42,
-//         dataSetId: 123,
-//       }
+    it('handles EIP-1559 transactions', async () => {
+      const message = {
+        transactionHash: '0xoriginalhash123',
+      }
+      const mockEnv = createMockEnv(env)
+      const mockChainClient = createMockChainClient(env)
 
-//       mockChainClient.publicClient.getTransaction.mockResolvedValue({
-//         to: '0xcontract',
-//         nonce: 42,
-//         gasPrice: 1000000000n,
-//         // No maxFeePerGas or maxPriorityFeePerGas
-//       })
+      mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
+        new Error('Transaction not found'),
+      )
+      mockChainClient.publicClient.getTransaction.mockResolvedValue({
+        to: '0xcontract',
+        nonce: 42,
+        maxFeePerGas: 2000000000n,
+        maxPriorityFeePerGas: 1000000000n,
+      })
+      mockChainClient.walletClient.sendTransaction = vi
+        .fn()
+        .mockResolvedValue('0xtxhash123')
 
-//       await handleTransactionCancelQueueMessage(message, mockEnv)
+      await handleTransactionCancelQueueMessage(message, mockEnv, {
+        getChainClient: () => mockChainClient,
+      })
 
-//       expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
-//         {
-//           to: '0xcontract',
-//           value: 0n,
-//           nonce: 42,
-//           gasPrice: 1500000000n,
-//           maxFeePerGas: undefined,
-//           maxPriorityFeePerGas: undefined,
-//         },
-//       )
-//     })
+      expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
+        {
+          to: '0xcontract',
+          value: 0n,
+          nonce: 42,
+          gasPrice: undefined,
+          maxFeePerGas: 3000000000n,
+          maxPriorityFeePerGas: 1500000000n,
+        },
+      )
+    })
+  })
 
-//     it('handles EIP-1559 transactions', async () => {
-//       const message = {
-//         transactionHash: '0xoriginalhash123',
-//         nonce: 42,
-//         dataSetId: 123,
-//       }
+  describe('when original transaction is already mined', () => {
+    it('skips cancellation if original transaction is already mined', async () => {
+      const message = {
+        transactionHash: '0xoriginalhash123',
+      }
+      const mockEnv = createMockEnv(env)
+      const mockChainClient = createMockChainClient(env)
 
-//       mockChainClient.publicClient.getTransaction.mockResolvedValue({
-//         to: '0xcontract',
-//         nonce: 42,
-//         maxFeePerGas: 2000000000n,
-//         maxPriorityFeePerGas: 1000000000n,
-//         // No gasPrice for EIP-1559
-//       })
+      mockChainClient.publicClient.getTransactionReceipt.mockResolvedValue({
+        status: 'success',
+        transactionHash: '0xoriginalhash123',
+      })
+      mockChainClient.walletClient.sendTransaction = vi.fn()
 
-//       await handleTransactionCancelQueueMessage(message, mockEnv)
+      await handleTransactionCancelQueueMessage(message, mockEnv, {
+        getChainClient: () => mockChainClient,
+      })
 
-//       expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
-//         {
-//           to: '0xcontract',
-//           value: 0n,
-//           nonce: 42,
-//           gasPrice: undefined,
-//           maxFeePerGas: 3000000000n,
-//           maxPriorityFeePerGas: 1500000000n,
-//         },
-//       )
-//     })
-//   })
+      expect(
+        mockChainClient.walletClient.sendTransaction,
+      ).not.toHaveBeenCalled()
+      expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).not.toHaveBeenCalled()
+    })
+  })
 
-//   describe('when original transaction is already mined', () => {
-//     beforeEach(() => {
-//       // Mock that original transaction is already mined
-//       mockChainClient.publicClient.getTransactionReceipt.mockResolvedValue({
-//         status: 'success',
-//         transactionHash: '0xoriginalhash123',
-//       })
-//     })
+  describe('error handling', () => {
+    it('handles transaction retrieval failure', async () => {
+      const message = {
+        transactionHash: '0xoriginalhash123',
+      }
+      const mockEnv = createMockEnv(env)
+      const mockChainClient = createMockChainClient(env)
 
-//     it('skips cancellation if original transaction is already mined', async () => {
-//       const message = {
-//         transactionHash: '0xoriginalhash123',
-//         nonce: 42,
-//         dataSetId: 123,
-//       }
+      mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
+        new Error('Transaction not found'),
+      )
+      const error = new Error('Failed to get original transaction')
+      mockChainClient.publicClient.getTransaction.mockRejectedValue(error)
+      mockChainClient.walletClient.sendTransaction = vi.fn()
 
-//       await handleTransactionCancelQueueMessage(message, mockEnv)
+      await expect(
+        handleTransactionCancelQueueMessage(message, mockEnv, {
+          getChainClient: () => mockChainClient,
+        }),
+      ).rejects.toThrow('Failed to get original transaction')
+      expect(
+        mockChainClient.walletClient.sendTransaction,
+      ).not.toHaveBeenCalled()
+    })
 
-//       expect(
-//         mockChainClient.walletClient.sendTransaction,
-//       ).not.toHaveBeenCalled()
-//       expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).not.toHaveBeenCalled()
-//     })
-//   })
+    it('handles wallet client failure', async () => {
+      const message = {
+        transactionHash: '0xoriginalhash123',
+      }
+      const mockEnv = createMockEnv(env)
+      const mockChainClient = createMockChainClient(env)
 
-//   describe('error handling', () => {
-//     beforeEach(() => {
-//       mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
-//         new Error('Transaction not found'),
-//       )
-//       mockChainClient.publicClient.getTransaction.mockResolvedValue({
-//         to: '0xcontract',
-//         nonce: 42,
-//         gasPrice: 1000000000n,
-//       })
-//     })
+      mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
+        new Error('Transaction not found'),
+      )
+      mockChainClient.publicClient.getTransaction.mockResolvedValue({
+        to: '0xcontract',
+        nonce: 42,
+        gasPrice: 1000000000n,
+      })
+      const error = new Error('Failed to send cancel transaction')
+      mockChainClient.walletClient.sendTransaction = vi
+        .fn()
+        .mockRejectedValue(error)
 
-//     it('handles transaction retrieval failure', async () => {
-//       const message = {
-//         transactionHash: '0xoriginalhash123',
-//         nonce: 42,
-//         dataSetId: 123,
-//       }
+      await expect(
+        handleTransactionCancelQueueMessage(message, mockEnv, {
+          getChainClient: () => mockChainClient,
+        }),
+      ).rejects.toThrow('Failed to send cancel transaction')
+      expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).not.toHaveBeenCalled()
+    })
 
-//       const error = new Error('Failed to get original transaction')
-//       mockChainClient.publicClient.getTransaction.mockRejectedValue(error)
+    it('handles workflow creation failure', async () => {
+      const message = {
+        transactionHash: '0xoriginalhash123',
+      }
+      const mockEnv = createMockEnv(env)
+      const mockChainClient = createMockChainClient(env)
 
-//       await expect(
-//         handleTransactionCancelQueueMessage(message, mockEnv),
-//       ).rejects.toThrow('Failed to get original transaction')
-//       expect(
-//         mockChainClient.walletClient.sendTransaction,
-//       ).not.toHaveBeenCalled()
-//     })
+      mockChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
+        new Error('Transaction not found'),
+      )
+      mockChainClient.publicClient.getTransaction.mockResolvedValue({
+        to: '0xcontract',
+        nonce: 42,
+        gasPrice: 1000000000n,
+      })
+      mockChainClient.walletClient.sendTransaction = vi
+        .fn()
+        .mockResolvedValue('0xtxhash123')
+      const error = new Error('Workflow creation failed')
+      mockEnv.TRANSACTION_MONITOR_WORKFLOW.create.mockRejectedValue(error)
 
-//     it('handles wallet client failure', async () => {
-//       const message = {
-//         transactionHash: '0xoriginalhash123',
-//         nonce: 42,
-//         dataSetId: 123,
-//       }
+      await expect(
+        handleTransactionCancelQueueMessage(message, mockEnv, {
+          getChainClient: () => mockChainClient,
+        }),
+      ).rejects.toThrow('Workflow creation failed')
+    })
+  })
 
-//       const error = new Error('Failed to send cancel transaction')
-//       mockChainClient.walletClient.sendTransaction.mockRejectedValue(error)
+  it('uses injected getChainClient dependency', async () => {
+    const message = {
+      transactionHash: '0xoriginalhash123',
+    }
+    const mockEnv = createMockEnv(env)
+    const customChainClient = createMockChainClient(env)
 
-//       await expect(
-//         handleTransactionCancelQueueMessage(message, mockEnv),
-//       ).rejects.toThrow('Failed to send cancel transaction')
-//       expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).not.toHaveBeenCalled()
-//     })
+    customChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
+      new Error('Transaction not found'),
+    )
+    customChainClient.publicClient.getTransaction.mockResolvedValue({
+      to: '0xcontract',
+      nonce: 42,
+      gasPrice: 1000000000n,
+    })
+    customChainClient.walletClient.sendTransaction = vi
+      .fn()
+      .mockResolvedValue('0xtxhash123')
 
-//     it('handles workflow creation failure', async () => {
-//       const message = {
-//         transactionHash: '0xoriginalhash123',
-//         nonce: 42,
-//         dataSetId: 123,
-//       }
+    const mockGetChainClient = vi.fn().mockReturnValue(customChainClient)
 
-//       const error = new Error('Workflow creation failed')
-//       mockEnv.TRANSACTION_MONITOR_WORKFLOW.create.mockRejectedValue(error)
+    await handleTransactionCancelQueueMessage(message, mockEnv, {
+      getChainClient: mockGetChainClient,
+    })
 
-//       await expect(
-//         handleTransactionCancelQueueMessage(message, mockEnv),
-//       ).rejects.toThrow('Workflow creation failed')
-//     })
-//   })
-
-//   it('uses injected getChainClient dependency', async () => {
-//     const message = {
-//       transactionHash: '0xoriginalhash123',
-//       nonce: 42,
-//       dataSetId: 123,
-//     }
-
-//     const customChainClient = createMockChainClient()
-//     customChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
-//       new Error('Transaction not found'),
-//     )
-//     customChainClient.publicClient.getTransaction.mockResolvedValue({
-//       to: '0xcontract',
-//       nonce: 42,
-//       gasPrice: 1000000000n,
-//     })
-
-//     const mockGetChainClient = vi.fn().mockReturnValue(customChainClient)
-
-//     await handleTransactionCancelQueueMessage(message, mockEnv, {
-//       getChainClient: mockGetChainClient,
-//     })
-
-//     expect(mockGetChainClient).toHaveBeenCalledWith(mockEnv)
-//     expect(
-//       customChainClient.publicClient.getTransactionReceipt,
-//     ).toHaveBeenCalled()
-//   })
-// })
+    expect(mockGetChainClient).toHaveBeenCalledWith(mockEnv)
+    expect(
+      customChainClient.publicClient.getTransactionReceipt,
+    ).toHaveBeenCalled()
+  })
+})

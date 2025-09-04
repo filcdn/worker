@@ -3,7 +3,7 @@ import { terminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-se
 import { env } from 'cloudflare:test'
 import { withDataSet, withWallet } from './test-helpers.js'
 
-describe('terminateCDNServiceForSanctionedClients', () => {
+describe('terminateCDNServiceForSanctionedWallets', () => {
   beforeEach(async () => {
     await env.DB.exec('DELETE FROM data_sets')
     await env.DB.exec('DELETE FROM wallet_details')
@@ -31,7 +31,9 @@ describe('terminateCDNServiceForSanctionedClients', () => {
 
     await terminateCDNServiceForSanctionedWallets(envOverride)
 
-    expect(mockQueue.sendBatch).toHaveBeenCalledWith([{ body: { dataSetId } }])
+    expect(mockQueue.sendBatch).toHaveBeenCalledWith([
+      { dataSetId, type: 'terminate-cdn-service' },
+    ])
   })
 
   it('skips if `with_cdn` is `false`', async () => {
@@ -88,8 +90,8 @@ describe('terminateCDNServiceForSanctionedClients', () => {
     await terminateCDNServiceForSanctionedWallets(envOverride)
 
     expect(mockQueue.sendBatch).toHaveBeenCalledWith([
-      { body: { dataSetId: '1' } },
-      { body: { dataSetId: '2' } },
+      { dataSetId: '1', type: 'terminate-cdn-service' },
+      { dataSetId: '2', type: 'terminate-cdn-service' },
     ])
   })
 

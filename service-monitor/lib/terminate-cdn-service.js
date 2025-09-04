@@ -14,10 +14,7 @@ export async function terminateCDNServiceForSanctionedWallets(env) {
         LEFT JOIN wallet_details sp ON ds.storage_provider_address = sp.address
         LEFT JOIN wallet_details pa ON ds.payer_address = pa.address
         LEFT JOIN wallet_details pe ON ds.payee_address = pe.address
-      WHERE sp.is_sanctioned = 1
-        OR pa.is_sanctioned = 1
-        OR pe.is_sanctioned = 1
-        AND ds.with_cdn = 1;
+      WHERE ds.with_cdn = 1 AND (sp.is_sanctioned = 1 OR pa.is_sanctioned = 1 OR pe.is_sanctioned = 1);
   `,
   ).run()
 
@@ -25,11 +22,12 @@ export async function terminateCDNServiceForSanctionedWallets(env) {
 
   // Send messages to queue for processing
   const messages = dataSets.map(({ id: dataSetId }) => ({
-    body: { dataSetId },
+    dataSetId,
+    type: 'terminate-cdn-service',
   }))
 
   if (messages.length > 0) {
     await env.TERMINATE_SERVICE_QUEUE.sendBatch(messages)
-    console.log(`Sent ${messages.length} messages to terminate service queue`)
+    console.log(`Sent ${messages.length} messages to transaction queue`)
   }
 }

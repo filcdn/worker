@@ -2,7 +2,7 @@ import { getChainClient as defaultGetChainClient } from './chain.js'
 
 /**
  * @typedef {{
- *   type: 'terminate-service'
+ *   type: 'terminate-cdn-service'
  *   dataSetId: number
  * }} TerminateServiceMessage
  */

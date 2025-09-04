@@ -8,7 +8,7 @@ import {
 
 /**
  * @typedef {{
- *   type: 'terminate-service'
+ *   type: 'terminate-cdn-service'
  *   dataSetId: number
  * }} TerminateServiceMessage
  */
@@ -66,15 +66,15 @@ export default {
         `Processing transaction queue message of type: ${message.type}`,
       )
       try {
-        switch (message.type) {
+        switch (message.body.type) {
           case 'terminate-service':
-            return await handleTerminateServiceQueueMessage(message, env)
+            return await handleTerminateServiceQueueMessage(message.body, env)
 
           case 'transaction-cancel':
-            return await handleTransactionCancelQueueMessage(message, env)
+            return await handleTransactionCancelQueueMessage(message.body, env)
 
           default:
-            console.error(`Unknown message type: ${message.type}`)
+            console.error(`Unknown message type: ${message.body.type}`)
         }
         message.ack()
       } catch (error) {
