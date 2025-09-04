@@ -336,6 +336,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a data set', async () => {
       const dataSetId = randomId()
+      const providerId = randomId()
       const req = new Request(
         'https://host/filecoin-warm-storage-service/data-set-created',
         {
@@ -346,7 +347,7 @@ describe('retriever.indexer', () => {
           body: JSON.stringify({
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
+            providerId,
             with_cdn: true,
           }),
         },

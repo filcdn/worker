@@ -39,18 +39,18 @@ export async function handleFWSSDataSetCreated(
     `
       INSERT INTO data_sets (
         id,
+        provider_id,
         payer_address,
-        payee_address,
         with_cdn
       )
-      VALUES (?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?)
       ON CONFLICT DO NOTHING
     `,
   )
     .bind(
       String(payload.data_set_id),
+      String(payload.provider_id),
       payload.payer.toLowerCase(),
-      payload.payee.toLowerCase(),
       payload.with_cdn,
     )
     .run()

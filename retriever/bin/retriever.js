@@ -77,7 +77,7 @@ export default {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
 
-      const [{ storageProviderAddress, serviceUrl, dataSetId }, isBadBit] =
+      const [{ providerId, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
           getStorageProviderAndValidateClient(
             env,
@@ -93,11 +93,7 @@ export default {
         'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
       )
 
-      httpAssert(
-        storageProviderAddress,
-        404,
-        `Unsupported Storage Provider: ${storageProviderAddress}`,
-      )
+      httpAssert(providerId, 404, `Unsupported Storage Provider: ${providerId}`)
 
       const { response: originResponse, cacheMiss } = await retrieveFile(
         serviceUrl,
@@ -113,7 +109,7 @@ export default {
         ctx.waitUntil(
           logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
-            storageProviderAddress,
+            providerId,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes: 0,
@@ -146,7 +142,7 @@ export default {
 
           await logRetrievalResult(env, {
             clientAddress: clientWalletAddress,
-            storageProviderAddress,
+            providerId,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes,
@@ -183,7 +179,7 @@ export default {
       ctx.waitUntil(
         logRetrievalResult(env, {
           clientAddress: clientWalletAddress,
-          storageProviderAddress: null,
+          providerId: null,
           cacheMiss: null,
           responseStatus: status,
           egressBytes: null,

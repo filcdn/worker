@@ -74,32 +74,43 @@ export default {
     const payload = await request.json()
 
     const pathname = new URL(request.url).pathname
-    if (pathname === '/pdp-verifier/data-set-created') {
+    if (pathname === '/fwss/data-set-created') {
       if (
+        !payload.data_set_id ||
         !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
         ) ||
-        !payload.storage_provider
+        !payload.payer ||
+        !(
+          typeof payload.provider_id === 'number' ||
+          typeof payload.provider_id === 'string'
+        ) ||
+        typeof payload.with_cdn !== 'boolean'
       ) {
-        console.error('PDPVerifier.DataSetCreated: Invalid payload', payload)
+        console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
+
       console.log(
-        `New PDPVerifier data set (data_set_id=${payload.set_id}, storage_provider=${payload.storage_provider})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, with_cdn=${payload.with_cdn})`,
       )
-      await env.DB.prepare(
-        `
-          INSERT INTO data_sets (
-            id,
-            storage_provider_address
-          )
-          VALUES (?, ?)
-          ON CONFLICT DO NOTHING
-        `,
-      )
-        .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
-        .run()
+
+      try {
+        await handleFWSSDataSetCreated(env, payload, {
+          checkIfAddressIsSanctioned,
+        })
+      } catch (err) {
+        console.log(
+          `Error handling FWSS data set creation: ${err}. Retrying...`,
+        )
+        // @ts-ignore
+        env.RETRY_QUEUE.send({
+          type: 'filecoin-warm-storage-service-data-set-created',
+          payload,
+        })
+      }
+
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {
       if (
@@ -149,41 +160,6 @@ export default {
       )
 
       await removeDataSetPieces(env, payload.set_id, pieceIds)
-      return new Response('OK', { status: 200 })
-    } else if (pathname === '/filecoin-warm-storage-service/data-set-created') {
-      if (
-        !payload.data_set_id ||
-        !(
-          typeof payload.data_set_id === 'number' ||
-          typeof payload.data_set_id === 'string'
-        ) ||
-        !payload.payer ||
-        !payload.payee ||
-        typeof payload.with_cdn !== 'boolean'
-      ) {
-        console.error('FWSS.DataSetCreated: Invalid payload', payload)
-        return new Response('Bad Request', { status: 400 })
-      }
-
-      console.log(
-        `New FWSS data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, with_cdn=${payload.with_cdn})`,
-      )
-
-      try {
-        await handleFWSSDataSetCreated(env, payload, {
-          checkIfAddressIsSanctioned,
-        })
-      } catch (err) {
-        console.log(
-          `Error handling FWSS data set creation: ${err}. Retrying...`,
-        )
-        // @ts-ignore
-        env.RETRY_QUEUE.send({
-          type: 'filecoin-warm-storage-service-data-set-created',
-          payload,
-        })
-      }
-
       return new Response('OK', { status: 200 })
     } else if (pathname === '/service-provider-registry/product-added') {
       const {

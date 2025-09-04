@@ -5,8 +5,7 @@ import { httpAssert } from './http-assert.js'
  *
  * @param {Pick<Env, 'DB'>} env - Worker environment (contains D1 binding).
  * @param {object} params - Parameters for the retrieval log.
- * @param {string | null} params.storageProviderAddress - The storage provider's
- *   address.
+ * @param {string | null} params.providerId - The storage provider's address.
  * @param {string} params.clientAddress - The client's address.
  * @param {number | null} params.egressBytes - The egress bytes of the response.
  * @param {number} params.responseStatus - The HTTP response status code.
@@ -29,7 +28,7 @@ import { httpAssert } from './http-assert.js'
 export async function logRetrievalResult(env, params) {
   console.log('retrieval log', params)
   const {
-    storageProviderAddress,
+    providerId,
     clientAddress,
     cacheMiss,
     egressBytes,
@@ -45,7 +44,7 @@ export async function logRetrievalResult(env, params) {
       `
       INSERT INTO retrieval_logs (
         timestamp,
-        storage_provider_address,
+        provider_id,
         client_address,
         response_status,
         egress_bytes,
@@ -61,7 +60,7 @@ export async function logRetrievalResult(env, params) {
     )
       .bind(
         timestamp,
-        storageProviderAddress,
+        providerId,
         clientAddress,
         responseStatus,
         egressBytes,
@@ -81,14 +80,14 @@ export async function logRetrievalResult(env, params) {
 }
 
 /**
- * Retrieves the owner address for a given root CID.
+ * Retrieves the provider and data set id for a given root CID.
  *
  * @param {Pick<Env, 'DB'>} env - Cloudflare Worker environment with D1 DB
  *   binding
  * @param {string} clientAddress - The address of the client making the request
  * @param {string} pieceCid - The piece CID to look up
  * @returns {Promise<{
- *   storageProviderAddress: string
+ *   providerId: string
  *   serviceUrl: string
  *   dataSetId: string
  * }>}
@@ -104,7 +103,7 @@ export async function getStorageProviderAndValidateClient(
    LEFT OUTER JOIN data_sets
      ON pieces.data_set_id = data_sets.id
    LEFT OUTER JOIN providers
-     ON data_sets.storage_provider_address = providers.beneficiary_address
+     ON data_sets.provider_id = providers.id
    LEFT OUTER JOIN wallet_details
      ON data_sets.payer_address = wallet_details.address
    WHERE pieces.cid = ?
@@ -112,7 +111,7 @@ export async function getStorageProviderAndValidateClient(
 
   const results = /**
    * @type {{
-   *   storage_provider_address: string
+   *   provider_id: string
    *   data_set_id: string
    *   payer_address: string | undefined
    *   with_cdn: number | undefined
@@ -131,7 +130,7 @@ export async function getStorageProviderAndValidateClient(
   )
 
   const withStorageProvider = results.filter(
-    (row) => row && row.storage_provider_address != null,
+    (row) => row && row.provider_id != null,
   )
   httpAssert(
     withStorageProvider.length > 0,
@@ -176,7 +175,7 @@ export async function getStorageProviderAndValidateClient(
 
   const {
     data_set_id: dataSetId,
-    storage_provider_address: storageProviderAddress,
+    provider_id: providerId,
     service_url: serviceUrl,
   } = withApprovedProvider[0]
 
@@ -185,10 +184,10 @@ export async function getStorageProviderAndValidateClient(
   httpAssert(serviceUrl, 500, 'should never happen')
 
   console.log(
-    `Looked up Data set ID '${dataSetId}' and storage provider address '${storageProviderAddress}' for piece_cid '${pieceCid}' and client '${clientAddress}'. Service URL: ${serviceUrl}`,
+    `Looked up Data set ID '${dataSetId}' and storage provider address '${providerId}' for piece_cid '${pieceCid}' and client '${clientAddress}'. Service URL: ${serviceUrl}`,
   )
 
-  return { storageProviderAddress, serviceUrl, dataSetId }
+  return { providerId, serviceUrl, dataSetId }
 }
 
 /**
