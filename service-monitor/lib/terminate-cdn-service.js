@@ -1,13 +1,12 @@
 /**
  * @param {{
- *   TERMINATE_CDN_SERVICE_WORKFLOW: import('clouflare:workers').WorkflowEntrypoint
+ *   DB: D1Database
+ *   TERMINATE_SERVICE_QUEUE: import('cloudflare:workers').Queue<{
+ *     dataSetId: number
+ *   }>
  * }} env
- * @param {any} filecoinWarmStorageServiceContract
  */
-export async function terminateCDNServiceForSanctionedClients(
-  env,
-  filecoinWarmStorageServiceContract,
-) {
+export async function terminateCDNServiceForSanctionedWallets(env) {
   const { results: dataSets } = await env.DB.prepare(
     `
       SELECT DISTINCT ds.id
@@ -22,50 +21,15 @@ export async function terminateCDNServiceForSanctionedClients(
   `,
   ).run()
 
-  const instances = []
-  for (const { id: dataSetId } of dataSets) {
-    const id = `terminate-cdn-sanctioned-${dataSetId}`
-    let instance
-    try {
-      instance = await env.TERMINATE_CDN_SERVICE_WORKFLOW.get(id)
-    } catch (error) {
-      console.log(`Failed to get workflow instance for ${id}`)
-    }
+  console.log(`Found ${dataSets.length} sanctioned data sets to terminate`)
 
-    const status = instance?.status || 'unknown'
-    const error = instance?.error
+  // Send messages to queue for processing
+  const messages = dataSets.map(({ id: dataSetId }) => ({
+    body: { dataSetId },
+  }))
 
-    if (
-      [
-        'queued',
-        'running',
-        'paused',
-        'complete',
-        'waiting',
-        'waitingForPause',
-      ].includes(status)
-    ) {
-      console.log(
-        `Workflow for dataSetId ${dataSetId} is already in progress or completed (status: ${status}). Skipping.`,
-      )
-      continue
-    }
-
-    if (status === 'errored' || error) {
-      console.log(
-        `Restarting workflow for dataSetId ${dataSetId} (status: ${status}, error: ${error})`,
-      )
-      await instance.restart()
-      continue
-    }
-
-    // Status is unknown, create a new workflow
-    console.log(`Creating new workflow for dataSetId ${dataSetId}`)
-    instances.push({
-      id,
-      params: { dataSetId, contract: filecoinWarmStorageServiceContract },
-    })
+  if (messages.length > 0) {
+    await env.TERMINATE_SERVICE_QUEUE.sendBatch(messages)
+    console.log(`Sent ${messages.length} messages to terminate service queue`)
   }
-
-  await env.TERMINATE_CDN_SERVICE_WORKFLOW.createBatch(instances)
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { terminateCDNServiceForSanctionedClients } from '../lib/terminate-cdn-service.js'
+import { terminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-service.js'
 import { env } from 'cloudflare:test'
-import { withDataSet, withSanctionedWallet } from './test-helpers.js'
+import { withDataSet, withWallet } from './test-helpers.js'
 
 describe('terminateCDNServiceForSanctionedClients', () => {
   beforeEach(async () => {
@@ -10,10 +10,10 @@ describe('terminateCDNServiceForSanctionedClients', () => {
     vi.clearAllMocks()
   })
 
-  it('creates workflow for sanctioned data sets', async () => {
+  it('sends messages to queue for sanctioned data sets', async () => {
     const dataSetId = '1'
     const sanctionedAddress = '0xSanctionedAddress'
-    await withSanctionedWallet(env, sanctionedAddress)
+    await withWallet(env, sanctionedAddress, true)
     await withDataSet(env, {
       id: dataSetId,
       storageProviderAddress: sanctionedAddress,
@@ -21,22 +21,23 @@ describe('terminateCDNServiceForSanctionedClients', () => {
       payeeAddress: '0xPayee',
     })
 
-    const mockWorkflow = {
-      get: vi.fn().mockResolvedValue(undefined),
-      createBatch: vi.fn().mockResolvedValue(undefined),
+    const mockQueue = {
+      sendBatch: vi.fn().mockResolvedValue(undefined),
     }
     const envOverride = {
       ...env,
-      TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
+      TERMINATE_SERVICE_QUEUE: mockQueue,
     }
-    await terminateCDNServiceForSanctionedClients(envOverride)
-    expect(mockWorkflow.createBatch).toHaveBeenCalled()
+
+    await terminateCDNServiceForSanctionedWallets(envOverride)
+
+    expect(mockQueue.sendBatch).toHaveBeenCalledWith([{ body: { dataSetId } }])
   })
 
-  it('skips workflow if `with_cdn` is `false`', async () => {
+  it('skips if `with_cdn` is `false`', async () => {
     const dataSetId = '1'
     const sanctionedAddress = '0xSanctionedAddress'
-    await withSanctionedWallet(env, sanctionedAddress)
+    await withWallet(env, sanctionedAddress, true)
     await withDataSet(env, {
       id: dataSetId,
       storageProviderAddress: sanctionedAddress,
@@ -45,61 +46,73 @@ describe('terminateCDNServiceForSanctionedClients', () => {
       withCDN: false,
     })
 
-    const mockWorkflow = {
-      get: vi.fn().mockResolvedValue(undefined),
-      createBatch: vi.fn().mockResolvedValue(undefined),
+    const mockQueue = {
+      sendBatch: vi.fn().mockResolvedValue(undefined),
     }
     const envOverride = {
       ...env,
-      TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
+      TERMINATE_SERVICE_QUEUE: mockQueue,
     }
-    await terminateCDNServiceForSanctionedClients(envOverride)
-    expect(mockWorkflow.createBatch).not.toHaveBeenCalled()
+
+    await terminateCDNServiceForSanctionedWallets(envOverride)
+
+    expect(mockQueue.sendBatch).not.toHaveBeenCalled()
   })
 
-  it('skips workflow if already running', async () => {
-    const dataSetId = '1'
+  it('sends multiple messages for multiple sanctioned data sets', async () => {
     const sanctionedAddress = '0xSanctionedAddress'
-    await withSanctionedWallet(env, sanctionedAddress)
+    await withWallet(env, sanctionedAddress, true)
+
     await withDataSet(env, {
-      id: dataSetId,
+      id: '1',
       storageProviderAddress: sanctionedAddress,
       payerAddress: '0xPayer',
       payeeAddress: '0xPayee',
     })
-    const mockWorkflow = {
-      get: vi.fn().mockResolvedValue({ status: 'running' }),
-      createBatch: vi.fn(),
+
+    await withDataSet(env, {
+      id: '2',
+      storageProviderAddress: '0xCleanProvider',
+      payerAddress: sanctionedAddress,
+      payeeAddress: '0xPayee',
+    })
+
+    const mockQueue = {
+      sendBatch: vi.fn().mockResolvedValue(undefined),
     }
     const envOverride = {
       ...env,
-      TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
+      TERMINATE_SERVICE_QUEUE: mockQueue,
     }
-    await terminateCDNServiceForSanctionedClients(envOverride)
-    expect(mockWorkflow.createBatch).not.toHaveBeenCalled()
+
+    await terminateCDNServiceForSanctionedWallets(envOverride)
+
+    expect(mockQueue.sendBatch).toHaveBeenCalledWith([
+      { body: { dataSetId: '1' } },
+      { body: { dataSetId: '2' } },
+    ])
   })
 
-  it('restarts workflow if errorred', async () => {
-    const dataSetId = '1'
-    const sanctionedAddress = '0xSanctionedAddress'
-    await withSanctionedWallet(env, sanctionedAddress)
+  it('does nothing when no sanctioned data sets found', async () => {
+    const spAddress = '0xSp'
+    await withWallet(env, spAddress, false)
+
     await withDataSet(env, {
-      id: dataSetId,
-      storageProviderAddress: sanctionedAddress,
+      id: '1',
+      storageProviderAddress: spAddress,
       payerAddress: '0xPayer',
       payeeAddress: '0xPayee',
     })
-    const mockWorkflow = {
-      get: vi
-        .fn()
-        .mockResolvedValue({ status: 'errored', error: 'Some error' }),
-      restart: vi.fn(),
+    const mockQueue = {
+      sendBatch: vi.fn().mockResolvedValue(undefined),
     }
     const envOverride = {
       ...env,
-      TERMINATE_CDN_SERVICE_WORKFLOW: mockWorkflow,
+      TERMINATE_SERVICE_QUEUE: mockQueue,
     }
-    await terminateCDNServiceForSanctionedClients(envOverride)
-    expect(mockWorkflow.restart).toHaveBeenCalled()
+
+    await terminateCDNServiceForSanctionedWallets(envOverride)
+
+    expect(mockQueue.sendBatch).not.toHaveBeenCalled()
   })
 })

@@ -1,9 +1,9 @@
-// Helper to seed a sanctioned wallet
-export async function withSanctionedWallet(env, address) {
+// Helper to seed a wallet
+export async function withWallet(env, address, isSanctioned = false) {
   await env.DB.prepare(
-    `INSERT INTO wallet_details (address, is_sanctioned, last_screened_at) VALUES (?, 1, datetime('now'))`,
+    `INSERT INTO wallet_details (address, is_sanctioned, last_screened_at) VALUES (?, ?, datetime('now'))`,
   )
-    .bind(address, 1)
+    .bind(address, isSanctioned)
     .run()
 }
 
