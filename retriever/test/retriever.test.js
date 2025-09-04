@@ -37,17 +37,17 @@ describe('retriever.fetch', () => {
 
     let i = 1
     for (const {
-      storageProviderAddress,
+      serviceProviderAddress,
       serviceUrl,
       pieceCid,
       dataSetId,
     } of CONTENT_STORED_ON_CALIBRATION) {
       const pieceId = `root-${i}`
       await withDataSetPieces(env, {
-        storageProviderAddress,
+        serviceProviderAddress,
         pieceCid,
         payerAddress: defaultClientAddress,
-        payeeAddress: storageProviderAddress,
+        payeeAddress: serviceProviderAddress,
         withCDN: true,
         dataSetId,
         pieceId,
@@ -190,7 +190,7 @@ describe('retriever.fetch', () => {
     expect(csp).toContain('https://*.filcdn.io')
   })
 
-  it('fetches the file from calibration storage provider', async () => {
+  it('fetches the file from calibration service provider', async () => {
     const expectedHash =
       '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
     const ctx = createExecutionContext()
@@ -382,11 +382,11 @@ describe('retriever.fetch', () => {
   })
   // TODO: Enable test, one contest on calibration exists
   // it(
-  //   'measures egress correctly from real storage provider',
+  //   'measures egress correctly from real service provider',
   //   { timeout: 10000 },
   //   async () => {
   //     const tasks = CONTENT_STORED_ON_CALIBRATION.map(
-  //       ({ storageProviderAddress, pieceCid }) => {
+  //       ({ serviceProviderAddress, pieceCid }) => {
   //         return (async () => {
   //           try {
   //             const ctx = createExecutionContext()
@@ -402,16 +402,16 @@ describe('retriever.fetch', () => {
   //             const { results } = await env.DB.prepare(
   //               'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider_address = ?',
   //             )
-  //               .bind(defaultClientAddress, storageProviderAddress)
+  //               .bind(defaultClientAddress, serviceProviderAddress)
   //               .all()
 
   //             assert.strictEqual(results.length, 1)
   //             assert.strictEqual(results[0].egress_bytes, actualBytes)
 
-  //             return { storageProviderAddress, success: true }
+  //             return { serviceProviderAddress, success: true }
   //           } catch (err) {
   //             console.warn(
-  //               `⚠️ Warning: Fetch or verification failed for storageProvider ${storageProviderAddress}:`,
+  //               `⚠️ Warning: Fetch or verification failed for serviceProvider ${serviceProviderAddress}:`,
   //               err,
   //             )
   //             throw err
@@ -426,11 +426,11 @@ describe('retriever.fetch', () => {
   //         throw new Error('All tasks failed')
   //       }
   //     } catch (err) {
-  //       const storageProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
-  //         (o) => o.storageProviderAddress,
+  //       const serviceProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
+  //         (o) => o.serviceProviderAddress,
   //       )
   //       throw new Error(
-  //         `❌ All storage providers failed to fetch. Storage providers checked: ${storageProvidersChecked.join(', ')}`,
+  //         `❌ All service providers failed to fetch. Service providers checked: ${serviceProvidersChecked.join(', ')}`,
   //       )
   //     }
   //   },
@@ -441,10 +441,10 @@ describe('retriever.fetch', () => {
     const pieceId = 'root-no-cdn'
     const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const storageProviderAddress = '0xStorageProvider'
+    const serviceProviderAddress = '0xStorageProvider'
     await withDataSetPieces(env, {
-      storageProviderAddress,
-      payeeAddress: storageProviderAddress,
+      serviceProviderAddress,
+      payeeAddress: serviceProviderAddress,
       pieceCid,
       dataSetId,
       withCDN: false,
@@ -459,14 +459,14 @@ describe('retriever.fetch', () => {
     assert.strictEqual(res.status, 402)
   })
   it('reads the provider URL from the database', async () => {
-    const storageProviderAddress = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
+    const serviceProviderAddress = '0x2a06d234246ed18b6c91de8349ff34c22c7268e9'
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
     const pieceCid = 'bagaTest'
     const body = 'file content'
 
     await withDataSetPieces(env, {
-      storageProviderAddress,
-      payeeAddress: storageProviderAddress,
+      serviceProviderAddress,
+      payeeAddress: serviceProviderAddress,
       pieceCid,
       payerAddress: clientAddress,
     })
@@ -498,13 +498,13 @@ describe('retriever.fetch', () => {
   })
 
   it('throws an error if the providerAddress is not found in the database', async () => {
-    const storageProviderAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
+    const serviceProviderAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
     const clientAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
     const pieceCid = 'bagaTest'
 
     await withDataSetPieces(env, {
-      storageProviderAddress,
-      payeeAddress: storageProviderAddress,
+      serviceProviderAddress,
+      payeeAddress: serviceProviderAddress,
       pieceCid,
       payerAddress: clientAddress,
     })
@@ -517,7 +517,7 @@ describe('retriever.fetch', () => {
     // Expect an error because no URL was found
     expect(res.status).toBe(404)
     expect(await res.text()).toBe(
-      `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and piece_cid 'bagaTest'.`,
+      `No approved service provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and piece_cid 'bagaTest'.`,
     )
   })
 
@@ -629,11 +629,11 @@ describe('retriever.fetch', () => {
     const pieceId = 'root-data-set-client-sanctioned'
     const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const storageProviderAddress = '0xStorageProvider'
+    const serviceProviderAddress = '0xStorageProvider'
     const clientAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
     await withDataSetPieces(env, {
-      storageProviderAddress,
-      payeeAddress: storageProviderAddress,
+      serviceProviderAddress,
+      payeeAddress: serviceProviderAddress,
       payerAddress: clientAddress,
       pieceCid,
       dataSetId,
@@ -669,9 +669,9 @@ describe('retriever.fetch', () => {
       .first()
     expect(result).toBeNull()
   })
-  it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
+  it('logs to retrieval_logs on unsupported service provider (404)', async () => {
     const invalidPieceCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
-    const dataSetId = 'unsupported-storageProvider-test'
+    const dataSetId = 'unsupported-serviceProvider-test'
     const unsupportedServiceProviderId = 0
 
     await env.DB.batch([
@@ -695,7 +695,7 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
 
     expect(res.status).toBe(404)
-    expect(await res.text()).toContain('No approved storage provider found')
+    expect(await res.text()).toContain('No approved service  provider found')
 
     const result = await env.DB.prepare(
       'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND service_provider_id IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
@@ -704,7 +704,7 @@ describe('retriever.fetch', () => {
       .first()
     expect(result).toBeDefined()
   })
-  it('does not log to retrieval_logs when client address is invalid (400)', async () => {
+  it('does not log to retrieval_logs when payer address is invalid (400)', async () => {
     const invalidAddress = 'not-an-address'
     const ctx = createExecutionContext()
     const req = withRequest(invalidAddress, realPieceCid)
@@ -720,7 +720,7 @@ describe('retriever.fetch', () => {
       .bind(invalidAddress)
       .first()
 
-    expect(result).toBeNull() // No logs should be created for invalid client address
+    expect(result).toBeNull() // No logs should be created for invalid payer address
   })
 })
 

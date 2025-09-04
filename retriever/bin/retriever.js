@@ -64,24 +64,24 @@ export default {
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
 
-    const { clientWalletAddress, pieceCid } = parseRequest(request, env)
+    const { payerWalletAddress, pieceCid } = parseRequest(request, env)
 
-    httpAssert(clientWalletAddress && pieceCid, 400, 'Missing required fields')
+    httpAssert(payerWalletAddress && pieceCid, 400, 'Missing required fields')
     httpAssert(
-      isValidEthereumAddress(clientWalletAddress),
+      isValidEthereumAddress(payerWalletAddress),
       400,
-      `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
+      `Invalid address: ${payerWalletAddress}. Address must be a valid ethereum address.`,
     )
 
     try {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
 
-      const [{ providerId, serviceUrl, dataSetId }, isBadBit] =
+      const [{ serviceProviderId, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
           getStorageProviderAndValidateClient(
             env,
-            clientWalletAddress,
+            payerWalletAddress,
             pieceCid,
           ),
           findInBadBits(env, pieceCid),
@@ -93,7 +93,11 @@ export default {
         'The requested CID was flagged by the Bad Bits Denylist at https://badbits.dwebops.pub',
       )
 
-      httpAssert(providerId, 404, `Unsupported Storage Provider: ${providerId}`)
+      httpAssert(
+        serviceProviderId,
+        404,
+        `Unsupported Service Provider: ${serviceProviderId}`,
+      )
 
       const { response: originResponse, cacheMiss } = await retrieveFile(
         serviceUrl,

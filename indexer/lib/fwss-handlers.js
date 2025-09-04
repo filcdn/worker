@@ -45,7 +45,7 @@ export async function handleFWSSDataSetCreated(
         payer_address,
         with_cdn
       )
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?)
       ON CONFLICT DO NOTHING
     `,
   )

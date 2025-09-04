@@ -3,7 +3,7 @@ import { getBadBitsEntry } from '../lib/bad-bits-util'
 /**
  * @param {Env} env
  * @param {Object} options
- * @param {number} options.storageProviderId
+ * @param {number} options.serviceProviderId
  * @param {string} options.pieceCid
  * @param {number} options.dataSetId
  * @param {boolean} options.withCDN
@@ -13,7 +13,7 @@ import { getBadBitsEntry } from '../lib/bad-bits-util'
 export async function withDataSetPieces(
   env,
   {
-    storageProviderId = 0,
+    serviceProviderId = 0,
     payerAddress = '0x1234567890abcdef1234567890abcdef12345608',
     pieceCid = 'bagaTEST',
     dataSetId = 0,
@@ -29,7 +29,7 @@ export async function withDataSetPieces(
     `,
     ).bind(
       String(dataSetId),
-      storageProviderId,
+      String(serviceProviderId),
       payerAddress.toLowerCase(),
       withCDN,
     ),
@@ -55,7 +55,7 @@ export async function withApprovedProvider(
 ) {
   await env.DB.prepare(
     `
-    INSERT INTO providers (id, service_url)
+    INSERT INTO service_providers (id, service_url)
     VALUES (?, ?)
   `,
   )

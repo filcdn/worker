@@ -7,7 +7,7 @@ import { httpAssert } from './http-assert.js'
  * @param {object} options
  * @param {string} options.DNS_ROOT
  * @returns {{
- *   clientWalletAddress?: string
+ *   payerWalletAddress?: string
  *   pieceCid?: string
  * }}
  */
@@ -21,7 +21,7 @@ export function parseRequest(request, { DNS_ROOT }) {
     `Invalid hostname: ${url.hostname}. It must end with ${DNS_ROOT}.`,
   )
 
-  const clientWalletAddress = url.hostname.slice(0, -DNS_ROOT.length)
+  const payerWalletAddress = url.hostname.slice(0, -DNS_ROOT.length)
   const [pieceCid] = url.pathname.split('/').filter(Boolean)
 
   httpAssert(pieceCid, 404, 'Missing required path element: `/{CID}`')
@@ -31,5 +31,5 @@ export function parseRequest(request, { DNS_ROOT }) {
     `Invalid CID: ${pieceCid}. It is not a valid CommP.`,
   )
 
-  return { clientWalletAddress, pieceCid }
+  return { payerWalletAddress, pieceCid }
 }

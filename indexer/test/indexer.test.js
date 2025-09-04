@@ -32,277 +32,6 @@ describe('retriever.indexer', () => {
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
   })
-  describe('POST /pdp-verifier/data-set-created', () => {
-    it('returns 400 if set_id or owner is missing', async () => {
-      const req = new Request('https://host/pdp-verifier/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({}),
-      })
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(400)
-      expect(await res.text()).toBe('Bad Request')
-    })
-    it('inserts a data set', async () => {
-      const dataSetId = randomId()
-      const req = new Request('https://host/pdp-verifier/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: dataSetId,
-          storage_provider: '0xAddress',
-        }),
-      })
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets.length).toBe(1)
-      expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider_address).toBe(
-        '0xAddress'.toLowerCase(),
-      )
-    })
-    it('does not insert duplicate data sets', async () => {
-      const dataSetId = randomId()
-      for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/pdp-verifier/data-set-created', {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            set_id: dataSetId,
-            storage_provider: '0xAddress',
-          }),
-        })
-        const res = await workerImpl.fetch(req, env)
-        expect(res.status).toBe(200)
-        expect(await res.text()).toBe('OK')
-      }
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets.length).toBe(1)
-    })
-    it('handles data set id as a number', async () => {
-      const dataSetId = randomId()
-      const req = new Request('https://host/pdp-verifier/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: Number(dataSetId),
-          storage_provider: '0xAddress',
-        }),
-      })
-      const res = await workerImpl.fetch(req, env)
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets.length).toBe(1)
-      expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider_address).toBe(
-        '0xAddress'.toLowerCase(),
-      )
-    })
-  })
-
-  describe('POST /pdp-verifier/pieces-added', () => {
-    const CTX = {}
-
-    /** @type {typeof import('../lib/pdp-verifier.js').createPdpVerifierClient} */
-    const createMockPdpVerifierClient = () => {
-      return {
-        getPieceCid(dataSetId, pieceId) {
-          return PIECES_BY_DATA_SET_ID[dataSetId]?.cid || null
-        },
-      }
-    }
-    it('returns 400 if set_id or piece_ids is missing', async () => {
-      const req = new Request('https://host/pdp-verifier/pieces-added', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({}),
-      })
-      const res = await workerImpl.fetch(req, env, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
-      expect(res.status).toBe(400)
-      expect(await res.text()).toBe('Bad Request')
-    })
-
-    it('inserts pieces for a data set', async () => {
-      const dataSetId = randomId()
-      const pieceIds = [randomId(), randomId()]
-      const pieceCids = [randomId(), randomId()]
-      const req = new Request('https://host/pdp-verifier/pieces-added', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: dataSetId,
-          piece_ids: pieceIds.join(','),
-          piece_cids: pieceCids.join(','),
-        }),
-      })
-      const res = await workerImpl.fetch(req, env, CTX, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT * FROM pieces WHERE data_set_id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(pieces.length).toBe(2)
-      expect(pieces[0].id).toBe(pieceIds[0])
-      expect(pieces[0].data_set_id).toBe(dataSetId)
-      expect(pieces[0].cid).toBe(pieceCids[0])
-      expect(pieces[1].id).toBe(pieceIds[1])
-      expect(pieces[1].data_set_id).toBe(dataSetId)
-      expect(pieces[1].cid).toBe(pieceCids[1])
-    })
-
-    it('does not insert duplicate pieces for the same data set', async () => {
-      const dataSetId = randomId()
-      const pieceIds = [randomId(), randomId()]
-      const pieceCids = [randomId(), randomId()]
-      for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/pdp-verifier/pieces-added', {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            set_id: dataSetId,
-            piece_ids: pieceIds.join(','),
-            piece_cids: pieceCids.join(','),
-          }),
-        })
-        const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createMockPdpVerifierClient,
-        })
-        expect(res.status).toBe(200)
-        expect(await res.text()).toBe('OK')
-      }
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT * FROM pieces WHERE data_set_id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(pieces.length).toBe(2)
-    })
-
-    it('allows multiple data sets to have the same piece id', async () => {
-      const dataSetIds = [randomId(), randomId()]
-      dataSetIds.sort()
-
-      for (const dataSetId of dataSetIds) {
-        const req = new Request('https://host/pdp-verifier/pieces-added', {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            set_id: dataSetId,
-            piece_ids: '0',
-            piece_cids: randomId(),
-          }),
-        })
-        const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createMockPdpVerifierClient,
-        })
-        const body = await res.text()
-        expect(`${res.status} ${body}`).toBe('200 OK')
-      }
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT data_set_id, id FROM pieces WHERE data_set_id = ? OR data_set_id = ? ORDER BY data_set_id',
-      )
-        .bind(dataSetIds[0], dataSetIds[1])
-        .all()
-
-      expect(pieces).toEqual([
-        {
-          data_set_id: dataSetIds[0],
-          id: '0',
-        },
-        {
-          data_set_id: dataSetIds[1],
-          id: '0',
-        },
-      ])
-    })
-  })
-
-  describe('POST /pdp-verifier/pieces-removed', () => {
-    const CTX = {}
-    it('returns 400 if set_id or piece_ids is missing', async () => {
-      const req = new Request('https://host/pdp-verifier/pieces-removed', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({}),
-      })
-      const res = await workerImpl.fetch(req, env, {})
-      expect(res.status).toBe(400)
-      expect(await res.text()).toBe('Bad Request')
-    })
-
-    it('deletes pieces for a data set', async () => {
-      const dataSetId = randomId()
-      const pieceIds = [randomId(), randomId()]
-      const pieceCids = [randomId(), randomId()]
-      const req = new Request('https://host/pdp-verifier/pieces-removed', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          set_id: dataSetId,
-          piece_ids: pieceIds.join(','),
-        }),
-      })
-
-      await withPieces(env, dataSetId, pieceIds, pieceCids)
-      const res = await workerImpl.fetch(req, env, CTX, {})
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: pieces } = await env.DB.prepare(
-        'SELECT * FROM pieces WHERE data_set_id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(pieces.length).toBe(0)
-    })
-  })
 
   describe('POST /fwss/data-set-created', () => {
     const ctx = {}
@@ -368,8 +97,8 @@ describe('retriever.indexer', () => {
 
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
+      expect(dataSets[0].service_provider_id).toBe(providerId)
       expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
-      expect(dataSets[0].payee_address).toBe('0xPayeeAddress'.toLowerCase())
       expect(dataSets[0].with_cdn).toBe(1)
 
       expect(walletDetails.length).toBe(1)
@@ -621,6 +350,185 @@ describe('retriever.indexer', () => {
       expect(dataSets.length).toBe(0)
     })
   })
+
+  describe('POST /pdp-verifier/pieces-added', () => {
+    const CTX = {}
+
+    /** @type {typeof import('../lib/pdp-verifier.js').createPdpVerifierClient} */
+    const createMockPdpVerifierClient = () => {
+      return {
+        getPieceCid(dataSetId, pieceId) {
+          return PIECES_BY_DATA_SET_ID[dataSetId]?.cid || null
+        },
+      }
+    }
+    it('returns 400 if set_id or piece_ids is missing', async () => {
+      const req = new Request('https://host/pdp-verifier/pieces-added', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env, {
+        createPdpVerifierClient: createMockPdpVerifierClient,
+      })
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+
+    it('inserts pieces for a data set', async () => {
+      const dataSetId = randomId()
+      const pieceIds = [randomId(), randomId()]
+      const pieceCids = [randomId(), randomId()]
+      const req = new Request('https://host/pdp-verifier/pieces-added', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          set_id: dataSetId,
+          piece_ids: pieceIds.join(','),
+          piece_cids: pieceCids.join(','),
+        }),
+      })
+      const res = await workerImpl.fetch(req, env, CTX, {
+        createPdpVerifierClient: createMockPdpVerifierClient,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT * FROM pieces WHERE data_set_id = ?',
+      )
+        .bind(dataSetId)
+        .all()
+      expect(pieces.length).toBe(2)
+      expect(pieces[0].id).toBe(pieceIds[0])
+      expect(pieces[0].data_set_id).toBe(dataSetId)
+      expect(pieces[0].cid).toBe(pieceCids[0])
+      expect(pieces[1].id).toBe(pieceIds[1])
+      expect(pieces[1].data_set_id).toBe(dataSetId)
+      expect(pieces[1].cid).toBe(pieceCids[1])
+    })
+
+    it('does not insert duplicate pieces for the same data set', async () => {
+      const dataSetId = randomId()
+      const pieceIds = [randomId(), randomId()]
+      const pieceCids = [randomId(), randomId()]
+      for (let i = 0; i < 2; i++) {
+        const req = new Request('https://host/pdp-verifier/pieces-added', {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            set_id: dataSetId,
+            piece_ids: pieceIds.join(','),
+            piece_cids: pieceCids.join(','),
+          }),
+        })
+        const res = await workerImpl.fetch(req, env, CTX, {
+          createPdpVerifierClient: createMockPdpVerifierClient,
+        })
+        expect(res.status).toBe(200)
+        expect(await res.text()).toBe('OK')
+      }
+
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT * FROM pieces WHERE data_set_id = ?',
+      )
+        .bind(dataSetId)
+        .all()
+      expect(pieces.length).toBe(2)
+    })
+
+    it('allows multiple data sets to have the same piece id', async () => {
+      const dataSetIds = [randomId(), randomId()]
+      dataSetIds.sort()
+
+      for (const dataSetId of dataSetIds) {
+        const req = new Request('https://host/pdp-verifier/pieces-added', {
+          method: 'POST',
+          headers: {
+            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+          },
+          body: JSON.stringify({
+            set_id: dataSetId,
+            piece_ids: '0',
+            piece_cids: randomId(),
+          }),
+        })
+        const res = await workerImpl.fetch(req, env, CTX, {
+          createPdpVerifierClient: createMockPdpVerifierClient,
+        })
+        const body = await res.text()
+        expect(`${res.status} ${body}`).toBe('200 OK')
+      }
+
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT data_set_id, id FROM pieces WHERE data_set_id = ? OR data_set_id = ? ORDER BY data_set_id',
+      )
+        .bind(dataSetIds[0], dataSetIds[1])
+        .all()
+
+      expect(pieces).toEqual([
+        {
+          data_set_id: dataSetIds[0],
+          id: '0',
+        },
+        {
+          data_set_id: dataSetIds[1],
+          id: '0',
+        },
+      ])
+    })
+  })
+
+  describe('POST /pdp-verifier/pieces-removed', () => {
+    const CTX = {}
+    it('returns 400 if set_id or piece_ids is missing', async () => {
+      const req = new Request('https://host/pdp-verifier/pieces-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({}),
+      })
+      const res = await workerImpl.fetch(req, env, {})
+      expect(res.status).toBe(400)
+      expect(await res.text()).toBe('Bad Request')
+    })
+
+    it('deletes pieces for a data set', async () => {
+      const dataSetId = randomId()
+      const pieceIds = [randomId(), randomId()]
+      const pieceCids = [randomId(), randomId()]
+      const req = new Request('https://host/pdp-verifier/pieces-removed', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          set_id: dataSetId,
+          piece_ids: pieceIds.join(','),
+        }),
+      })
+
+      await withPieces(env, dataSetId, pieceIds, pieceCids)
+      const res = await workerImpl.fetch(req, env, CTX, {})
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: pieces } = await env.DB.prepare(
+        'SELECT * FROM pieces WHERE data_set_id = ?',
+      )
+        .bind(dataSetId)
+        .all()
+      expect(pieces.length).toBe(0)
+    })
+  })
+
   describe('POST /service-provider-registry/product-added', () => {
     it('returns 400 if provider_id and product_type are missing', async () => {
       const req = new Request(
