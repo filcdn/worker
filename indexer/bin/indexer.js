@@ -111,7 +111,7 @@ export default {
         })
       }
 
-      return new Response('OK', { status: 200 })å
+      return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {
       if (
         !(
