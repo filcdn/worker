@@ -13,55 +13,47 @@ import {
 
 describe('logRetrievalResult', () => {
   it('inserts a log into local D1 via logRetrievalResult and verifies it', async () => {
-    const SERVICE_PROVIDER_ADDRESS =
-      '0x1234567890abcdef1234567890abcdef12345678'
-    const CLIENT_ADDRESS = '0xabcdef1234567890abcdef1234567890abcdef12'
+    const DATA_SET_ID = '1'
 
     await logRetrievalResult(env, {
-      storageProviderAddress: SERVICE_PROVIDER_ADDRESS,
-      clientAddress: CLIENT_ADDRESS,
+      dataSetId: DATA_SET_ID,
       cacheMiss: false,
       egressBytes: 1234,
       responseStatus: 200,
       timestamp: new Date().toISOString(),
       requestCountryCode: 'US',
-      dataSetId: '1',
     })
 
     const readOutput = await env.DB.prepare(
       `SELECT 
-        storage_provider_address,
-        client_address,
+        data_set_id,
         response_status,
         egress_bytes,
         cache_miss,
-        request_country_code,
-        data_set_id 
+        request_country_code
       FROM retrieval_logs 
-      WHERE storage_provider_address = '${SERVICE_PROVIDER_ADDRESS}' AND client_address = '${CLIENT_ADDRESS}'`,
+      WHERE data_set_id = '${DATA_SET_ID}'`,
     ).all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
       {
-        storage_provider_address: SERVICE_PROVIDER_ADDRESS,
-        client_address: CLIENT_ADDRESS,
+        data_set_id: DATA_SET_ID,
         response_status: 200,
         egress_bytes: 1234,
         cache_miss: 0,
         request_country_code: 'US',
-        data_set_id: '1',
       },
     ])
   })
 })
 
 describe('getStorageProviderAndValidateClient', () => {
+  const APPROVED_SERVICE_PROVIDER_ID = 20
   const APPROVED_SERVICE_PROVIDER_ADDRESS =
     '0xcb9e86945ca31e6c3120725bf0385cbad684040c'
   beforeAll(async () => {
     await withApprovedProvider(env, {
-      id: 20,
-      beneficiaryAddress: APPROVED_SERVICE_PROVIDER_ADDRESS,
+      id: APPROVED_SERVICE_PROVIDER_ID,
       serviceUrl: 'https://approved-provider.xyz',
     })
   })
@@ -72,11 +64,11 @@ describe('getStorageProviderAndValidateClient', () => {
     const clientAddress = '0x1234567890abcdef1234567890abcdef12345678'
 
     await env.DB.prepare(
-      'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO data_sets (id, service_provider_id, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
     )
       .bind(
         dataSetId,
-        APPROVED_SERVICE_PROVIDER_ADDRESS,
+        APPROVED_SERVICE_PROVIDER_ID,
         clientAddress,
         APPROVED_SERVICE_PROVIDER_ADDRESS,
         true,
@@ -230,11 +222,9 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await withApprovedProvider(env, {
       id: 30,
-      beneficiaryAddress: storageProviderAddress1,
     })
     await withApprovedProvider(env, {
       id: 31,
-      beneficiaryAddress: storageProviderAddress2,
     })
 
     // Insert both owners into separate sets with the same pieceCid
@@ -294,7 +284,6 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await withApprovedProvider(env, {
       id: 40,
-      beneficiaryAddress: storageProviderAddress1,
       serviceUrl: 'https://pdp-provider-1.xyz',
     })
 

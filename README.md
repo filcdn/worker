@@ -7,7 +7,6 @@ and cache from the Filecoin PDP Storage Providers.
 
 ### Initial setup
 
-
 Create `indexer/.dev.vars` file with the following content:
 
 ```

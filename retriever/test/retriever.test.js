@@ -54,7 +54,6 @@ describe('retriever.fetch', () => {
       })
       await withApprovedProvider(env, {
         id: i,
-        beneficiaryAddress: storageProviderAddress,
         serviceUrl,
       })
       i++
@@ -474,7 +473,6 @@ describe('retriever.fetch', () => {
 
     await withApprovedProvider(env, {
       id: 10,
-      beneficiaryAddress: storageProviderAddress,
       serviceUrl: 'https://mock-pdp-url.com',
     })
 
@@ -674,17 +672,16 @@ describe('retriever.fetch', () => {
   it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
     const invalidPieceCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
     const dataSetId = 'unsupported-storageProvider-test'
-    const unsupportedStorageProviderAddress =
-      '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+    const unsupportedServiceProviderId = 0
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, service_provider_id, payer_address, payee_address, with_cdn) VALUES (?, ?, ?, ?, ?)',
       ).bind(
         dataSetId,
-        unsupportedStorageProviderAddress,
+        unsupportedServiceProviderId,
         defaultClientAddress,
-        unsupportedStorageProviderAddress,
+        unsupportedServiceProviderId,
         true,
       ),
       env.DB.prepare(
@@ -701,7 +698,7 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toContain('No approved storage provider found')
 
     const result = await env.DB.prepare(
-      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND storage_provider_address IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
+      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND service_provider_id IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
     )
       .bind(defaultClientAddress)
       .first()

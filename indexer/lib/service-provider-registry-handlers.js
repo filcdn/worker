@@ -13,7 +13,7 @@ export async function handleProductAdded(
   env,
   providerId,
   productType,
-  serviceUrl
+  serviceUrl,
 ) {
   if (
     (typeof providerId !== 'string' && typeof providerId !== 'number') ||
@@ -30,11 +30,7 @@ export async function handleProductAdded(
     return new Response('OK', { status: 200 })
   }
 
-  return await handleProviderServiceUrlUpdate(
-    env,
-    providerId,
-    serviceUrl
-  )
+  return await handleProviderServiceUrlUpdate(env, providerId, serviceUrl)
 }
 
 /**
@@ -65,11 +61,7 @@ export async function handleProductUpdated(
     return new Response('OK', { status: 200 })
   }
 
-  return await handleProviderServiceUrlUpdate(
-    env,
-    providerId,
-    serviceUrl,
-  )
+  return await handleProviderServiceUrlUpdate(env, providerId, serviceUrl)
 }
 
 /**
@@ -138,11 +130,7 @@ export async function handleProviderRemoved(env, providerId) {
  * @param {string} serviceUrl
  * @returns {Promise<Response>}
  */
-async function handleProviderServiceUrlUpdate(
-  env,
-  providerId,
-  serviceUrl,
-) {
+async function handleProviderServiceUrlUpdate(env, providerId, serviceUrl) {
   if (!validator.isURL(serviceUrl)) {
     console.error('ServiceProviderRegistry.ProductAdded: Invalid Service URL', {
       serviceUrl,

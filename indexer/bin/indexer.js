@@ -41,18 +41,13 @@ export default {
     request,
     env,
     ctx,
-    {
-      checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
-    } = {},
+    { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned } = {},
   ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
-    const {
-      SECRET_HEADER_KEY,
-      SECRET_HEADER_VALUE,
-    } = env
+    const { SECRET_HEADER_KEY, SECRET_HEADER_VALUE } = env
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
     }
@@ -95,7 +90,7 @@ export default {
         )
         // @ts-ignore
         env.RETRY_QUEUE.send({
-          type: 'filecoin-warm-storage-service-data-set-created',
+          type: 'fwss-data-set-created',
           payload,
         })
       }
@@ -156,12 +151,7 @@ export default {
         product_type: productType,
         service_url: serviceUrl,
       } = payload
-      return await handleProductAdded(
-        env,
-        providerId,
-        productType,
-        serviceUrl
-      )
+      return await handleProductAdded(env, providerId, productType, serviceUrl)
     } else if (pathname === '/service-provider-registry/product-updated') {
       const {
         provider_id: providerId,
