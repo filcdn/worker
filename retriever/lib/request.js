@@ -26,9 +26,9 @@ export function parseRequest(request, { DNS_ROOT }) {
 
   httpAssert(pieceCid, 404, 'Missing required path element: `/{CID}`')
   httpAssert(
-    pieceCid.startsWith('baga'),
+    pieceCid.startsWith('baga') || pieceCid.startsWith('bafk'),
     404,
-    `Invalid CID: ${pieceCid}. It is not a valid CommP.`,
+    `Invalid CID: ${pieceCid}. It is not a valid CommP (v1 or v2).`,
   )
 
   return { payerWalletAddress, pieceCid }

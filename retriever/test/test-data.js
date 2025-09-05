@@ -9,10 +9,10 @@
 export const CONTENT_STORED_ON_CALIBRATION = [
   {
     serviceProviderId: '1',
-    serviceUrl: 'https://yablu.net',
+    serviceUrl: 'https://calibnet.pspsps.io/',
     pieceCid:
-      'baga6ea4seaqpwnxh6pgese5zizjv7rx3s755ux2yebo6fdba7j4gjhshbj3uqoa',
-    dataSetId: 233,
+      'bafkzcibdqqwat4m7ymdhkvsbbo5m7jsejchayo75udw6v3qlfgofpz2lbppe7ea7',
+    dataSetId: 9,
   },
   {
     serviceProviderId: '2',

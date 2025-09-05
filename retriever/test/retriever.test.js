@@ -190,9 +190,9 @@ describe('retriever.fetch', () => {
     expect(csp).toContain('https://*.filcdn.io')
   })
 
-  it.skip('fetches the file from calibration service provider', async () => {
+  it('fetches the file from calibration service provider', async () => {
     const expectedHash =
-      '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
+      'b9614f45cf8d401a0384eb58376b00cbcbb14f98fcba226d9fe1effe298af673'
     const ctx = createExecutionContext()
     const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, { retrieveFile })
