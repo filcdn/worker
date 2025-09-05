@@ -6,7 +6,6 @@ import {
   createExecutionContext,
   waitOnExecutionContext,
 } from 'cloudflare:test'
-import { PIECES_BY_DATA_SET_ID } from './test-data.js'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
@@ -354,14 +353,6 @@ describe('retriever.indexer', () => {
   describe('POST /pdp-verifier/pieces-added', () => {
     const CTX = {}
 
-    /** @type {typeof import('../lib/pdp-verifier.js').createPdpVerifierClient} */
-    const createMockPdpVerifierClient = () => {
-      return {
-        getPieceCid(dataSetId, pieceId) {
-          return PIECES_BY_DATA_SET_ID[dataSetId]?.cid || null
-        },
-      }
-    }
     it('returns 400 if set_id or piece_ids is missing', async () => {
       const req = new Request('https://host/pdp-verifier/pieces-added', {
         method: 'POST',
@@ -370,9 +361,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({}),
       })
-      const res = await workerImpl.fetch(req, env, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
+      const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
@@ -392,9 +381,7 @@ describe('retriever.indexer', () => {
           piece_cids: pieceCids.join(','),
         }),
       })
-      const res = await workerImpl.fetch(req, env, CTX, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
+      const res = await workerImpl.fetch(req, env, CTX)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -428,9 +415,7 @@ describe('retriever.indexer', () => {
             piece_cids: pieceCids.join(','),
           }),
         })
-        const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createMockPdpVerifierClient,
-        })
+        const res = await workerImpl.fetch(req, env, CTX)
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
       }
@@ -459,9 +444,7 @@ describe('retriever.indexer', () => {
             piece_cids: randomId(),
           }),
         })
-        const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createMockPdpVerifierClient,
-        })
+        const res = await workerImpl.fetch(req, env, CTX)
         const body = await res.text()
         expect(`${res.status} ${body}`).toBe('200 OK')
       }
