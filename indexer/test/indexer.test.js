@@ -820,3 +820,115 @@ async function withPieces(env, dataSetId, pieceIds, pieceCids) {
     )
     .run()
 }
+
+describe('POST /fwss/cdn-service-terminated', () => {
+  beforeEach(async () => {
+    await env.DB.exec('DELETE FROM data_sets')
+  })
+
+  it('returns 400 if data_set_id is missing', async () => {
+    const req = new Request('https://host/fwss/cdn-service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({}),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('sets `withCDN` flag to `false`', async () => {
+    const dataSetId = await withDataSet(env, {
+      withCDN: true,
+      serviceProviderId: '1',
+      payerAddress: '0xPayerAddress',
+    })
+    const req = new Request('https://host/fwss/cdn-service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        data_set_id: dataSetId,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: dataSets } = await env.DB.prepare(
+      'SELECT id, with_cdn FROM data_sets WHERE id = ?',
+    )
+      .bind(dataSetId)
+      .all()
+    expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
+  })
+})
+
+describe('POST /fwss/service-terminated', () => {
+  beforeEach(async () => {
+    await env.DB.exec('DELETE FROM data_sets')
+  })
+
+  it('returns 400 if data_set_id is missing', async () => {
+    const req = new Request('https://host/fwss/service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({}),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('sets `withCDN` flag to `false`', async () => {
+    const dataSetId = await withDataSet(env, {
+      withCDN: true,
+      serviceProviderId: '1',
+      payerAddress: '0xPayerAddress',
+    })
+    const req = new Request('https://host/fwss/service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        data_set_id: dataSetId,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: dataSets } = await env.DB.prepare(
+      'SELECT id, with_cdn FROM data_sets WHERE id = ?',
+    )
+      .bind(dataSetId)
+      .all()
+    expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
+  })
+})
+
+async function withDataSet(
+  env,
+  { dataSetId = randomId(), withCDN = true, serviceProviderId, payerAddress },
+) {
+  await env.DB.prepare(
+    `
+    INSERT INTO data_sets (
+      id,
+      with_cdn,
+      service_provider_id,
+      payer_address
+    )
+    VALUES (?, ?, ?, ?)`,
+  )
+    .bind(String(dataSetId), withCDN, serviceProviderId, payerAddress)
+    .run()
+
+  return dataSetId
+}

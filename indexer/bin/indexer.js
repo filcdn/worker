@@ -5,7 +5,10 @@ import {
   handleProviderRemoved,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
-import { handleFWSSDataSetCreated } from '../lib/fwss-handlers.js'
+import {
+  handleFWSSDataSetCreated,
+  handleFWSSServiceTerminated,
+} from '../lib/fwss-handlers.js'
 import {
   removeDataSetPieces,
   insertDataSetPieces,
@@ -144,6 +147,30 @@ export default {
       )
 
       await removeDataSetPieces(env, payload.set_id, pieceIds)
+      return new Response('OK', { status: 200 })
+    } else if (
+      pathname === '/fwss/service-terminated' ||
+      pathname === '/fwss/cdn-service-terminated'
+    ) {
+      if (
+        !payload.data_set_id ||
+        !(
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
+        )
+      ) {
+        console.error(
+          'FilecoinWarmStorageService.(ServiceTerminated | CDNServiceTerminated): Invalid payload',
+          payload,
+        )
+        return new Response('Bad Request', { status: 400 })
+      }
+
+      console.log(
+        `Terminating service for data set (data_set_id=${payload.data_set_id})`,
+      )
+
+      await handleFWSSServiceTerminated(env, payload)
       return new Response('OK', { status: 200 })
     } else if (pathname === '/service-provider-registry/product-added') {
       const {

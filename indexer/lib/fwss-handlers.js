@@ -57,3 +57,22 @@ export async function handleFWSSDataSetCreated(
     )
     .run()
 }
+
+/**
+ * Handle Filecoin Warm Storage Service service termination
+ *
+ * @param {Env} env
+ * @param {any} payload
+ * @throws {Error}
+ */
+export async function handleFWSSServiceTerminated(env, payload) {
+  await env.DB.prepare(
+    `
+      UPDATE data_sets
+      SET with_cdn = false
+      WHERE id = ?
+    `,
+  )
+    .bind(String(payload.data_set_id))
+    .run()
+}
