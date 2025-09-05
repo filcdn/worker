@@ -53,7 +53,7 @@ describe('retriever.fetch', () => {
         pieceId,
       })
       await withApprovedProvider(env, {
-        id: i,
+        id: serviceProviderId,
         serviceUrl,
       })
       i++
@@ -224,17 +224,16 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, response_status, egress_bytes, cache_miss, client_address
+      `SELECT id, response_status, egress_bytes, cache_miss
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultPayerAddress)
+      .bind(realDataSetId)
       .all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
       {
         id: 1, // Assuming this is the first log entry
-        client_address: defaultPayerAddress,
         response_status: 200,
         egress_bytes: expectedEgressBytes,
         cache_miss: 1, // 1 for true, 0 for false
@@ -262,17 +261,16 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, response_status, egress_bytes, cache_miss, client_address
+      `SELECT id, response_status, egress_bytes, cache_miss
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultPayerAddress)
+      .bind(realDataSetId)
       .all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
       {
         id: 1, // Assuming this is the first log entry
-        client_address: defaultPayerAddress,
         response_status: 200,
         egress_bytes: expectedEgressBytes,
         cache_miss: 0, // 1 for true, 0 for false
@@ -307,16 +305,14 @@ describe('retriever.fetch', () => {
         fetch_ttfb,
         fetch_ttlb,
         worker_ttfb,
-        client_address
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultPayerAddress)
+      .bind(realDataSetId)
       .all()
     assert.strictEqual(readOutput.results.length, 1)
     const result = readOutput.results[0]
 
-    assert.deepStrictEqual(result.client_address, defaultPayerAddress)
     assert.strictEqual(result.response_status, 200)
     assert.strictEqual(typeof result.fetch_ttfb, 'number')
     assert.strictEqual(typeof result.fetch_ttlb, 'number')
@@ -344,9 +340,9 @@ describe('retriever.fetch', () => {
     const { results } = await env.DB.prepare(
       `SELECT request_country_code
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultPayerAddress)
+      .bind(realDataSetId)
       .all()
     assert.deepStrictEqual(results, [
       {
@@ -373,9 +369,9 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ?',
+      'SELECT egress_bytes FROM retrieval_logs WHERE data_set_id = ?',
     )
-      .bind(defaultPayerAddress)
+      .bind(realDataSetId)
       .all()
     assert.strictEqual(readOutput.results.length, 1)
     assert.strictEqual(readOutput.results[0].egress_bytes, 0)
@@ -550,16 +546,15 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 200)
     const { results } = await env.DB.prepare(
-      `SELECT id, response_status, data_set_id, cache_miss, client_address
+      `SELECT id, response_status, data_set_id, cache_miss
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultPayerAddress)
+      .bind(dataSetId)
       .all()
     assert.deepStrictEqual(results, [
       {
         id: 1, // Assuming this is the first log entry
-        client_address: defaultPayerAddress,
         response_status: 200,
         data_set_id: dataSetId.toString(),
         cache_miss: 1, // 1 for true, 0 for false
@@ -731,20 +726,20 @@ describe('retriever.fetch', () => {
 })
 
 /**
- * @param {string} clientWalletAddress
+ * @param {string} payerWalletAddress
  * @param {string} pieceCid
  * @param {string} method
  * @param {Object} headers
  * @returns {Request}
  */
 function withRequest(
-  clientWalletAddress,
+  payerWalletAddress,
   pieceCid,
   method = 'GET',
   headers = {},
 ) {
   let url = 'http://'
-  if (clientWalletAddress) url += `${clientWalletAddress}.`
+  if (payerWalletAddress) url += `${payerWalletAddress}.`
   url += DNS_ROOT.slice(1) // remove the leading '.'
   if (pieceCid) url += `/${pieceCid}`
 
