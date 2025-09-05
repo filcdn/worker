@@ -229,7 +229,7 @@ describe('retriever.fetch', () => {
        FROM retrieval_logs
        WHERE data_set_id = ?`,
     )
-      .bind(realDataSetId)
+      .bind(String(realDataSetId))
       .all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
@@ -266,7 +266,7 @@ describe('retriever.fetch', () => {
        FROM retrieval_logs
        WHERE data_set_id = ?`,
     )
-      .bind(realDataSetId)
+      .bind(String(realDataSetId))
       .all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
@@ -309,7 +309,7 @@ describe('retriever.fetch', () => {
        FROM retrieval_logs
        WHERE data_set_id = ?`,
     )
-      .bind(realDataSetId)
+      .bind(String(realDataSetId))
       .all()
     assert.strictEqual(readOutput.results.length, 1)
     const result = readOutput.results[0]
@@ -343,7 +343,7 @@ describe('retriever.fetch', () => {
        FROM retrieval_logs
        WHERE data_set_id = ?`,
     )
-      .bind(realDataSetId)
+      .bind(String(realDataSetId))
       .all()
     assert.deepStrictEqual(results, [
       {
@@ -372,7 +372,7 @@ describe('retriever.fetch', () => {
     const readOutput = await env.DB.prepare(
       'SELECT egress_bytes FROM retrieval_logs WHERE data_set_id = ?',
     )
-      .bind(realDataSetId)
+      .bind(String(realDataSetId))
       .all()
     assert.strictEqual(readOutput.results.length, 1)
     assert.strictEqual(readOutput.results[0].egress_bytes, 0)
@@ -551,7 +551,7 @@ describe('retriever.fetch', () => {
        FROM retrieval_logs
        WHERE data_set_id = ?`,
     )
-      .bind(dataSetId)
+      .bind(String(dataSetId))
       .all()
     assert.deepStrictEqual(results, [
       {
