@@ -101,7 +101,7 @@ describe('retriever.fetch', () => {
     )
   })
 
-  it('returns 400 if provided client address is invalid', async () => {
+  it('returns 400 if provided payer address is invalid', async () => {
     const ctx = createExecutionContext()
     const mockRetrieveFile = vi.fn()
     const req = withRequest('bar', realPieceCid)
@@ -625,9 +625,9 @@ describe('retriever.fetch', () => {
     )
   })
 
-  it('reject retrieval request if client is sanctioned', async () => {
-    const dataSetId = 'test-data-set-client-sanctioned'
-    const pieceId = 'root-data-set-client-sanctioned'
+  it('reject retrieval request if payer is sanctioned', async () => {
+    const dataSetId = 'test-data-set-payer-sanctioned'
+    const pieceId = 'root-data-set-payer-sanctioned'
     const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
     const serviceProviderId = 'service-provider-id'
