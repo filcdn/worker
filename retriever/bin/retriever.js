@@ -79,11 +79,7 @@ export default {
 
       const [{ serviceProviderId, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
-          getStorageProviderAndValidatePayer(
-            env,
-            payerWalletAddress,
-            pieceCid,
-          ),
+          getStorageProviderAndValidatePayer(env, payerWalletAddress, pieceCid),
           findInBadBits(env, pieceCid),
         ])
 
