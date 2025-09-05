@@ -1,6 +1,9 @@
 /** @import {MessageBatch} from 'cloudflare:workers' */
 import { TransactionMonitorWorkflow } from '../lib/transaction-workflows.js'
-import { terminateCDNServiceForSanctionedWallets as defaultTerminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-service.js'
+import {
+  terminateCDNServiceForSanctionedWallets as defaultTerminateCDNServiceForSanctionedWallets,
+  terminateCDNServiceForSanctionedWallets,
+} from '../lib/terminate-cdn-service.js'
 import {
   handleTerminateServiceQueueMessage as defaultHandleTerminateServiceQueueMessage,
   handleTransactionCancelQueueMessage as defaultHandleTransactionCancelQueueMessage,
@@ -30,11 +33,8 @@ import {
  *   FILECOIN_WARM_STORAGE_SERVICE_ADDRESS: string
  *   FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY: string
  *   DB: D1Database
- *   TERMINATE_SERVICE_QUEUE: import('cloudflare:workers').Queue<TerminateServiceMessage>
  *   TRANSACTION_QUEUE: import('cloudflare:workers').Queue<
- *     | TerminateServiceMessage
- *     | TransactionCancelMessage
- *     | TransactionRetryMessage
+ *     TerminateServiceMessage | TransactionCancelMessage
  *   >
  *   TRANSACTION_MONITOR_WORKFLOW: import('cloudflare:workers').WorkflowEntrypoint
  * }} ServiceMonitorEnv
@@ -58,6 +58,10 @@ export default {
     } = {},
   ) {
     await terminateCDNServiceForSanctionedWallets(env)
+  },
+
+  async fetch(ctx, env) {
+    return await terminateCDNServiceForSanctionedWallets(env)
   },
 
   /**

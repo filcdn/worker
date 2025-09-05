@@ -1,7 +1,7 @@
 /**
  * @param {{
  *   DB: D1Database
- *   TERMINATE_SERVICE_QUEUE: import('cloudflare:workers').Queue<{
+ *   TRANSACTION_QUEUE: import('cloudflare:workers').Queue<{
  *     dataSetId: number
  *   }>
  * }} env
@@ -22,12 +22,14 @@ export async function terminateCDNServiceForSanctionedWallets(env) {
 
   // Send messages to queue for processing
   const messages = dataSets.map(({ id: dataSetId }) => ({
-    dataSetId,
-    type: 'terminate-cdn-service',
+    body: {
+      dataSetId,
+      type: 'terminate-cdn-service',
+    },
   }))
 
   if (messages.length > 0) {
-    await env.TERMINATE_SERVICE_QUEUE.sendBatch(messages)
+    await env.TRANSACTION_QUEUE.sendBatch(messages)
     console.log(`Sent ${messages.length} messages to transaction queue`)
   }
 }

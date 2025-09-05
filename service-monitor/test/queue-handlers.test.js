@@ -4,6 +4,7 @@ import {
   handleTransactionCancelQueueMessage,
 } from '../lib/queue-handlers.js'
 import { env } from 'cloudflare:test'
+import { abi as fwssAbi } from '../lib/filecoin-warm-storage-service.js'
 
 // Test fixtures and helpers
 const createMockEnv = (env) => ({
@@ -71,7 +72,7 @@ describe('handleTerminateServiceQueueMessage', () => {
 
     expect(mockChainClient.publicClient.simulateContract).toHaveBeenCalledWith({
       address: '0xcontract',
-      abi: ['function terminateCDNService(uint256) external'],
+      abi: fwssAbi,
       functionName: 'terminateCDNService',
       args: [123],
     })

@@ -1,4 +1,5 @@
 import { getChainClient as defaultGetChainClient } from './chain.js'
+import { abi as fwssAbi } from './filecoin-warm-storage-service.js'
 
 /**
  * @typedef {{
@@ -52,8 +53,8 @@ export async function handleTerminateServiceQueueMessage(
 
     // Create contract call
     const { request } = await publicClient.simulateContract({
+      abi: fwssAbi,
       address: env.FILECOIN_WARM_STORAGE_SERVICE_ADDRESS,
-      abi: ['function terminateCDNService(uint256) external'],
       functionName: 'terminateCDNService',
       args: [dataSetId],
     })

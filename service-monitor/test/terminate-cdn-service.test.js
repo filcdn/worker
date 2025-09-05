@@ -26,13 +26,13 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
     }
     const envOverride = {
       ...env,
-      TERMINATE_SERVICE_QUEUE: mockQueue,
+      TRANSACTION_QUEUE: mockQueue,
     }
 
     await terminateCDNServiceForSanctionedWallets(envOverride)
 
     expect(mockQueue.sendBatch).toHaveBeenCalledWith([
-      { dataSetId, type: 'terminate-cdn-service' },
+      { body: { dataSetId, type: 'terminate-cdn-service' } },
     ])
   })
 
@@ -53,7 +53,7 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
     }
     const envOverride = {
       ...env,
-      TERMINATE_SERVICE_QUEUE: mockQueue,
+      TRANSACTION_QUEUE: mockQueue,
     }
 
     await terminateCDNServiceForSanctionedWallets(envOverride)
@@ -84,14 +84,14 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
     }
     const envOverride = {
       ...env,
-      TERMINATE_SERVICE_QUEUE: mockQueue,
+      TRANSACTION_QUEUE: mockQueue,
     }
 
     await terminateCDNServiceForSanctionedWallets(envOverride)
 
     expect(mockQueue.sendBatch).toHaveBeenCalledWith([
-      { dataSetId: '1', type: 'terminate-cdn-service' },
-      { dataSetId: '2', type: 'terminate-cdn-service' },
+      { body: { dataSetId: '1', type: 'terminate-cdn-service' } },
+      { body: { dataSetId: '2', type: 'terminate-cdn-service' } },
     ])
   })
 
@@ -110,7 +110,7 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
     }
     const envOverride = {
       ...env,
-      TERMINATE_SERVICE_QUEUE: mockQueue,
+      TRANSACTION_QUEUE: mockQueue,
     }
 
     await terminateCDNServiceForSanctionedWallets(envOverride)
