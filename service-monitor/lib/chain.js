@@ -19,7 +19,6 @@ export function getChainClient(env) {
     transport,
   })
 
-  console.log('pk ', env.FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY)
   const account = privateKeyToAccount(env.FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY)
 
   const walletClient = createWalletClient({

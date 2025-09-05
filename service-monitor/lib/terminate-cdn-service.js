@@ -11,10 +11,8 @@ export async function terminateCDNServiceForSanctionedWallets(env) {
     `
       SELECT DISTINCT ds.id
       FROM data_sets ds
-        LEFT JOIN wallet_details sp ON ds.storage_provider_address = sp.address
-        LEFT JOIN wallet_details pa ON ds.payer_address = pa.address
-        LEFT JOIN wallet_details pe ON ds.payee_address = pe.address
-      WHERE ds.with_cdn = 1 AND (sp.is_sanctioned = 1 OR pa.is_sanctioned = 1 OR pe.is_sanctioned = 1);
+        LEFT JOIN wallet_details wd ON ds.payer_address = wd.address
+      WHERE ds.with_cdn = 1 AND wd.is_sanctioned = 1;
   `,
   ).run()
 

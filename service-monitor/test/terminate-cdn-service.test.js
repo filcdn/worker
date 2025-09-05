@@ -12,13 +12,12 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
 
   it('sends messages to queue for sanctioned data sets', async () => {
     const dataSetId = '1'
-    const sanctionedAddress = '0xSanctionedAddress'
-    await withWallet(env, sanctionedAddress, true)
+    const payerAddress = '0xSanctionedAddress'
+    await withWallet(env, payerAddress, true)
     await withDataSet(env, {
       id: dataSetId,
-      storageProviderAddress: sanctionedAddress,
-      payerAddress: '0xPayer',
-      payeeAddress: '0xPayee',
+      payerAddress,
+      withCDN: true,
     })
 
     const mockQueue = {
@@ -38,13 +37,11 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
 
   it('skips if `with_cdn` is `false`', async () => {
     const dataSetId = '1'
-    const sanctionedAddress = '0xSanctionedAddress'
-    await withWallet(env, sanctionedAddress, true)
+    const payerAddress = '0xSanctionedAddress'
+    await withWallet(env, payerAddress, true)
     await withDataSet(env, {
       id: dataSetId,
-      storageProviderAddress: sanctionedAddress,
-      payerAddress: '0xPayer',
-      payeeAddress: '0xPayee',
+      payerAddress,
       withCDN: false,
     })
 
@@ -62,21 +59,25 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
   })
 
   it('sends multiple messages for multiple sanctioned data sets', async () => {
-    const sanctionedAddress = '0xSanctionedAddress'
-    await withWallet(env, sanctionedAddress, true)
+    const payerAddress = '0xSanctionedAddress'
+    await withWallet(env, payerAddress, true)
 
     await withDataSet(env, {
       id: '1',
-      storageProviderAddress: sanctionedAddress,
-      payerAddress: '0xPayer',
-      payeeAddress: '0xPayee',
+      payerAddress,
+      withCDN: true,
     })
 
     await withDataSet(env, {
       id: '2',
-      storageProviderAddress: '0xCleanProvider',
-      payerAddress: sanctionedAddress,
-      payeeAddress: '0xPayee',
+      payerAddress,
+      withCDN: true,
+    })
+
+    await withDataSet(env, {
+      id: '3',
+      payerAddress,
+      withCDN: false,
     })
 
     const mockQueue = {
@@ -96,15 +97,11 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
   })
 
   it('does nothing when no sanctioned data sets found', async () => {
-    const spAddress = '0xSp'
-    await withWallet(env, spAddress, false)
-
     await withDataSet(env, {
       id: '1',
-      storageProviderAddress: spAddress,
-      payerAddress: '0xPayer',
-      payeeAddress: '0xPayee',
+      withCDN: true,
     })
+
     const mockQueue = {
       sendBatch: vi.fn().mockResolvedValue(undefined),
     }

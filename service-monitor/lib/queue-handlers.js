@@ -112,7 +112,7 @@ export async function handleTransactionCancelQueueMessage(
         hash: transactionHash,
       })
 
-      if (receipt && receipt.blockNumber > 0n) {
+      if (receipt && receipt.blockNumber && receipt.blockNumber > 0n) {
         console.log(
           `Transaction ${transactionHash} is no longer pending, cancellation not needed`,
         )
