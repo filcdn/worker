@@ -1,6 +1,6 @@
 /**
  * @type {{
- *   serviceProviderAddress: string
+ *   serviceProviderId: string
  *   serviceUrl: string
  *   pieceCid: string
  *   dataSetId: number
