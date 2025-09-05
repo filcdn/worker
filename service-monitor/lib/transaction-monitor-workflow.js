@@ -12,18 +12,10 @@ export class TransactionMonitorWorkflow extends WorkflowEntrypoint {
    * @param {WorkflowStep} step
    */
   async run(
-    { payload },
+    { payload: { transactionHash } },
     step,
     { getChainClient = defaultGetChainClient } = {},
   ) {
-    const { transactionHash } = payload
-    const tx = step.do('get transaction details', async () => {
-      const { publicClient } = getChainClient(this.env)
-      return await publicClient.getTransaction({
-        hash: transactionHash,
-      })
-    })
-
     try {
       // Wait for transaction receipt with timeout
       await step.do(
@@ -50,7 +42,6 @@ export class TransactionMonitorWorkflow extends WorkflowEntrypoint {
           await this.env.TRANSACTION_QUEUE.send({
             type: 'transaction-cancel',
             transactionHash,
-            nonce: tx.nonce,
           })
         },
       )
