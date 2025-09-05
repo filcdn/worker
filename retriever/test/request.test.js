@@ -6,20 +6,20 @@ const TEST_WALLET = 'abc123'
 const TEST_CID = 'baga123'
 
 describe('parseRequest', () => {
-  it('should parse clientWalletAddress and pieceCid from a URL with both params', () => {
+  it('should parse payerWalletAddress and pieceCid from a URL with both params', () => {
     const request = { url: `https://${TEST_WALLET}${DNS_ROOT}/${TEST_CID}` }
     const result = parseRequest(request, { DNS_ROOT })
     expect(result).toEqual({
-      clientWalletAddress: TEST_WALLET,
+      payerWalletAddress: TEST_WALLET,
       pieceCid: TEST_CID,
     })
   })
 
-  it('should parse clientWalletAddress and pieceCid from a URL with leading slash', () => {
+  it('should parse payerWalletAddress and pieceCid from a URL with leading slash', () => {
     const request = { url: `https://${TEST_WALLET}${DNS_ROOT}//${TEST_CID}` }
     const result = parseRequest(request, { DNS_ROOT })
     expect(result).toEqual({
-      clientWalletAddress: TEST_WALLET,
+      payerWalletAddress: TEST_WALLET,
       pieceCid: TEST_CID,
     })
   })
@@ -44,7 +44,7 @@ describe('parseRequest', () => {
     }
     const result = parseRequest(request, { DNS_ROOT })
     expect(result).toEqual({
-      clientWalletAddress: TEST_WALLET,
+      payerWalletAddress: TEST_WALLET,
       pieceCid: TEST_CID,
     })
   })

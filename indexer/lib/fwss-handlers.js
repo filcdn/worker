@@ -41,8 +41,8 @@ export async function handleFWSSDataSetCreated(
     `
       INSERT INTO data_sets (
         id,
+        service_provider_id,
         payer_address,
-        payee_address,
         with_cdn
       )
       VALUES (?, ?, ?, ?)
@@ -51,8 +51,8 @@ export async function handleFWSSDataSetCreated(
   )
     .bind(
       String(payload.data_set_id),
+      String(payload.provider_id),
       payload.payer.toLowerCase(),
-      payload.payee.toLowerCase(),
       withCDN,
     )
     .run()

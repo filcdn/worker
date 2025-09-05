@@ -3,19 +3,17 @@ import { getBadBitsEntry } from '../lib/bad-bits-util'
 /**
  * @param {Env} env
  * @param {Object} options
- * @param {string} options.storageProviderAddress
+ * @param {number} options.serviceProviderId
  * @param {string} options.pieceCid
  * @param {number} options.dataSetId
  * @param {boolean} options.withCDN
  * @param {string} options.payerAddress
- * @param {string} options.payeeAddress
  * @param {string} options.pieceId
  */
 export async function withDataSetPieces(
   env,
   {
-    storageProviderAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
-    payeeAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e2',
+    serviceProviderId = 0,
     payerAddress = '0x1234567890abcdef1234567890abcdef12345608',
     pieceCid = 'bagaTEST',
     dataSetId = 0,
@@ -26,14 +24,13 @@ export async function withDataSetPieces(
   await env.DB.batch([
     env.DB.prepare(
       `
-      INSERT INTO data_sets (id, storage_provider_address, payer_address, payee_address, with_cdn)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO data_sets (id, service_provider_id, payer_address, with_cdn)
+      VALUES (?, ?, ?, ?)
     `,
     ).bind(
       String(dataSetId),
-      storageProviderAddress.toLowerCase(),
+      String(serviceProviderId),
       payerAddress.toLowerCase(),
-      payeeAddress.toLowerCase(),
       withCDN,
     ),
 
@@ -50,20 +47,19 @@ export async function withDataSetPieces(
  * @param {Env} env
  * @param {Object} options
  * @param {number} id
- * @param {string} options.beneficiaryAddress
  * @param {string} [options.serviceUrl]
  */
 export async function withApprovedProvider(
   env,
-  { id, beneficiaryAddress, serviceUrl = 'https://pdp.xyz/' } = {},
+  { id, serviceUrl = 'https://pdp.xyz/' } = {},
 ) {
   await env.DB.prepare(
     `
-    INSERT INTO providers (id, beneficiary_address, service_url)
-    VALUES (?, ?, ?)
+    INSERT INTO service_providers (id, service_url)
+    VALUES (?, ?)
   `,
   )
-    .bind(String(id), beneficiaryAddress, serviceUrl)
+    .bind(String(id), serviceUrl)
     .run()
 }
 
