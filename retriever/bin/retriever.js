@@ -5,7 +5,7 @@ import {
   measureStreamedEgress,
 } from '../lib/retrieval.js'
 import {
-  getStorageProviderAndValidateClient,
+  getStorageProviderAndValidatePayer,
   logRetrievalResult,
   updateDataSetStats,
 } from '../lib/store.js'
@@ -79,7 +79,7 @@ export default {
 
       const [{ serviceProviderId, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
-          getStorageProviderAndValidateClient(
+          getStorageProviderAndValidatePayer(
             env,
             payerWalletAddress,
             pieceCid,

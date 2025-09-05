@@ -85,7 +85,7 @@ export async function logRetrievalResult(env, params) {
  *   dataSetId: string
  * }>}
  */
-export async function getStorageProviderAndValidateClient(
+export async function getStorageProviderAndValidatePayer(
   env,
   payerAddress,
   pieceCid,

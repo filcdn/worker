@@ -2,7 +2,7 @@ import { describe, it, beforeAll } from 'vitest'
 import assert from 'node:assert/strict'
 import {
   logRetrievalResult,
-  getStorageProviderAndValidateClient,
+  getStorageProviderAndValidatePayer,
   updateDataSetStats,
 } from '../lib/store.js'
 import { env } from 'cloudflare:test'
@@ -47,7 +47,7 @@ describe('logRetrievalResult', () => {
   })
 })
 
-describe('getStorageProviderAndValidateClient', () => {
+describe('getStorageProviderAndValidatePayer', () => {
   const APPROVED_SERVICE_PROVIDER_ID = '20'
   beforeAll(async () => {
     await withApprovedProvider(env, {
@@ -72,7 +72,7 @@ describe('getStorageProviderAndValidateClient', () => {
       .bind('piece-1', dataSetId, pieceCid)
       .run()
 
-    const result = await getStorageProviderAndValidateClient(
+    const result = await getStorageProviderAndValidatePayer(
       env,
       payerAddress,
       pieceCid,
@@ -84,7 +84,7 @@ describe('getStorageProviderAndValidateClient', () => {
     const payerAddress = '0x1234567890abcdef1234567890abcdef12345678'
     await assert.rejects(
       async () =>
-        await getStorageProviderAndValidateClient(
+        await getStorageProviderAndValidatePayer(
           env,
           payerAddress,
           'nonexistent-cid',
@@ -109,7 +109,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await assert.rejects(
       async () =>
-        await getStorageProviderAndValidateClient(env, payerAddress, cid),
+        await getStorageProviderAndValidatePayer(env, payerAddress, cid),
       /no associated service provider/,
     )
   })
@@ -136,7 +136,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await assert.rejects(
       async () =>
-        await getStorageProviderAndValidateClient(env, payerAddress, cid),
+        await getStorageProviderAndValidatePayer(env, payerAddress, cid),
       /There is no Filecoin Warm Storage Service deal for payer/,
     )
   })
@@ -158,7 +158,7 @@ describe('getStorageProviderAndValidateClient', () => {
 
     await assert.rejects(
       async () =>
-        await getStorageProviderAndValidateClient(env, payerAddress, cid),
+        await getStorageProviderAndValidatePayer(env, payerAddress, cid),
       /withCDN=false/,
     )
   })
@@ -177,7 +177,7 @@ describe('getStorageProviderAndValidateClient', () => {
       ).bind('piece-3', dataSetId, cid),
     ])
 
-    const result = await getStorageProviderAndValidateClient(
+    const result = await getStorageProviderAndValidatePayer(
       env,
       payerAddress,
       cid,
@@ -227,7 +227,7 @@ describe('getStorageProviderAndValidateClient', () => {
       .run()
 
     // Should return only the serviceProviderId1 which is the first in the ordering
-    const result = await getStorageProviderAndValidateClient(
+    const result = await getStorageProviderAndValidatePayer(
       env,
       payerAddress,
       pieceCid,
@@ -268,7 +268,7 @@ describe('getStorageProviderAndValidateClient', () => {
     })
 
     // Should return service provider 1 because service provider 2 is not approved
-    const result = await getStorageProviderAndValidateClient(
+    const result = await getStorageProviderAndValidatePayer(
       env,
       payerAddress,
       pieceCid,
