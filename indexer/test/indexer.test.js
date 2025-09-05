@@ -821,22 +821,19 @@ async function withPieces(env, dataSetId, pieceIds, pieceCids) {
     .run()
 }
 
-describe('POST /filecoin-warm-storage-service/service-terminated', () => {
+describe('POST /fwss/cdn-service-terminated', () => {
   beforeEach(async () => {
     await env.DB.exec('DELETE FROM data_sets')
   })
 
   it('returns 400 if data_set_id is missing', async () => {
-    const req = new Request(
-      'https://host/filecoin-warm-storage-service/service-terminated',
-      {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({}),
+    const req = new Request('https://host/fwss/cdn-service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
-    )
+      body: JSON.stringify({}),
+    })
     const res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(400)
     expect(await res.text()).toBe('Bad Request')
@@ -845,21 +842,18 @@ describe('POST /filecoin-warm-storage-service/service-terminated', () => {
   it('sets `withCDN` flag to `false`', async () => {
     const dataSetId = await withDataSet(env, {
       withCDN: true,
-      payer: '0xPayerAddress',
-      payee: '0xPayeeAddress',
+      serviceProviderId: '1',
+      payerAddress: '0xPayerAddress',
     })
-    const req = new Request(
-      'https://host/filecoin-warm-storage-service/service-terminated',
-      {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          data_set_id: dataSetId,
-        }),
+    const req = new Request('https://host/fwss/cdn-service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
-    )
+      body: JSON.stringify({
+        data_set_id: dataSetId,
+      }),
+    })
     const res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
@@ -873,22 +867,19 @@ describe('POST /filecoin-warm-storage-service/service-terminated', () => {
   })
 })
 
-describe('POST /filecoin-warm-storage-service/cdn-service-terminated', () => {
+describe('POST /fwss/service-terminated', () => {
   beforeEach(async () => {
     await env.DB.exec('DELETE FROM data_sets')
   })
 
   it('returns 400 if data_set_id is missing', async () => {
-    const req = new Request(
-      'https://host/filecoin-warm-storage-service/cdn-service-terminated',
-      {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({}),
+    const req = new Request('https://host/fwss/service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
-    )
+      body: JSON.stringify({}),
+    })
     const res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(400)
     expect(await res.text()).toBe('Bad Request')
@@ -897,21 +888,18 @@ describe('POST /filecoin-warm-storage-service/cdn-service-terminated', () => {
   it('sets `withCDN` flag to `false`', async () => {
     const dataSetId = await withDataSet(env, {
       withCDN: true,
-      payer: '0xPayerAddress',
-      payee: '0xPayeeAddress',
+      serviceProviderId: '1',
+      payerAddress: '0xPayerAddress',
     })
-    const req = new Request(
-      'https://host/filecoin-warm-storage-service/cdn-service-terminated',
-      {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          data_set_id: dataSetId,
-        }),
+    const req = new Request('https://host/fwss/service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
       },
-    )
+      body: JSON.stringify({
+        data_set_id: dataSetId,
+      }),
+    })
     const res = await workerImpl.fetch(req, env)
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
@@ -927,19 +915,19 @@ describe('POST /filecoin-warm-storage-service/cdn-service-terminated', () => {
 
 async function withDataSet(
   env,
-  { dataSetId = randomId(), withCDN = true, payer, payee },
+  { dataSetId = randomId(), withCDN = true, serviceProviderId, payerAddress },
 ) {
   await env.DB.prepare(
     `
     INSERT INTO data_sets (
       id,
       with_cdn,
-      payer_address,
-      payee_address
+      service_provider_id,
+      payer_address
     )
     VALUES (?, ?, ?, ?)`,
   )
-    .bind(String(dataSetId), withCDN, payer, payee)
+    .bind(String(dataSetId), withCDN, serviceProviderId, payerAddress)
     .run()
 
   return dataSetId
