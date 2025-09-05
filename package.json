@@ -9,7 +9,7 @@
     "bad-bits",
     "indexer",
     "retriever",
-    "service-monitor"
+    "terminator"
   ],
   "scripts": {
     "build:types": "npm run build:types --workspaces --if-present",

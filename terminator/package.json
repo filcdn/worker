@@ -1,11 +1,11 @@
 {
-  "name": "@filcdn/service-monitor",
+  "name": "@filcdn/terminator",
   "version": "1.0.0",
   "private": true,
-  "description": "FilCDN Service Monitor Worker",
+  "description": "FilCDN Terminator Worker",
   "author": "Space Meridian <filcdn@meridian.space>",
   "type": "module",
-  "main": "bin/service-monitor.js",
+  "main": "bin/terminator.js",
   "scripts": {
     "build:types": "wrangler types",
     "deploy:calibration": "wrangler deploy --env calibration",

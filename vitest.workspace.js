@@ -4,5 +4,5 @@ export default defineWorkspace([
   'indexer',
   'retriever',
   'bad-bits',
-  'service-monitor',
+  'terminator',
 ])
