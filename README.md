@@ -1,7 +1,7 @@
 # FilCDN Cloudflare Worker
 
 [Cloudflare worker](https://developers.cloudflare.com/workers/) used to retrieve
-and cache from the Filecoin PDP service providers.
+and cache from the Filecoin PDP Service Providers.
 
 ## Development
 
