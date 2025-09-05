@@ -5,7 +5,7 @@ import {
   measureStreamedEgress,
 } from '../lib/retrieval.js'
 import {
-  getStorageProviderAndValidateClient,
+  getStorageProviderAndValidatePayer,
   logRetrievalResult,
   updateDataSetStats,
 } from '../lib/store.js'
@@ -64,26 +64,22 @@ export default {
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
 
-    const { clientWalletAddress, pieceCid } = parseRequest(request, env)
+    const { payerWalletAddress, pieceCid } = parseRequest(request, env)
 
-    httpAssert(clientWalletAddress && pieceCid, 400, 'Missing required fields')
+    httpAssert(payerWalletAddress && pieceCid, 400, 'Missing required fields')
     httpAssert(
-      isValidEthereumAddress(clientWalletAddress),
+      isValidEthereumAddress(payerWalletAddress),
       400,
-      `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
+      `Invalid address: ${payerWalletAddress}. Address must be a valid ethereum address.`,
     )
 
     try {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
 
-      const [{ storageProviderAddress, serviceUrl, dataSetId }, isBadBit] =
+      const [{ serviceProviderId, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
-          getStorageProviderAndValidateClient(
-            env,
-            clientWalletAddress,
-            pieceCid,
-          ),
+          getStorageProviderAndValidatePayer(env, payerWalletAddress, pieceCid),
           findInBadBits(env, pieceCid),
         ])
 
@@ -94,9 +90,9 @@ export default {
       )
 
       httpAssert(
-        storageProviderAddress,
+        serviceProviderId,
         404,
-        `Unsupported Storage Provider: ${storageProviderAddress}`,
+        `Unsupported Service Provider: ${serviceProviderId}`,
       )
 
       const { response: originResponse, cacheMiss } = await retrieveFile(
@@ -112,8 +108,6 @@ export default {
         // return the original response object.
         ctx.waitUntil(
           logRetrievalResult(env, {
-            clientAddress: clientWalletAddress,
-            storageProviderAddress,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes: 0,
@@ -145,8 +139,6 @@ export default {
           const lastByteFetchedAt = performance.now()
 
           await logRetrievalResult(env, {
-            clientAddress: clientWalletAddress,
-            storageProviderAddress,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes,
@@ -182,8 +174,6 @@ export default {
 
       ctx.waitUntil(
         logRetrievalResult(env, {
-          clientAddress: clientWalletAddress,
-          storageProviderAddress: null,
           cacheMiss: null,
           responseStatus: status,
           egressBytes: null,

@@ -3,10 +3,9 @@ import {
   handleProductUpdated,
   handleProductRemoved,
   handleProviderRemoved,
-  rpcRequest as defaultRpcRequest,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
-import { handleFWSSDataSetCreated } from '../lib/filecoin-warm-storage-service-handlers.js'
+import { handleFWSSDataSetCreated } from '../lib/fwss-handlers.js'
 import {
   removeDataSetPieces,
   insertDataSetPieces,
@@ -18,12 +17,7 @@ import { screenWallets } from '../lib/wallet-screener.js'
 // final Env interface to contain only properties available to all workers.
 /**
  * @typedef {{
- *   GLIF_TOKEN: string
  *   ENVIRONMENT: 'dev' | 'calibration' | 'mainnet'
- *   RPC_URL:
- *     | 'https://api.calibration.node.glif.io/'
- *     | 'https://api.node.glif.io/'
- *   SERVICE_PROVIDER_REGISTRY_ADDRESS: string
  *   WALLET_SCREENING_BATCH_SIZE: 1 | 10
  *   WALLET_SCREENING_STALE_THRESHOLD_MS: 86400000 | 21600000
  *   DB: D1Database
@@ -41,29 +35,19 @@ export default {
    * @param {ExecutionContext} ctx
    * @param {object} options
    * @param {typeof defaultCheckIfAddressIsSanctioned} [options.checkIfAddressIsSanctioned]
-   * @param {typeof defaultRpcRequest} [options.rpcRequest]
    * @returns {Promise<Response>}
    */
   async fetch(
     request,
     env,
     ctx,
-    {
-      checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned,
-      rpcRequest = defaultRpcRequest,
-    } = {},
+    { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned } = {},
   ) {
     // TypeScript setup is broken in our monorepo
     // There are multiple global Env interfaces defined (one per worker),
     // TypeScript merges them in a way that breaks our code.
     // We should eventually fix that.
-    const {
-      GLIF_TOKEN,
-      RPC_URL,
-      SERVICE_PROVIDER_REGISTRY_ADDRESS,
-      SECRET_HEADER_KEY,
-      SECRET_HEADER_VALUE,
-    } = env
+    const { SECRET_HEADER_KEY, SECRET_HEADER_VALUE } = env
     if (request.headers.get(SECRET_HEADER_KEY) !== SECRET_HEADER_VALUE) {
       return new Response('Unauthorized', { status: 401 })
     }
@@ -74,32 +58,43 @@ export default {
     const payload = await request.json()
 
     const pathname = new URL(request.url).pathname
-    if (pathname === '/pdp-verifier/data-set-created') {
+    if (pathname === '/fwss/data-set-created') {
       if (
+        !payload.data_set_id ||
         !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
         ) ||
-        !payload.storage_provider
+        !payload.payer ||
+        !(
+          typeof payload.provider_id === 'number' ||
+          typeof payload.provider_id === 'string'
+        ) ||
+        !Array.isArray(payload.metadata_keys)
       ) {
-        console.error('PDPVerifier.DataSetCreated: Invalid payload', payload)
+        console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
+
       console.log(
-        `New PDPVerifier data set (data_set_id=${payload.set_id}, storage_provider=${payload.storage_provider})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, metadata_keys=${payload.metadata_keys})`,
       )
-      await env.DB.prepare(
-        `
-          INSERT INTO data_sets (
-            id,
-            storage_provider_address
-          )
-          VALUES (?, ?)
-          ON CONFLICT DO NOTHING
-        `,
-      )
-        .bind(String(payload.set_id), payload.storage_provider.toLowerCase())
-        .run()
+
+      try {
+        await handleFWSSDataSetCreated(env, payload, {
+          checkIfAddressIsSanctioned,
+        })
+      } catch (err) {
+        console.log(
+          `Error handling FWSS data set creation: ${err}. Retrying...`,
+        )
+        // @ts-ignore
+        env.RETRY_QUEUE.send({
+          type: 'fwss-data-set-created',
+          payload,
+        })
+      }
+
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {
       if (
@@ -150,72 +145,24 @@ export default {
 
       await removeDataSetPieces(env, payload.set_id, pieceIds)
       return new Response('OK', { status: 200 })
-    } else if (pathname === '/filecoin-warm-storage-service/data-set-created') {
-      if (
-        !payload.data_set_id ||
-        !(
-          typeof payload.data_set_id === 'number' ||
-          typeof payload.data_set_id === 'string'
-        ) ||
-        !payload.payer ||
-        !payload.payee ||
-        !Array.isArray(payload.metadata_keys)
-      ) {
-        console.error('FWSS.DataSetCreated: Invalid payload', payload)
-        return new Response('Bad Request', { status: 400 })
-      }
-
-      console.log(
-        `New FWSS data set (data_set_id=${payload.data_set_id}, payer=${payload.payer}, payee=${payload.payee}, metadata_keys=${payload.metadata_keys}`,
-      )
-
-      try {
-        await handleFWSSDataSetCreated(env, payload, {
-          checkIfAddressIsSanctioned,
-        })
-      } catch (err) {
-        console.log(
-          `Error handling FWSS data set creation: ${err}. Retrying...`,
-        )
-        // @ts-ignore
-        env.RETRY_QUEUE.send({
-          type: 'filecoin-warm-storage-service-data-set-created',
-          payload,
-        })
-      }
-
-      return new Response('OK', { status: 200 })
     } else if (pathname === '/service-provider-registry/product-added') {
       const {
         provider_id: providerId,
         product_type: productType,
-        block_number: blockNumber,
+        service_url: serviceUrl,
       } = payload
-      return await handleProductAdded(
-        env,
-        rpcRequest,
-        providerId,
-        productType,
-        RPC_URL,
-        GLIF_TOKEN,
-        blockNumber,
-        SERVICE_PROVIDER_REGISTRY_ADDRESS,
-      )
+      return await handleProductAdded(env, providerId, productType, serviceUrl)
     } else if (pathname === '/service-provider-registry/product-updated') {
       const {
         provider_id: providerId,
         product_type: productType,
-        block_number: blockNumber,
+        service_url: serviceUrl,
       } = payload
       return await handleProductUpdated(
         env,
-        rpcRequest,
         providerId,
         productType,
-        RPC_URL,
-        GLIF_TOKEN,
-        blockNumber,
-        SERVICE_PROVIDER_REGISTRY_ADDRESS,
+        serviceUrl,
       )
     } else if (pathname === '/service-provider-registry/product-removed') {
       const { provider_id: providerId, product_type: productType } = payload
