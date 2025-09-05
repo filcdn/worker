@@ -596,16 +596,7 @@ describe('retriever.fetch', () => {
   })
 
   it('rejects retrieval requests for CIDs found in the Bad Bits denylist', async () => {
-    const serviceProviderId = '50'
     await withBadBits(env, realPieceCid)
-    await withApprovedProvider(env, {
-      id: serviceProviderId,
-    })
-    await withDataSetPieces(env, {
-      pieceCid: realPieceCid,
-      payerAddress: defaultPayerAddress,
-      serviceProviderId,
-    })
 
     const fakeResponse = new Response('hello')
     const mockRetrieveFile = vi.fn().mockResolvedValue({
