@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import worker from '../bin/retriever.js'
-import { createHash } from 'node:crypto'
-import { retrieveFile } from '../lib/retrieval.js'
+// import { createHash } from 'node:crypto'
+// import { retrieveFile } from '../lib/retrieval.js'
 import {
   env,
   createExecutionContext,
@@ -190,19 +190,20 @@ describe('retriever.fetch', () => {
     expect(csp).toContain('https://*.filcdn.io')
   })
 
-  it('fetches the file from calibration service provider', async () => {
-    const expectedHash =
-      '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
-    const ctx = createExecutionContext()
-    const req = withRequest(defaultPayerAddress, realPieceCid)
-    const res = await worker.fetch(req, env, ctx, { retrieveFile })
-    await waitOnExecutionContext(ctx)
-    expect(res.status).toBe(200)
-    // get the sha256 hash of the content
-    const content = await res.bytes()
-    const hash = createHash('sha256').update(content).digest('hex')
-    expect(hash).toEqual(expectedHash)
-  })
+  // TODO: Reenable once there is data on calibration
+  // it('fetches the file from calibration service provider', async () => {
+  //   const expectedHash =
+  //     '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
+  //   const ctx = createExecutionContext()
+  //   const req = withRequest(defaultPayerAddress, realPieceCid)
+  //   const res = await worker.fetch(req, env, ctx, { retrieveFile })
+  //   await waitOnExecutionContext(ctx)
+  //   expect(res.status).toBe(200)
+  //   // get the sha256 hash of the content
+  //   const content = await res.bytes()
+  //   const hash = createHash('sha256').update(content).digest('hex')
+  //   expect(hash).toEqual(expectedHash)
+  // })
   it('stores retrieval results with cache miss and content length set in D1', async () => {
     const body = 'file content'
     const expectedEgressBytes = Buffer.byteLength(body, 'utf8')

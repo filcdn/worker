@@ -61,7 +61,7 @@ export async function logRetrievalResult(env, params) {
         performanceStats?.fetchTtlb ?? null,
         performanceStats?.workerTtfb ?? null,
         requestCountryCode,
-        dataSetId,
+        dataSetId === null ? dataSetId : String(dataSetId),
       )
       .run()
   } catch (error) {
