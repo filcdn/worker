@@ -69,7 +69,10 @@ export async function handleTerminateServiceQueueMessage(
 
     // Start transaction monitor workflow
     await env.TRANSACTION_MONITOR_WORKFLOW.create({
-      transactionHash: hash,
+      id: `transaction-monitor-${hash}-${Date.now()}`,
+      params: {
+        transactionHash: hash,
+      },
     })
 
     console.log(`Started transaction monitor workflow for transaction: ${hash}`)
@@ -104,13 +107,16 @@ export async function handleTransactionCancelQueueMessage(
 
     // First check if the original transaction is still pending
     try {
-      await publicClient.getTransactionReceipt({
+      const receipt = await publicClient.getTransactionReceipt({
         hash: transactionHash,
       })
-      console.log(
-        `Transaction ${transactionHash} is no longer pending, cancellation not needed`,
-      )
-      return
+
+      if (receipt) {
+        console.log(
+          `Transaction ${transactionHash} is no longer pending, cancellation not needed`,
+        )
+        return
+      }
     } catch (error) {
       // Transaction not found or still pending, continue with cancellation
       console.log(
@@ -154,7 +160,10 @@ export async function handleTransactionCancelQueueMessage(
 
     // Start a new transaction monitor workflow for the cancellation transaction
     await env.TRANSACTION_MONITOR_WORKFLOW.create({
-      transactionHash: cancelHash,
+      id: `transaction-monitor-${cancelHash}-${Date.now()}`,
+      params: {
+        transactionHash: cancelHash,
+      },
     })
 
     console.log(

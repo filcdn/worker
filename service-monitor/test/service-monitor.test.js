@@ -1,19 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { env } from 'cloudflare:test'
+import {
+  env,
+  createExecutionContext,
+  waitOnExecutionContext,
+} from 'cloudflare:test'
 import monitor from '../bin/service-monitor.js'
 
 describe('Service Monitor - scheduled entrypoint', () => {
   it('calls terminateCDNServiceForSanctionedWallets with correct env', async () => {
     const mockController = {}
-    const mockCtx = {}
+    const ctx = createExecutionContext()
 
     const mockTerminateCDNServiceForSanctionedWallets = vi
       .fn()
       .mockResolvedValue(undefined)
-    await monitor.scheduled(mockController, env, mockCtx, {
+    await monitor.scheduled(mockController, env, ctx, {
       terminateCDNServiceForSanctionedWallets:
         mockTerminateCDNServiceForSanctionedWallets,
     })
+    await waitOnExecutionContext(ctx)
 
     expect(
       vi.mocked(mockTerminateCDNServiceForSanctionedWallets),
@@ -30,6 +35,7 @@ describe('Service Monitor - queue entrypoint', () => {
   })
 
   it('processes terminate-cdn-service messages correctly', async () => {
+    const ctx = createExecutionContext()
     const mockMessage = {
       body: { type: 'terminate-cdn-service', dataSetId: 123 },
       ack: vi.fn(),
@@ -42,15 +48,11 @@ describe('Service Monitor - queue entrypoint', () => {
     const batch = { messages: [mockMessage] }
 
     // Mock the queue handler
-    await monitor.queue(
-      batch,
-      env,
-      {},
-      {
-        handleTerminateServiceQueueMessage:
-          mockHandleTerminateServiceQueueMessage,
-      },
-    )
+    await monitor.queue(batch, env, ctx, {
+      handleTerminateServiceQueueMessage:
+        mockHandleTerminateServiceQueueMessage,
+    })
+    await waitOnExecutionContext(ctx)
 
     expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       mockMessage.body,
@@ -61,6 +63,7 @@ describe('Service Monitor - queue entrypoint', () => {
   })
 
   it('processes transaction-cancel messages correctly', async () => {
+    const ctx = createExecutionContext()
     const mockMessage = {
       body: { type: 'transaction-cancel', transactionHash: '0xabc123' },
       ack: vi.fn(),
@@ -73,15 +76,12 @@ describe('Service Monitor - queue entrypoint', () => {
     const batch = { messages: [mockMessage] }
 
     // Mock the queue handler
-    await monitor.queue(
-      batch,
-      env,
-      {},
-      {
-        handleTransactionCancelQueueMessage:
-          mockHandleTransactionCancelQueueMessage,
-      },
-    )
+    await monitor.queue(batch, env, ctx, {
+      handleTransactionCancelQueueMessage:
+        mockHandleTransactionCancelQueueMessage,
+    })
+
+    await waitOnExecutionContext(ctx)
 
     expect(mockHandleTransactionCancelQueueMessage).toHaveBeenCalledWith(
       mockMessage.body,
@@ -92,6 +92,7 @@ describe('Service Monitor - queue entrypoint', () => {
   })
 
   it('handles unknown message types gracefully', async () => {
+    const ctx = createExecutionContext()
     const mockMessage = {
       body: { type: 'unknown-type', data: 'test' },
       ack: vi.fn(),
@@ -99,13 +100,15 @@ describe('Service Monitor - queue entrypoint', () => {
     }
     const batch = { messages: [mockMessage] }
 
-    await monitor.queue(batch, env, {})
+    await monitor.queue(batch, env, ctx)
+    await waitOnExecutionContext(ctx)
 
     expect(mockMessage.ack).toHaveBeenCalled()
     expect(mockMessage.retry).not.toHaveBeenCalled()
   })
 
   it('retries messages on handler failure', async () => {
+    const ctx = createExecutionContext()
     const error = new Error('Handler failed')
     const mockMessage = {
       body: { type: 'terminate-cdn-service', dataSetId: 456 },
@@ -118,15 +121,11 @@ describe('Service Monitor - queue entrypoint', () => {
       .fn()
       .mockRejectedValue(error)
 
-    await monitor.queue(
-      batch,
-      env,
-      {},
-      {
-        handleTerminateServiceQueueMessage:
-          mockHandleTerminateServiceQueueMessage,
-      },
-    )
+    await monitor.queue(batch, env, ctx, {
+      handleTerminateServiceQueueMessage:
+        mockHandleTerminateServiceQueueMessage,
+    })
+    await waitOnExecutionContext(ctx)
 
     expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       mockMessage.body,
@@ -137,6 +136,7 @@ describe('Service Monitor - queue entrypoint', () => {
   })
 
   it('processes multiple messages in batch', async () => {
+    const ctx = createExecutionContext()
     const messages = [
       {
         body: { type: 'terminate-cdn-service', dataSetId: 123 },
@@ -159,17 +159,14 @@ describe('Service Monitor - queue entrypoint', () => {
       .fn()
       .mockResolvedValue(undefined)
 
-    await monitor.queue(
-      batch,
-      env,
-      {},
-      {
-        handleTerminateServiceQueueMessage:
-          mockHandleTerminateServiceQueueMessage,
-        handleTransactionCancelQueueMessage:
-          mockHandleTransactionCancelQueueMessage,
-      },
-    )
+    await monitor.queue(batch, env, ctx, {
+      handleTerminateServiceQueueMessage:
+        mockHandleTerminateServiceQueueMessage,
+      handleTransactionCancelQueueMessage:
+        mockHandleTransactionCancelQueueMessage,
+    })
+
+    await waitOnExecutionContext(ctx)
 
     expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       messages[0].body,
@@ -184,6 +181,7 @@ describe('Service Monitor - queue entrypoint', () => {
   })
 
   it('continues processing other messages when one fails', async () => {
+    const ctx = createExecutionContext()
     const error = new Error('First handler failed')
     const messages = [
       {
@@ -207,17 +205,14 @@ describe('Service Monitor - queue entrypoint', () => {
       .fn()
       .mockResolvedValue(undefined)
 
-    await monitor.queue(
-      batch,
-      env,
-      {},
-      {
-        handleTerminateServiceQueueMessage:
-          mockHandleTerminateServiceQueueMessage,
-        handleTransactionCancelQueueMessage:
-          mockHandleTransactionCancelQueueMessage,
-      },
-    )
+    await monitor.queue(batch, env, ctx, {
+      handleTerminateServiceQueueMessage:
+        mockHandleTerminateServiceQueueMessage,
+      handleTransactionCancelQueueMessage:
+        mockHandleTransactionCancelQueueMessage,
+    })
+
+    await waitOnExecutionContext(ctx)
 
     expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       messages[0].body,

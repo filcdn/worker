@@ -1,6 +1,6 @@
 /** @import {WorkflowEvent, WorkflowStep} from 'cloudflare:workers' */
 import { WorkflowEntrypoint } from 'cloudflare:workers'
-import { getChainClient } from './chain.js'
+import { getChainClient as defaultGetChainClient } from './chain.js'
 
 /**
  * Workflow that monitors a transaction and starts cancel workflow if it takes
@@ -11,7 +11,11 @@ export class TransactionMonitorWorkflow extends WorkflowEntrypoint {
    * @param {WorkflowEvent} event
    * @param {WorkflowStep} step
    */
-  async run({ payload }, step) {
+  async run(
+    { payload },
+    step,
+    { getChainClient = defaultGetChainClient } = {},
+  ) {
     const { transactionHash } = payload
     const tx = step.do('get transaction details', async () => {
       const { publicClient } = getChainClient(this.env)

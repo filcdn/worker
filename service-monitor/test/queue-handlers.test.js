@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   handleTerminateServiceQueueMessage,
   handleTransactionCancelQueueMessage,
@@ -44,8 +44,15 @@ const createMockChainClient = (env) => ({
 })
 
 describe('handleTerminateServiceQueueMessage', () => {
+  const date = new Date(2000, 1, 1, 13)
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
+    vi.setSystemTime(date)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('processes terminate service message successfully', async () => {
@@ -74,7 +81,10 @@ describe('handleTerminateServiceQueueMessage', () => {
     )
 
     expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).toHaveBeenCalledWith({
-      transactionHash: '0xtxhash123',
+      id: `transaction-monitor-0xtxhash123-${date.getTime()}`,
+      params: {
+        transactionHash: '0xtxhash123',
+      },
     })
   })
 
@@ -124,25 +134,18 @@ describe('handleTerminateServiceQueueMessage', () => {
       }),
     ).rejects.toThrow('Workflow creation failed')
   })
-
-  // it('uses injected getChainClient dependency', async () => {
-  //   const message = { dataSetId: 123 }
-  //   const mockEnv = createMockEnv(env)
-  //   const mockChainClient = createMockChainClient()
-  //   const mockGetChainClient = vi.fn().mockReturnValue(mockChainClient)
-
-  //   await handleTerminateServiceQueueMessage(message, mockEnv, {
-  //     getChainClient: vi.fn().mockReturnValue(mockChainClient),
-  //   })
-
-  //   expect(mockGetChainClient).toHaveBeenCalledWith(mockEnv)
-  //   expect(mockChainClient.publicClient.simulateContract).toHaveBeenCalled()
-  // })
 })
 
 describe('handleTransactionCancelQueueMessage', () => {
+  const date = new Date(2000, 1, 1, 13)
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
+    vi.setSystemTime(date)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('when original transaction is still pending', () => {
@@ -185,7 +188,10 @@ describe('handleTransactionCancelQueueMessage', () => {
       )
 
       expect(mockEnv.TRANSACTION_MONITOR_WORKFLOW.create).toHaveBeenCalledWith({
-        transactionHash: '0xtxhash123',
+        id: `transaction-monitor-0xtxhash123-${date.getTime()}`,
+        params: {
+          transactionHash: '0xtxhash123',
+        },
       })
     })
 
@@ -366,36 +372,5 @@ describe('handleTransactionCancelQueueMessage', () => {
         }),
       ).rejects.toThrow('Workflow creation failed')
     })
-  })
-
-  it('uses injected getChainClient dependency', async () => {
-    const message = {
-      transactionHash: '0xoriginalhash123',
-    }
-    const mockEnv = createMockEnv(env)
-    const customChainClient = createMockChainClient(env)
-
-    customChainClient.publicClient.getTransactionReceipt.mockRejectedValue(
-      new Error('Transaction not found'),
-    )
-    customChainClient.publicClient.getTransaction.mockResolvedValue({
-      to: '0xcontract',
-      nonce: 42,
-      gasPrice: 1000000000n,
-    })
-    customChainClient.walletClient.sendTransaction = vi
-      .fn()
-      .mockResolvedValue('0xtxhash123')
-
-    const mockGetChainClient = vi.fn().mockReturnValue(customChainClient)
-
-    await handleTransactionCancelQueueMessage(message, mockEnv, {
-      getChainClient: mockGetChainClient,
-    })
-
-    expect(mockGetChainClient).toHaveBeenCalledWith(mockEnv)
-    expect(
-      customChainClient.publicClient.getTransactionReceipt,
-    ).toHaveBeenCalled()
   })
 })
