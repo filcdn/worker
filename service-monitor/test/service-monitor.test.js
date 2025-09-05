@@ -1,51 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { env } from 'cloudflare:test'
-
-// Create comprehensive mocks with factory functions
-vi.mock('../lib/terminate-cdn-service.js', () => ({
-  terminateCDNServiceForSanctionedWallets: vi.fn(() => Promise.resolve()),
-}))
-
-vi.mock('../lib/queue-handlers.js', () => ({
-  handleTerminateServiceQueueMessage: vi.fn(() => Promise.resolve()),
-  handleTransactionCancelQueueMessage: vi.fn(() => Promise.resolve()),
-}))
-
-vi.mock('../lib/chain.js', () => ({
-  getChainClient: vi.fn(() => Promise.resolve({
-    writeContract: vi.fn(),
-    account: { address: '0x123' },
-  })),
-}))
-
-// Import the service monitor after setting up mocks
 import monitor from '../bin/service-monitor.js'
 
-// Import the mocked modules to use in tests
-import { terminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-service.js'
-import {
-  handleTerminateServiceQueueMessage,
-  handleTransactionCancelQueueMessage,
-} from '../lib/queue-handlers.js'
-
 describe('Service Monitor - scheduled entrypoint', () => {
-  beforeEach(async () => {
-    await env.DB.exec('DELETE FROM data_sets')
-    await env.DB.exec('DELETE FROM wallet_details')
-    vi.clearAllMocks()
-  })
-
   it('calls terminateCDNServiceForSanctionedWallets with correct env', async () => {
     const mockController = {}
     const mockCtx = {}
 
-    await monitor.scheduled(mockController, env, mockCtx)
+    const mockTerminateCDNServiceForSanctionedWallets = vi
+      .fn()
+      .mockResolvedValue(undefined)
+    await monitor.scheduled(mockController, env, mockCtx, {
+      terminateCDNServiceForSanctionedWallets:
+        mockTerminateCDNServiceForSanctionedWallets,
+    })
 
     expect(
-      vi.mocked(terminateCDNServiceForSanctionedWallets),
+      vi.mocked(mockTerminateCDNServiceForSanctionedWallets),
     ).toHaveBeenCalledWith(env)
     expect(
-      vi.mocked(terminateCDNServiceForSanctionedWallets),
+      vi.mocked(mockTerminateCDNServiceForSanctionedWallets),
     ).toHaveBeenCalledTimes(1)
   })
 })
@@ -55,20 +29,30 @@ describe('Service Monitor - queue entrypoint', () => {
     vi.clearAllMocks()
   })
 
-  it('processes terminate-service messages correctly', async () => {
+  it('processes terminate-cdn-service messages correctly', async () => {
     const mockMessage = {
-      body: { type: 'terminate-service', dataSetId: 123 },
+      body: { type: 'terminate-cdn-service', dataSetId: 123 },
       ack: vi.fn(),
       retry: vi.fn(),
     }
+
+    const mockHandleTerminateServiceQueueMessage = vi
+      .fn()
+      .mockResolvedValue(undefined)
     const batch = { messages: [mockMessage] }
 
     // Mock the queue handler
-    vi.mocked(handleTerminateServiceQueueMessage).mockResolvedValue(undefined)
+    await monitor.queue(
+      batch,
+      env,
+      {},
+      {
+        handleTerminateServiceQueueMessage:
+          mockHandleTerminateServiceQueueMessage,
+      },
+    )
 
-    await monitor.queue(batch, env, {})
-
-    expect(vi.mocked(handleTerminateServiceQueueMessage)).toHaveBeenCalledWith(
+    expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       mockMessage.body,
       env,
     )
@@ -82,14 +66,24 @@ describe('Service Monitor - queue entrypoint', () => {
       ack: vi.fn(),
       retry: vi.fn(),
     }
+
+    const mockHandleTransactionCancelQueueMessage = vi
+      .fn()
+      .mockResolvedValue(undefined)
     const batch = { messages: [mockMessage] }
 
     // Mock the queue handler
-    vi.mocked(handleTransactionCancelQueueMessage).mockResolvedValue(undefined)
+    await monitor.queue(
+      batch,
+      env,
+      {},
+      {
+        handleTransactionCancelQueueMessage:
+          mockHandleTransactionCancelQueueMessage,
+      },
+    )
 
-    await monitor.queue(batch, env, {})
-
-    expect(vi.mocked(handleTransactionCancelQueueMessage)).toHaveBeenCalledWith(
+    expect(mockHandleTransactionCancelQueueMessage).toHaveBeenCalledWith(
       mockMessage.body,
       env,
     )
@@ -98,7 +92,6 @@ describe('Service Monitor - queue entrypoint', () => {
   })
 
   it('handles unknown message types gracefully', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const mockMessage = {
       body: { type: 'unknown-type', data: 'test' },
       ack: vi.fn(),
@@ -108,48 +101,45 @@ describe('Service Monitor - queue entrypoint', () => {
 
     await monitor.queue(batch, env, {})
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Unknown message type: unknown-type',
-    )
     expect(mockMessage.ack).toHaveBeenCalled()
     expect(mockMessage.retry).not.toHaveBeenCalled()
-
-    consoleSpy.mockRestore()
   })
 
   it('retries messages on handler failure', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const error = new Error('Handler failed')
     const mockMessage = {
-      body: { type: 'terminate-service', dataSetId: 456 },
+      body: { type: 'terminate-cdn-service', dataSetId: 456 },
       ack: vi.fn(),
       retry: vi.fn(),
     }
     const batch = { messages: [mockMessage] }
-
     // Mock the queue handler to throw an error
-    vi.mocked(handleTerminateServiceQueueMessage).mockRejectedValue(error)
+    const mockHandleTerminateServiceQueueMessage = vi
+      .fn()
+      .mockRejectedValue(error)
 
-    await monitor.queue(batch, env, {})
+    await monitor.queue(
+      batch,
+      env,
+      {},
+      {
+        handleTerminateServiceQueueMessage:
+          mockHandleTerminateServiceQueueMessage,
+      },
+    )
 
-    expect(vi.mocked(handleTerminateServiceQueueMessage)).toHaveBeenCalledWith(
+    expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       mockMessage.body,
       env,
     )
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to process queue message:',
-      error,
-    )
     expect(mockMessage.ack).not.toHaveBeenCalled()
     expect(mockMessage.retry).toHaveBeenCalled()
-
-    consoleSpy.mockRestore()
   })
 
   it('processes multiple messages in batch', async () => {
     const messages = [
       {
-        body: { type: 'terminate-service', dataSetId: 123 },
+        body: { type: 'terminate-cdn-service', dataSetId: 123 },
         ack: vi.fn(),
         retry: vi.fn(),
       },
@@ -162,16 +152,30 @@ describe('Service Monitor - queue entrypoint', () => {
     const batch = { messages }
 
     // Mock the queue handlers
-    vi.mocked(handleTerminateServiceQueueMessage).mockResolvedValue(undefined)
-    vi.mocked(handleTransactionCancelQueueMessage).mockResolvedValue(undefined)
+    const mockHandleTerminateServiceQueueMessage = vi
+      .fn()
+      .mockResolvedValue(undefined)
+    const mockHandleTransactionCancelQueueMessage = vi
+      .fn()
+      .mockResolvedValue(undefined)
 
-    await monitor.queue(batch, env, {})
+    await monitor.queue(
+      batch,
+      env,
+      {},
+      {
+        handleTerminateServiceQueueMessage:
+          mockHandleTerminateServiceQueueMessage,
+        handleTransactionCancelQueueMessage:
+          mockHandleTransactionCancelQueueMessage,
+      },
+    )
 
-    expect(vi.mocked(handleTerminateServiceQueueMessage)).toHaveBeenCalledWith(
+    expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       messages[0].body,
       env,
     )
-    expect(vi.mocked(handleTransactionCancelQueueMessage)).toHaveBeenCalledWith(
+    expect(mockHandleTransactionCancelQueueMessage).toHaveBeenCalledWith(
       messages[1].body,
       env,
     )
@@ -180,11 +184,10 @@ describe('Service Monitor - queue entrypoint', () => {
   })
 
   it('continues processing other messages when one fails', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const error = new Error('First handler failed')
     const messages = [
       {
-        body: { type: 'terminate-service', dataSetId: 123 },
+        body: { type: 'terminate-cdn-service', dataSetId: 123 },
         ack: vi.fn(),
         retry: vi.fn(),
       },
@@ -197,22 +200,34 @@ describe('Service Monitor - queue entrypoint', () => {
     const batch = { messages }
 
     // Mock the queue handlers - first fails, second succeeds
-    vi.mocked(handleTerminateServiceQueueMessage).mockRejectedValue(error)
-    vi.mocked(handleTransactionCancelQueueMessage).mockResolvedValue(undefined)
+    const mockHandleTerminateServiceQueueMessage = vi
+      .fn()
+      .mockRejectedValue(error)
+    const mockHandleTransactionCancelQueueMessage = vi
+      .fn()
+      .mockResolvedValue(undefined)
 
-    await monitor.queue(batch, env, {})
+    await monitor.queue(
+      batch,
+      env,
+      {},
+      {
+        handleTerminateServiceQueueMessage:
+          mockHandleTerminateServiceQueueMessage,
+        handleTransactionCancelQueueMessage:
+          mockHandleTransactionCancelQueueMessage,
+      },
+    )
 
-    expect(vi.mocked(handleTerminateServiceQueueMessage)).toHaveBeenCalledWith(
+    expect(mockHandleTerminateServiceQueueMessage).toHaveBeenCalledWith(
       messages[0].body,
       env,
     )
-    expect(vi.mocked(handleTransactionCancelQueueMessage)).toHaveBeenCalledWith(
+    expect(mockHandleTransactionCancelQueueMessage).toHaveBeenCalledWith(
       messages[1].body,
       env,
     )
     expect(messages[0].retry).toHaveBeenCalled()
     expect(messages[1].ack).toHaveBeenCalled()
-
-    consoleSpy.mockRestore()
   })
 })

@@ -1,9 +1,9 @@
 /** @import {MessageBatch} from 'cloudflare:workers' */
 import { TransactionMonitorWorkflow } from '../lib/transaction-workflows.js'
-import { terminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-service.js'
+import { terminateCDNServiceForSanctionedWallets as defaultTerminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-service.js'
 import {
-  handleTerminateServiceQueueMessage,
-  handleTransactionCancelQueueMessage,
+  handleTerminateServiceQueueMessage as defaultHandleTerminateServiceQueueMessage,
+  handleTransactionCancelQueueMessage as defaultHandleTransactionCancelQueueMessage,
 } from '../lib/queue-handlers.js'
 
 /**
@@ -46,8 +46,17 @@ export default {
    * @param {any} _controller
    * @param {ServiceMonitorEnv} env
    * @param {ExecutionContext} _ctx
+   * @param {object} options
+   * @param {typeof defaultTerminateCDNServiceForSanctionedWallets} [options.terminateCDNServiceForSanctionedWallets]
    */
-  async scheduled(_controller, env, _ctx) {
+  async scheduled(
+    _controller,
+    env,
+    _ctx,
+    {
+      terminateCDNServiceForSanctionedWallets = defaultTerminateCDNServiceForSanctionedWallets,
+    } = {},
+  ) {
     await terminateCDNServiceForSanctionedWallets(env)
   },
 
@@ -60,18 +69,28 @@ export default {
    * @param {ServiceMonitorEnv} env
    * @param {ExecutionContext} ctx
    */
-  async queue(batch, env, ctx) {
+  async queue(
+    batch,
+    env,
+    ctx,
+    {
+      handleTerminateServiceQueueMessage = defaultHandleTerminateServiceQueueMessage,
+      handleTransactionCancelQueueMessage = defaultHandleTransactionCancelQueueMessage,
+    } = {},
+  ) {
     for (const message of batch.messages) {
       console.log(
         `Processing transaction queue message of type: ${message.type}`,
       )
       try {
         switch (message.body.type) {
-          case 'terminate-service':
-            return await handleTerminateServiceQueueMessage(message.body, env)
+          case 'terminate-cdn-service':
+            await handleTerminateServiceQueueMessage(message.body, env)
+            break
 
           case 'transaction-cancel':
-            return await handleTransactionCancelQueueMessage(message.body, env)
+            await handleTransactionCancelQueueMessage(message.body, env)
+            break
 
           default:
             console.error(`Unknown message type: ${message.body.type}`)
