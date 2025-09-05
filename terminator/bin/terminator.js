@@ -37,14 +37,13 @@ import {
  *     TerminateServiceMessage | TransactionCancelMessage
  *   >
  *   TRANSACTION_MONITOR_WORKFLOW: import('cloudflare:workers').WorkflowEntrypoint
- * }} ServiceMonitorEnv
- *   }} ServiceMonitorEnv
+ * }} TerminatorEnv
  */
 
 export default {
   /**
    * @param {any} _controller
-   * @param {ServiceMonitorEnv} env
+   * @param {TerminatorEnv} env
    * @param {ExecutionContext} _ctx
    * @param {object} options
    * @param {typeof defaultTerminateCDNServiceForSanctionedWallets} [options.terminateCDNServiceForSanctionedWallets]
@@ -70,7 +69,7 @@ export default {
    * @param {MessageBatch<
    *   TerminateServiceMessage | TransactionCancelMessage
    * >} batch
-   * @param {ServiceMonitorEnv} env
+   * @param {TerminatorEnv} env
    * @param {ExecutionContext} ctx
    */
   async queue(
