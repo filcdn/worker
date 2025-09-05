@@ -150,11 +150,11 @@ export async function getStorageProviderAndValidatePayer(
     `The Filecoin Warm Storage Service deal for payer '${payerAddress}' and piece_cid '${pieceCid}' has withCDN=false.`,
   )
 
-  const withClientNotSanctioned = withPaymentRail.filter(
+  const withPayerNotSanctioned = withPaymentRail.filter(
     (row) => !row.is_sanctioned,
   )
   httpAssert(
-    withClientNotSanctioned.length > 0,
+    withPayerNotSanctioned.length > 0,
     403,
     `Wallet '${payerAddress}' is sanctioned and cannot retrieve piece_cid '${pieceCid}'.`,
   )
