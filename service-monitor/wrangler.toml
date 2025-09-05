@@ -51,49 +51,49 @@ database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"
 crons = ["*/1 * * * *"]  # Run every minute
 
 [[env.dev.queues.producers]]
-queue = "transaction-queue"
+queue = "transaction-queue-dev"
 binding = "TRANSACTION_QUEUE"
 
 [[env.dev.queues.consumers]]
-queue = "transaction-queue"
+queue = "transaction-queue-dev"
 max_batch_size = 1
 max_batch_timeout = 5
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
 [[env.mainnet.queues.producers]]
-queue = "transaction-queue"
+queue = "transaction-queue-mainnet"
 binding = "TRANSACTION_QUEUE"
 
 [[env.mainnet.queues.consumers]]
-queue = "transaction-queue"
+queue = "transaction-queue-mainnet"
 max_batch_size = 1
 max_batch_timeout = 5
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
 [[env.calibration.queues.producers]]
-queue = "transaction-queue"
+queue = "transaction-queue-calibration"
 binding = "TRANSACTION_QUEUE"
 
 [[env.calibration.queues.consumers]]
-queue = "transaction-queue"
+queue = "transaction-queue-calibration"
 max_batch_size = 1
 max_batch_timeout = 5
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
 [[env.dev.workflows]]
-name = "transaction-monitor-workflow"
+name = "transaction-monitor-workflow-dev"
 binding = "TRANSACTION_MONITOR_WORKFLOW"
 class_name = "TransactionMonitorWorkflow"
 
 [[env.calibration.workflows]]
-name = "transaction-monitor-workflow"
+name = "transaction-monitor-workflow-calibration"
 binding = "TRANSACTION_MONITOR_WORKFLOW"
 class_name = "TransactionMonitorWorkflow"
 
 [[env.mainnet.workflows]]
-name = "transaction-monitor-workflow"
+name = "transaction-monitor-workflow-mainnet"
 binding = "TRANSACTION_MONITOR_WORKFLOW"
 class_name = "TransactionMonitorWorkflow"
