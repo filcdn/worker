@@ -49,11 +49,30 @@ database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"
 [env.mainnet.triggers]
 crons = ["*/1 * * * *"]  # Run every minute
 
-[[queues.producers]]
-queue = "retry-queue"
+[[env.dev.queues.producers]]
+queue = "retry-queue-dev"
 binding = "RETRY_QUEUE"
 
-[[queues.consumers]]
-queue = "retry-queue"
+[[env.dev.queues.consumers]]
+queue = "retry-queue-dev"
 max_batch_size = 100
 max_batch_timeout = 30
+
+[[env.calibration.queues.producers]]
+queue = "retry-queue-calibration"
+binding = "RETRY_QUEUE"
+
+[[env.calibration.queues.consumers]]
+queue = "retry-queue-calibration"
+max_batch_size = 100
+max_batch_timeout = 30
+
+[[env.mainnet.queues.producers]]
+queue = "retry-queue-mainnet"
+binding = "RETRY_QUEUE"
+
+[[env.mainnet.queues.consumers]]
+queue = "retry-queue-mainnet"
+max_batch_size = 100
+max_batch_timeout = 30
+
