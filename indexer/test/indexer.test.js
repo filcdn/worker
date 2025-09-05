@@ -6,7 +6,6 @@ import {
   createExecutionContext,
   waitOnExecutionContext,
 } from 'cloudflare:test'
-import { PIECES_BY_DATA_SET_ID } from './test-data.js'
 
 const randomId = () => String(Math.ceil(Math.random() * 1e10))
 
@@ -32,32 +31,54 @@ describe('retriever.indexer', () => {
     expect(res.status).toBe(405)
     expect(await res.text()).toBe('Method Not Allowed')
   })
-  describe('POST /pdp-verifier/data-set-created', () => {
-    it('returns 400 if set_id or owner is missing', async () => {
-      const req = new Request('https://host/pdp-verifier/data-set-created', {
+
+  describe('POST /fwss/data-set-created', () => {
+    const ctx = {}
+    env.RETRY_QUEUE = {
+      send: vi.fn(),
+      retry: vi.fn(),
+    }
+    const mockCheckIfAddressIsSanctioned = vi.fn()
+
+    beforeEach(() => {
+      // Reset mocks before each test
+      vi.resetAllMocks()
+    })
+
+    it('returns 400 if property is missing', async () => {
+      const req = new Request('https://host/fwss/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({}),
       })
-      const res = await workerImpl.fetch(req, env)
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
     it('inserts a data set', async () => {
       const dataSetId = randomId()
-      const req = new Request('https://host/pdp-verifier/data-set-created', {
+      const providerId = randomId()
+      const req = new Request('https://host/fwss/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: dataSetId,
-          storage_provider: '0xAddress',
+          data_set_id: dataSetId,
+          payer: '0xPayerAddress',
+          provider_id: providerId,
+          metadata_keys: ['withCDN'],
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -66,26 +87,43 @@ describe('retriever.indexer', () => {
       )
         .bind(dataSetId)
         .all()
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+
       expect(dataSets.length).toBe(1)
       expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider_address).toBe(
-        '0xAddress'.toLowerCase(),
-      )
+      expect(dataSets[0].service_provider_id).toBe(providerId)
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
+      expect(dataSets[0].with_cdn).toBe(1)
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(walletDetails[0].last_screened_at)
     })
     it('does not insert duplicate data sets', async () => {
       const dataSetId = randomId()
+      const providerId = randomId()
       for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/pdp-verifier/data-set-created', {
+        const req = new Request('https://host/fwss/data-set-created', {
           method: 'POST',
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
           body: JSON.stringify({
-            set_id: dataSetId,
-            storage_provider: '0xAddress',
+            data_set_id: dataSetId,
+            payer: '0xPayerAddress',
+            provider_id: providerId,
+            metadata_keys: ['withCDN'],
           }),
         })
-        const res = await workerImpl.fetch(req, env)
+        mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
+        const res = await workerImpl.fetch(req, env, ctx, {
+          checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+        })
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
       }
@@ -97,46 +135,224 @@ describe('retriever.indexer', () => {
         .all()
       expect(dataSets.length).toBe(1)
     })
-    it('handles data set id as a number', async () => {
-      const dataSetId = randomId()
-      const req = new Request('https://host/pdp-verifier/data-set-created', {
+
+    it('stores numeric ID values as integers', async () => {
+      const dataSetId = Number(randomId())
+      const providerId = Number(randomId())
+      const req = new Request('https://host/fwss/data-set-created', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: Number(dataSetId),
-          storage_provider: '0xAddress',
+          data_set_id: dataSetId,
+          payer: '0xPayerAddress',
+          provider_id: providerId,
+          metadata_keys: ['withCDN'],
         }),
       })
-      const res = await workerImpl.fetch(req, env)
+      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
       const { results: dataSets } = await env.DB.prepare(
         'SELECT * FROM data_sets WHERE id = ?',
       )
-        .bind(dataSetId)
+        .bind(String(dataSetId))
         .all()
       expect(dataSets.length).toBe(1)
-      expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].storage_provider_address).toBe(
-        '0xAddress'.toLowerCase(),
+      expect(dataSets[0]?.id).toMatch(/^\d+$/)
+    })
+
+    it('checks if payer address is sanctioned when with_cdn = true', async () => {
+      const dataSetId = randomId()
+      const providerId = randomId()
+
+      // send first request with with_cdn = true
+      let req = new Request('https://host/fwss/data-set-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          data_set_id: dataSetId,
+          payer: '0xPayerAddress',
+          provider_id: providerId,
+          metadata_keys: ['withCDN'],
+        }),
+      })
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
+      let res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      // send second request with with_cdn = false
+      req = new Request('https://host/fwss/data-set-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          data_set_id: randomId(),
+          payer: '0xPayerAddress',
+          provider_id: providerId,
+          metadata_keys: [],
+        }),
+      })
+      res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      // Verify that the sanction check was called only once
+      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledTimes(1)
+      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledWith(
+        '0xPayerAddress',
+        {
+          CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
+        },
       )
+
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
+      )
+        .bind(dataSetId)
+        .all()
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+
+      expect(dataSets.length).toBe(1)
+      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
+      expect(walletDetails[0].is_sanctioned).toBe(1)
+    })
+
+    it('updates is_sanctioned status of existing wallet', async () => {
+      // When the wallet creates the first ProofSet, it's not sanctioned yet
+      let req = new Request('https://host/fwss/data-set-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          data_set_id: randomId(),
+          payer: '0xPayerAddress',
+          provider_id: randomId(),
+          metadata_keys: ['withCDN'],
+        }),
+      })
+
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(false)
+      let res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: initialWalletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+      expect(initialWalletDetails.length).toBe(1)
+      expect(initialWalletDetails[0].address).toBe(
+        '0xPayerAddress'.toLowerCase(),
+      )
+      expect(initialWalletDetails[0].is_sanctioned).toBe(0)
+      assertCloseToNow(initialWalletDetails[0].last_screened_at)
+
+      // When the wallet creates the second ProofSet some time later,
+      // it's flagged as sanctioned
+
+      await env.DB.exec(
+        'UPDATE wallet_details SET last_screened_at = datetime("now", "-1 day")',
+      )
+      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
+      req = new Request('https://host/fwss/data-set-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify({
+          data_set_id: randomId(),
+          payer: '0xPayerAddress',
+          provider_id: randomId(),
+          metadata_keys: ['withCDN'],
+        }),
+      })
+      res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      const { results: walletDetails } = await env.DB.prepare(
+        'SELECT * FROM wallet_details WHERE address = ?',
+      )
+        .bind('0xPayerAddress'.toLowerCase())
+        .all()
+
+      expect(walletDetails.length).toBe(1)
+      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
+      expect(walletDetails[0].is_sanctioned).toBe(1)
+      assertCloseToNow(walletDetails[0].last_screened_at)
+    })
+
+    it('sends message to queue if sanction check fails', async () => {
+      const dataSetId = randomId()
+      const providerId = randomId()
+      const payload = {
+        data_set_id: dataSetId,
+        payer: '0xPayerAddress',
+        provider_id: providerId,
+        metadata_keys: ['withCDN'],
+      }
+      const req = new Request('https://host/fwss/data-set-created', {
+        method: 'POST',
+        headers: {
+          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+        },
+        body: JSON.stringify(payload),
+      })
+      const res = await workerImpl.fetch(req, env, ctx, {
+        checkIfAddressIsSanctioneded: async (apiKey, address) => {
+          throw Error('fail')
+        },
+      })
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe('OK')
+
+      expect(env.RETRY_QUEUE.send).toHaveBeenCalledTimes(1)
+      expect(env.RETRY_QUEUE.send).toHaveBeenCalledWith({
+        type: 'fwss-data-set-created',
+        payload,
+      })
+
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT * FROM data_sets WHERE id = ?',
+      )
+        .bind(dataSetId)
+        .all()
+      expect(dataSets.length).toBe(0)
     })
   })
 
   describe('POST /pdp-verifier/pieces-added', () => {
     const CTX = {}
 
-    /** @type {typeof import('../lib/pdp-verifier.js').createPdpVerifierClient} */
-    const createMockPdpVerifierClient = () => {
-      return {
-        getPieceCid(dataSetId, pieceId) {
-          return PIECES_BY_DATA_SET_ID[dataSetId]?.cid || null
-        },
-      }
-    }
     it('returns 400 if set_id or piece_ids is missing', async () => {
       const req = new Request('https://host/pdp-verifier/pieces-added', {
         method: 'POST',
@@ -145,9 +361,7 @@ describe('retriever.indexer', () => {
         },
         body: JSON.stringify({}),
       })
-      const res = await workerImpl.fetch(req, env, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
+      const res = await workerImpl.fetch(req, env)
       expect(res.status).toBe(400)
       expect(await res.text()).toBe('Bad Request')
     })
@@ -167,9 +381,7 @@ describe('retriever.indexer', () => {
           piece_cids: pieceCids.join(','),
         }),
       })
-      const res = await workerImpl.fetch(req, env, CTX, {
-        createPdpVerifierClient: createMockPdpVerifierClient,
-      })
+      const res = await workerImpl.fetch(req, env, CTX)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
@@ -203,9 +415,7 @@ describe('retriever.indexer', () => {
             piece_cids: pieceCids.join(','),
           }),
         })
-        const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createMockPdpVerifierClient,
-        })
+        const res = await workerImpl.fetch(req, env, CTX)
         expect(res.status).toBe(200)
         expect(await res.text()).toBe('OK')
       }
@@ -234,9 +444,7 @@ describe('retriever.indexer', () => {
             piece_cids: randomId(),
           }),
         })
-        const res = await workerImpl.fetch(req, env, CTX, {
-          createPdpVerifierClient: createMockPdpVerifierClient,
-        })
+        const res = await workerImpl.fetch(req, env, CTX)
         const body = await res.text()
         expect(`${res.status} ${body}`).toBe('200 OK')
       }
@@ -304,345 +512,6 @@ describe('retriever.indexer', () => {
     })
   })
 
-  describe('POST /filecoin-warm-storage-service/data-set-created', () => {
-    const ctx = {}
-    env.RETRY_QUEUE = {
-      send: vi.fn(),
-      retry: vi.fn(),
-    }
-    const mockCheckIfAddressIsSanctioned = vi.fn()
-
-    beforeEach(() => {
-      // Reset mocks before each test
-      vi.resetAllMocks()
-    })
-
-    it('returns 400 if property is missing', async () => {
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({}),
-        },
-      )
-      const res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(400)
-      expect(await res.text()).toBe('Bad Request')
-    })
-    it('inserts a data set', async () => {
-      const dataSetId = randomId()
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: dataSetId,
-            payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
-            metadata_keys: ['withCDN'],
-          }),
-        },
-      )
-
-      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
-      const res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-
-      const { results: walletDetails } = await env.DB.prepare(
-        'SELECT * FROM wallet_details WHERE address = ?',
-      )
-        .bind('0xPayerAddress'.toLowerCase())
-        .all()
-
-      expect(dataSets.length).toBe(1)
-      expect(dataSets[0].id).toBe(dataSetId)
-      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
-      expect(dataSets[0].payee_address).toBe('0xPayeeAddress'.toLowerCase())
-      expect(dataSets[0].with_cdn).toBe(1)
-
-      expect(walletDetails.length).toBe(1)
-      expect(walletDetails[0].is_sanctioned).toBe(0)
-      assertCloseToNow(walletDetails[0].last_screened_at)
-    })
-    it('does not insert duplicate data sets', async () => {
-      const dataSetId = randomId()
-      for (let i = 0; i < 2; i++) {
-        const req = new Request(
-          'https://host/filecoin-warm-storage-service/data-set-created',
-          {
-            method: 'POST',
-            headers: {
-              [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-            },
-            body: JSON.stringify({
-              data_set_id: dataSetId,
-              payer: '0xPayerAddress',
-              payee: '0xPayeeAddress',
-              metadata_keys: ['withCDN'],
-            }),
-          },
-        )
-        mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
-        const res = await workerImpl.fetch(req, env, ctx, {
-          checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-        })
-        expect(res.status).toBe(200)
-        expect(await res.text()).toBe('OK')
-      }
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets.length).toBe(1)
-    })
-
-    it('stores numeric ID values as integers', async () => {
-      const dataSetId = Number(randomId())
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: dataSetId,
-            payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
-            metadata_keys: ['withCDN'],
-          }),
-        },
-      )
-      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
-      const res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(String(dataSetId))
-        .all()
-      expect(dataSets.length).toBe(1)
-      expect(dataSets[0]?.id).toMatch(/^\d+$/)
-    })
-
-    it('checks if payer address is sanctioned when with_cdn = true', async () => {
-      const dataSetId = randomId()
-
-      // send first request with with_cdn = true
-      let req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: dataSetId,
-            payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
-            metadata_keys: ['withCDN'],
-          }),
-        },
-      )
-
-      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
-      let res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      // send second request with with_cdn = false
-      req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: randomId(),
-            payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
-            metadata_keys: [],
-          }),
-        },
-      )
-      res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      // Verify that the sanction check was called only once
-      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledTimes(1)
-      expect(mockCheckIfAddressIsSanctioned).toHaveBeenCalledWith(
-        '0xPayerAddress',
-        {
-          CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
-        },
-      )
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-
-      const { results: walletDetails } = await env.DB.prepare(
-        'SELECT * FROM wallet_details WHERE address = ?',
-      )
-        .bind('0xPayerAddress'.toLowerCase())
-        .all()
-
-      expect(dataSets.length).toBe(1)
-      expect(dataSets[0].payer_address).toBe('0xPayerAddress'.toLowerCase())
-
-      expect(walletDetails.length).toBe(1)
-      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
-      expect(walletDetails[0].is_sanctioned).toBe(1)
-    })
-
-    it('updates is_sanctioned status of existing wallet', async () => {
-      // When the wallet creates the first ProofSet, it's not sanctioned yet
-      let req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: randomId(),
-            payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
-            metadata_keys: ['withCDN'],
-          }),
-        },
-      )
-
-      mockCheckIfAddressIsSanctioned.mockResolvedValue(false)
-      let res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: initialWalletDetails } = await env.DB.prepare(
-        'SELECT * FROM wallet_details WHERE address = ?',
-      )
-        .bind('0xPayerAddress'.toLowerCase())
-        .all()
-      expect(initialWalletDetails.length).toBe(1)
-      expect(initialWalletDetails[0].address).toBe(
-        '0xPayerAddress'.toLowerCase(),
-      )
-      expect(initialWalletDetails[0].is_sanctioned).toBe(0)
-      assertCloseToNow(initialWalletDetails[0].last_screened_at)
-
-      // When the wallet creates the second ProofSet some time later,
-      // it's flagged as sanctioned
-
-      await env.DB.exec(
-        'UPDATE wallet_details SET last_screened_at = datetime("now", "-1 day")',
-      )
-      mockCheckIfAddressIsSanctioned.mockResolvedValue(true)
-      req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify({
-            data_set_id: randomId(),
-            payer: '0xPayerAddress',
-            payee: '0xPayeeAddress',
-            metadata_keys: ['withCDN'],
-          }),
-        },
-      )
-      res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: walletDetails } = await env.DB.prepare(
-        'SELECT * FROM wallet_details WHERE address = ?',
-      )
-        .bind('0xPayerAddress'.toLowerCase())
-        .all()
-
-      expect(walletDetails.length).toBe(1)
-      expect(walletDetails[0].address).toBe('0xPayerAddress'.toLowerCase())
-      expect(walletDetails[0].is_sanctioned).toBe(1)
-      assertCloseToNow(walletDetails[0].last_screened_at)
-    })
-
-    it('sends message to queue if sanction check fails', async () => {
-      const dataSetId = randomId()
-      const payload = {
-        data_set_id: dataSetId,
-        payer: '0xPayerAddress',
-        payee: '0xPayeeAddress',
-        metadata_keys: ['withCDN'],
-      }
-      const req = new Request(
-        'https://host/filecoin-warm-storage-service/data-set-created',
-        {
-          method: 'POST',
-          headers: {
-            [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-          },
-          body: JSON.stringify(payload),
-        },
-      )
-      const res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioneded: async (apiKey, address) => {
-          throw Error('fail')
-        },
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      expect(env.RETRY_QUEUE.send).toHaveBeenCalledTimes(1)
-      expect(env.RETRY_QUEUE.send).toHaveBeenCalledWith({
-        type: 'filecoin-warm-storage-service-data-set-created',
-        payload,
-      })
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(dataSetId)
-        .all()
-      expect(dataSets.length).toBe(0)
-    })
-  })
   describe('POST /service-provider-registry/product-added', () => {
     it('returns 400 if provider_id and product_type are missing', async () => {
       const req = new Request(
@@ -661,9 +530,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const providerId = 0
-      const blockNumber = 10
       const req = new Request(
         'https://host/service-provider-registry/product-added',
         {
@@ -674,45 +541,29 @@ describe('retriever.indexer', () => {
           body: JSON.stringify({
             provider_id: providerId,
             product_type: 0,
-            block_number: blockNumber,
+            service_url: serviceUrl,
           }),
         },
       )
-      const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
-        if (functionName === 'getPDPService') {
-          expect(args).toEqual([providerId])
-          expect(_blockNumber).toEqual(blockNumber)
-          return [[serviceUrl]]
-        } else if (functionName === 'getProvider') {
-          expect(args).toEqual([providerId])
-          expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiaryAddress]]
-        }
-      }
       const ctx = createExecutionContext()
-      const res = await workerImpl.fetch(req, env, ctx, { rpcRequest })
+      const res = await workerImpl.fetch(req, env, ctx)
       await waitOnExecutionContext(ctx)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
       const { results: providers } = await env.DB.prepare(
-        'SELECT * FROM providers WHERE id = ?',
+        'SELECT * FROM service_providers WHERE id = ?',
       )
         .bind(providerId)
         .all()
       expect(providers.length).toBe(1)
-      expect(providers[0].beneficiary_address).toBe(
-        beneficiaryAddress.toLowerCase(),
-      )
       expect(providers[0].service_url).toBe(serviceUrl)
     })
   })
   describe('POST /service-provider-registry/product-updated', () => {
     it('updates service URLs for an existing provider', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const providerId = 0
-      const blockNumber = 10
       const newServiceUrl = 'https://new-provider.example.com'
 
       // First insert the initial provider URL
@@ -726,23 +577,12 @@ describe('retriever.indexer', () => {
           body: JSON.stringify({
             provider_id: providerId,
             product_type: 0,
-            block_number: blockNumber,
+            service_url: serviceUrl,
           }),
         },
       )
-      let rpcRequest = async (to, functionName, args, _, _blockNumber) => {
-        if (functionName === 'getPDPService') {
-          expect(args).toEqual([providerId])
-          expect(_blockNumber).toEqual(blockNumber)
-          return [[serviceUrl]]
-        } else if (functionName === 'getProvider') {
-          expect(args).toEqual([providerId])
-          expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiaryAddress]]
-        }
-      }
       let ctx = createExecutionContext()
-      let res = await workerImpl.fetch(req, env, ctx, { rpcRequest })
+      let res = await workerImpl.fetch(req, env, ctx)
       await waitOnExecutionContext(ctx)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
@@ -758,36 +598,22 @@ describe('retriever.indexer', () => {
           body: JSON.stringify({
             provider_id: providerId,
             product_type: 0,
-            block_number: blockNumber,
+            service_url: newServiceUrl,
           }),
         },
       )
-      rpcRequest = async (to, functionName, args, _, _blockNumber) => {
-        if (functionName === 'getPDPService') {
-          expect(args).toEqual([providerId])
-          expect(_blockNumber).toEqual(blockNumber)
-          return [[newServiceUrl]]
-        } else if (functionName === 'getProvider') {
-          expect(args).toEqual([providerId])
-          expect(_blockNumber).toEqual(blockNumber)
-          return [[beneficiaryAddress]]
-        }
-      }
       ctx = createExecutionContext()
-      res = await workerImpl.fetch(req, env, ctx, { rpcRequest })
+      res = await workerImpl.fetch(req, env, ctx)
       await waitOnExecutionContext(ctx)
       expect(res.status).toBe(200)
       expect(await res.text()).toBe('OK')
 
       const { results: providers } = await env.DB.prepare(
-        'SELECT * FROM providers WHERE id = ?',
+        'SELECT * FROM service_providers WHERE id = ?',
       )
         .bind(providerId)
         .all()
       expect(providers.length).toBe(1)
-      expect(providers[0].beneficiary_address).toBe(
-        beneficiaryAddress.toLowerCase(),
-      )
       expect(providers[0].service_url).toBe(newServiceUrl)
     })
   })
@@ -810,19 +636,10 @@ describe('retriever.indexer', () => {
 
     it('removes a provider from the providers table', async () => {
       const providerId = 0
-      const blockNumber = 10
       const productType = 0
-      const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
       const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider
-      const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
-        if (functionName === 'getPDPService') {
-          return [[serviceUrl]]
-        } else if (functionName === 'getProvider') {
-          return [[beneficiaryAddress]]
-        }
-      }
       const insertReq = new Request(
         'https://host/service-provider-registry/product-added',
         {
@@ -833,15 +650,12 @@ describe('retriever.indexer', () => {
           body: JSON.stringify({
             provider_id: providerId,
             product_type: productType,
-            block_number: blockNumber,
-            service_url: 'https://provider.example.com',
+            service_url: serviceUrl,
           }),
         },
       )
       const ctx = createExecutionContext()
-      const insertRes = await workerImpl.fetch(insertReq, env, ctx, {
-        rpcRequest,
-      })
+      const insertRes = await workerImpl.fetch(insertReq, env, ctx)
       await waitOnExecutionContext(ctx)
       expect(insertRes.status).toBe(200)
       expect(await insertRes.text()).toBe('OK')
@@ -866,9 +680,9 @@ describe('retriever.indexer', () => {
 
       // Verify that the provider is removed from the database
       const { results: providers } = await env.DB.prepare(
-        'SELECT * FROM providers WHERE beneficiary_address = ?',
+        'SELECT * FROM service_providers WHERE id = ?',
       )
-        .bind(beneficiaryAddress.toLowerCase())
+        .bind(providerId)
         .all()
       expect(providers.length).toBe(0) // The provider should be removed
     })
@@ -913,17 +727,9 @@ describe('POST /service-provider-registry/provider-removed', () => {
   it('removes a provider from the providers table', async () => {
     const providerId = 0
     const blockNumber = 10
-    const beneficiaryAddress = '0x5A23B7DF87F59A291C26A2A1D684AD03CE9B68DC'
     const serviceUrl = 'https://provider.example.com'
 
     // First, insert a provider
-    const rpcRequest = async (to, functionName, args, _, _blockNumber) => {
-      if (functionName === 'getPDPService') {
-        return [[serviceUrl]]
-      } else if (functionName === 'getProvider') {
-        return [[beneficiaryAddress]]
-      }
-    }
     const insertReq = new Request(
       'https://host/service-provider-registry/product-added',
       {
@@ -935,14 +741,12 @@ describe('POST /service-provider-registry/provider-removed', () => {
           provider_id: providerId,
           product_type: 0,
           block_number: blockNumber,
-          service_url: 'https://provider.example.com',
+          service_url: serviceUrl,
         }),
       },
     )
     const ctx = createExecutionContext()
-    const insertRes = await workerImpl.fetch(insertReq, env, ctx, {
-      rpcRequest,
-    })
+    const insertRes = await workerImpl.fetch(insertReq, env, ctx)
     await waitOnExecutionContext(ctx)
     expect(insertRes.status).toBe(200)
     expect(await insertRes.text()).toBe('OK')
@@ -966,9 +770,9 @@ describe('POST /service-provider-registry/provider-removed', () => {
 
     // Verify that the provider is removed from the database
     const { results: providers } = await env.DB.prepare(
-      'SELECT * FROM providers WHERE beneficiary_address = ?',
+      'SELECT * FROM service_providers WHERE id = ?',
     )
-      .bind(beneficiaryAddress.toLowerCase())
+      .bind(providerId)
       .all()
     expect(providers.length).toBe(0) // The provider should be removed
   })

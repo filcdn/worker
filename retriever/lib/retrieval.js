@@ -1,7 +1,7 @@
 /**
  * Retrieves the file under the pieceCID from the constructed URL.
  *
- * @param {string} baseUrl - The base URL to storage provider serving the piece.
+ * @param {string} baseUrl - The base URL to service provider serving the piece.
  * @param {string} pieceCid - The CID of the piece to retrieve.
  * @param {number} [cacheTtl=86400] - Cache TTL in seconds (default: 86400).
  *   Default is `86400`
