@@ -304,7 +304,7 @@ describe('retriever.fetch', () => {
         response_status,
         fetch_ttfb,
         fetch_ttlb,
-        worker_ttfb,
+        worker_ttfb
        FROM retrieval_logs
        WHERE data_set_id = ?`,
     )
@@ -466,7 +466,7 @@ describe('retriever.fetch', () => {
     })
 
     await withApprovedProvider(env, {
-      id: 10,
+      id: serviceProviderId,
       serviceUrl: 'https://mock-pdp-url.com',
     })
 
@@ -510,7 +510,7 @@ describe('retriever.fetch', () => {
     // Expect an error because no URL was found
     expect(res.status).toBe(404)
     expect(await res.text()).toBe(
-      `No approved service provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and piece_cid 'bagaTest'.`,
+      `No approved service provider found for payer '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and piece_cid 'bagaTest'.`,
     )
   })
 
@@ -546,7 +546,7 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 200)
     const { results } = await env.DB.prepare(
-      `SELECT id, response_status, data_set_id, cache_miss
+      `SELECT id, response_status, cache_miss
        FROM retrieval_logs
        WHERE data_set_id = ?`,
     )
@@ -556,7 +556,6 @@ describe('retriever.fetch', () => {
       {
         id: 1, // Assuming this is the first log entry
         response_status: 200,
-        data_set_id: dataSetId.toString(),
         cache_miss: 1, // 1 for true, 0 for false
       },
     ])
