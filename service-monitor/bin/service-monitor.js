@@ -1,5 +1,5 @@
 /** @import {MessageBatch} from 'cloudflare:workers' */
-import { TransactionMonitorWorkflow } from '../lib/transaction-workflows.js'
+import { TransactionMonitorWorkflow } from '../lib/transaction-monitor-workflow.js'
 import {
   terminateCDNServiceForSanctionedWallets as defaultTerminateCDNServiceForSanctionedWallets,
   terminateCDNServiceForSanctionedWallets,
