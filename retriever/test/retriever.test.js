@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import worker from '../bin/retriever.js'
-// import { createHash } from 'node:crypto'
-// import { retrieveFile } from '../lib/retrieval.js'
+import { createHash } from 'node:crypto'
+import { retrieveFile } from '../lib/retrieval.js'
 import {
   env,
   createExecutionContext,
@@ -190,20 +190,19 @@ describe('retriever.fetch', () => {
     expect(csp).toContain('https://*.filcdn.io')
   })
 
-  // TODO: Reenable once there is data on calibration
-  // it('fetches the file from calibration service provider', async () => {
-  //   const expectedHash =
-  //     '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
-  //   const ctx = createExecutionContext()
-  //   const req = withRequest(defaultPayerAddress, realPieceCid)
-  //   const res = await worker.fetch(req, env, ctx, { retrieveFile })
-  //   await waitOnExecutionContext(ctx)
-  //   expect(res.status).toBe(200)
-  //   // get the sha256 hash of the content
-  //   const content = await res.bytes()
-  //   const hash = createHash('sha256').update(content).digest('hex')
-  //   expect(hash).toEqual(expectedHash)
-  // })
+  it.skip('fetches the file from calibration service provider', async () => {
+    const expectedHash =
+      '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
+    const ctx = createExecutionContext()
+    const req = withRequest(defaultPayerAddress, realPieceCid)
+    const res = await worker.fetch(req, env, ctx, { retrieveFile })
+    await waitOnExecutionContext(ctx)
+    expect(res.status).toBe(200)
+    // get the sha256 hash of the content
+    const content = await res.bytes()
+    const hash = createHash('sha256').update(content).digest('hex')
+    expect(hash).toEqual(expectedHash)
+  })
   it('stores retrieval results with cache miss and content length set in D1', async () => {
     const body = 'file content'
     const expectedEgressBytes = Buffer.byteLength(body, 'utf8')
@@ -377,61 +376,60 @@ describe('retriever.fetch', () => {
     assert.strictEqual(readOutput.results.length, 1)
     assert.strictEqual(readOutput.results[0].egress_bytes, 0)
   })
-  // TODO: Enable test, one contest on calibration exists
-  // it(
-  //   'measures egress correctly from real service provider',
-  //   { timeout: 10000 },
-  //   async () => {
-  //     const tasks = CONTENT_STORED_ON_CALIBRATION.map(
-  //       ({ serviceProviderAddress, pieceCid }) => {
-  //         return (async () => {
-  //           try {
-  //             const ctx = createExecutionContext()
-  //             const req = withRequest(defaultPayerAddress, pieceCid)
-  //             const res = await worker.fetch(req, env, ctx, { retrieveFile })
-  //             await waitOnExecutionContext(ctx)
+  it.skip(
+    'measures egress correctly from real service provider',
+    { timeout: 10000 },
+    async () => {
+      const tasks = CONTENT_STORED_ON_CALIBRATION.map(
+        ({ serviceProviderAddress, pieceCid }) => {
+          return (async () => {
+            try {
+              const ctx = createExecutionContext()
+              const req = withRequest(defaultPayerAddress, pieceCid)
+              const res = await worker.fetch(req, env, ctx, { retrieveFile })
+              await waitOnExecutionContext(ctx)
 
-  //             assert.strictEqual(res.status, 200)
+              assert.strictEqual(res.status, 200)
 
-  //             const content = await res.arrayBuffer()
-  //             const actualBytes = content.byteLength
+              const content = await res.arrayBuffer()
+              const actualBytes = content.byteLength
 
-  //             const { results } = await env.DB.prepare(
-  //               'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider_address = ?',
-  //             )
-  //               .bind(defaultPayerAddress, serviceProviderAddress)
-  //               .all()
+              const { results } = await env.DB.prepare(
+                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider_address = ?',
+              )
+                .bind(defaultPayerAddress, serviceProviderAddress)
+                .all()
 
-  //             assert.strictEqual(results.length, 1)
-  //             assert.strictEqual(results[0].egress_bytes, actualBytes)
+              assert.strictEqual(results.length, 1)
+              assert.strictEqual(results[0].egress_bytes, actualBytes)
 
-  //             return { serviceProviderAddress, success: true }
-  //           } catch (err) {
-  //             console.warn(
-  //               `⚠️ Warning: Fetch or verification failed for serviceProvider ${serviceProviderAddress}:`,
-  //               err,
-  //             )
-  //             throw err
-  //           }
-  //         })()
-  //       },
-  //     )
+              return { serviceProviderAddress, success: true }
+            } catch (err) {
+              console.warn(
+                `⚠️ Warning: Fetch or verification failed for serviceProvider ${serviceProviderAddress}:`,
+                err,
+              )
+              throw err
+            }
+          })()
+        },
+      )
 
-  //     try {
-  //       const res = await Promise.allSettled(tasks)
-  //       if (!res.some((r) => r.status === 'fulfilled')) {
-  //         throw new Error('All tasks failed')
-  //       }
-  //     } catch (err) {
-  //       const serviceProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
-  //         (o) => o.serviceProviderAddress,
-  //       )
-  //       throw new Error(
-  //         `❌ All service providers failed to fetch. Service providers checked: ${serviceProvidersChecked.join(', ')}`,
-  //       )
-  //     }
-  //   },
-  // )
+      try {
+        const res = await Promise.allSettled(tasks)
+        if (!res.some((r) => r.status === 'fulfilled')) {
+          throw new Error('All tasks failed')
+        }
+      } catch (err) {
+        const serviceProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
+          (o) => o.serviceProviderAddress,
+        )
+        throw new Error(
+          `❌ All service providers failed to fetch. Service providers checked: ${serviceProvidersChecked.join(', ')}`,
+        )
+      }
+    },
+  )
 
   it('requests payment if withCDN=false', async () => {
     const dataSetId = 'test-data-set-no-cdn'
