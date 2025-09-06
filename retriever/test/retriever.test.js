@@ -376,12 +376,12 @@ describe('retriever.fetch', () => {
     assert.strictEqual(readOutput.results.length, 1)
     assert.strictEqual(readOutput.results[0].egress_bytes, 0)
   })
-  it.skip(
+  it(
     'measures egress correctly from real service provider',
     { timeout: 10000 },
     async () => {
       const tasks = CONTENT_STORED_ON_CALIBRATION.map(
-        ({ serviceProviderAddress, pieceCid }) => {
+        ({ dataSetId, pieceCid, serviceProviderId }) => {
           return (async () => {
             try {
               const ctx = createExecutionContext()
@@ -395,18 +395,18 @@ describe('retriever.fetch', () => {
               const actualBytes = content.byteLength
 
               const { results } = await env.DB.prepare(
-                'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND storage_provider_address = ?',
+                'SELECT egress_bytes FROM retrieval_logs WHERE data_set_id = ?',
               )
-                .bind(defaultPayerAddress, serviceProviderAddress)
+                .bind(String(dataSetId))
                 .all()
 
               assert.strictEqual(results.length, 1)
               assert.strictEqual(results[0].egress_bytes, actualBytes)
 
-              return { serviceProviderAddress, success: true }
+              return { serviceProviderId, success: true }
             } catch (err) {
               console.warn(
-                `⚠️ Warning: Fetch or verification failed for serviceProvider ${serviceProviderAddress}:`,
+                `⚠️ Warning: Fetch or verification failed for serviceProvider ${serviceProviderId}:`,
                 err,
               )
               throw err
@@ -422,7 +422,7 @@ describe('retriever.fetch', () => {
         }
       } catch (err) {
         const serviceProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
-          (o) => o.serviceProviderAddress,
+          (o) => o.serviceProviderId,
         )
         throw new Error(
           `❌ All service providers failed to fetch. Service providers checked: ${serviceProvidersChecked.join(', ')}`,
