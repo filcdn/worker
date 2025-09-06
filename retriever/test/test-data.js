@@ -1,22 +1,24 @@
 /**
  * @type {{
- *   owner: string
- *   pieceRetrievalUrl: string
- *   rootCid: string
- *   proofSetId: number
+ *   serviceProviderId: string
+ *   serviceUrl: string
+ *   pieceCid: string
+ *   dataSetId: number
  * }[]}
  */
 export const CONTENT_STORED_ON_CALIBRATION = [
   {
-    owner: '0x9f5087a1821eb3ed8a137be368e5e451166efaae',
-    pieceRetrievalUrl: 'https://yablu.net',
-    rootCid: 'baga6ea4seaqpwnxh6pgese5zizjv7rx3s755ux2yebo6fdba7j4gjhshbj3uqoa',
-    proofSetId: 233,
+    serviceProviderId: '2',
+    serviceUrl: 'https://calibnet.pspsps.io/',
+    pieceCid:
+      'bafkzcibdqqwat4m7ymdhkvsbbo5m7jsejchayo75udw6v3qlfgofpz2lbppe7ea7',
+    dataSetId: 9,
   },
   {
-    owner: '0xe9bc394383b67abcebe86fd9843f53d8b4a2e981',
-    pieceRetrievalUrl: 'https://polynomial.computer',
-    rootCid: 'baga6ea4seaqd54v34enrzo4lt46mlxiamghemq7zo2piyqhpqh6yvlkipxvaopy',
-    proofSetId: 237,
+    serviceProviderId: '3',
+    serviceUrl: 'https://calib.ezpdpz.net/',
+    pieceCid:
+      'bafkzcibdtrjavqxb56hzzq2tyayggqtujzamyf227cg4evbillgsfcdurht3cwyb',
+    dataSetId: 12,
   },
 ]
