@@ -9,6 +9,7 @@ import { env } from 'cloudflare:test'
 import {
   withProofSetRoots,
   withApprovedProvider,
+  withWalletDetails,
 } from './test-data-builders.js'
 
 describe('logRetrievalResult', () => {
@@ -171,6 +172,33 @@ describe('getOwnerAndValidateClient', () => {
     await assert.rejects(
       async () => await getOwnerAndValidateClient(env, clientAddress, cid),
       /withCDN=false/,
+    )
+  })
+
+  it('returns error when client wallet is sanctioned', async () => {
+    const cid = 'cid-sanctioned'
+    const proofSetId = 'set-sanctioned'
+    const railId = 'rail-sanctioned'
+    const owner = APPROVED_OWNER_ADDRESS
+    const clientAddress = '0xabcdef1234567890abcdef1234567890abcdef13'
+
+    await withApprovedProvider(env, { ownerAddress: owner })
+
+    await withProofSetRoots(env, {
+      owner,
+      clientAddress,
+      rootCid: cid,
+      proofSetId,
+      railId,
+      withCDN: true,
+      rootId: 'root-sanctioned',
+    })
+
+    await withWalletDetails(env, clientAddress, true)
+
+    await assert.rejects(
+      async () => await getOwnerAndValidateClient(env, clientAddress, cid),
+      /sanctioned/,
     )
   })
 
