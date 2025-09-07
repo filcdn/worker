@@ -334,7 +334,7 @@ describe('getOwnerAndValidateClient', () => {
   
     // Set up an approved provider
     await withApprovedProvider(env, {
-      ownerAddress: ownerAddress,
+      ownerAddress,
       pieceRetrievalUrl: 'https://approved-provider.xyz',
     })
   
