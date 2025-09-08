@@ -14,19 +14,18 @@ Before you begin, ensure you have the following installed and set up:
 
 Follow these steps to build and deploy the subgraph:
 
-1.  **Install Dependencies:**
-
-    Install the necessary node modules (run this command in the repository root).
-
-    ```bash
-    npm install
-    ```
-
-2.  **Navigate to Subgraph Directory:**
+1.  **Navigate to Subgraph Directory:**
     Open your terminal and change to the directory of this README:
 
     ```bash
     cd subgraph
+    ```
+
+2.  **Install Dependencies:**
+    Install the necessary node modules:
+
+    ```bash
+    npm install
     ```
 
 3.  **Authenticate with Goldsky:**
@@ -81,6 +80,7 @@ Follow these steps to build and deploy the subgraph:
 If you need to make changes to the subgraph's logic, schema, or configuration, follow these general steps:
 
 1.  **Modify Code:** Edit the relevant files:
+
     - `schema.graphql`: To change the data structure and entities being stored.
     - `subgraph.yaml`: To update contract addresses, ABIs, start blocks, or event handlers.
     - `src/*.ts`: To alter the logic that processes blockchain events and maps them to the defined schema entities.
