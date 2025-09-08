@@ -17,7 +17,7 @@ export async function handleFWSSDataSetCreated(
 ) {
   const { CHAINALYSIS_API_KEY } = env
 
-  const withCDN = payload.metadata_keys.includes('withCDN')
+  const withCDN = payload.metadata_keys.split(',').includes('withCDN')
 
   if (withCDN) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {

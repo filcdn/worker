@@ -71,7 +71,7 @@ describe('retriever.indexer', () => {
           data_set_id: dataSetId,
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
 
@@ -117,7 +117,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             provider_id: providerId,
-            metadata_keys: ['withCDN'],
+            metadata_keys: 'withCDN',
           }),
         })
         mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
@@ -148,7 +148,7 @@ describe('retriever.indexer', () => {
           data_set_id: dataSetId,
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
       mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
@@ -181,7 +181,7 @@ describe('retriever.indexer', () => {
           data_set_id: dataSetId,
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
 
@@ -202,7 +202,7 @@ describe('retriever.indexer', () => {
           data_set_id: randomId(),
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: [],
+          metadata_keys: '',
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
@@ -251,7 +251,7 @@ describe('retriever.indexer', () => {
           data_set_id: randomId(),
           payer: '0xPayerAddress',
           provider_id: randomId(),
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
 
@@ -290,7 +290,7 @@ describe('retriever.indexer', () => {
           data_set_id: randomId(),
           payer: '0xPayerAddress',
           provider_id: randomId(),
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
@@ -318,7 +318,7 @@ describe('retriever.indexer', () => {
         data_set_id: dataSetId,
         payer: '0xPayerAddress',
         provider_id: providerId,
-        metadata_keys: ['withCDN'],
+        metadata_keys: 'withCDN',
       }
       const req = new Request('https://host/fwss/data-set-created', {
         method: 'POST',
