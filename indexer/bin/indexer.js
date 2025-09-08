@@ -60,16 +60,9 @@ export default {
     const pathname = new URL(request.url).pathname
     if (pathname === '/fwss/data-set-created') {
       if (
-        !payload.data_set_id ||
-        !(
-          typeof payload.data_set_id === 'number' ||
-          typeof payload.data_set_id === 'string'
-        ) ||
-        !payload.payer ||
-        !(
-          typeof payload.provider_id === 'number' ||
-          typeof payload.provider_id === 'string'
-        ) ||
+        typeof payload.data_set_id !== 'string' ||
+        typeof payload.payer !== 'string' ||
+        typeof payload.provider_id !== 'string' ||
         !Array.isArray(payload.metadata_keys)
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
@@ -98,13 +91,8 @@ export default {
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-added') {
       if (
-        !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
-        ) ||
-        !payload.piece_ids ||
+        typeof payload.set_id !== 'string' ||
         typeof payload.piece_ids !== 'string' ||
-        !payload.piece_cids ||
         typeof payload.piece_cids !== 'string'
       ) {
         console.error('PDPVerifier.PiecesAdded: Invalid payload', payload)
@@ -125,11 +113,7 @@ export default {
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-removed') {
       if (
-        !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
-        ) ||
-        !payload.piece_ids ||
+        typeof payload.set_id !== 'string' ||
         typeof payload.piece_ids !== 'string'
       ) {
         console.error('PDPVerifier.PiecesRemoved: Invalid payload', payload)

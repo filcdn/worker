@@ -50,8 +50,8 @@ export async function handleFWSSDataSetCreated(
     `,
   )
     .bind(
-      String(payload.data_set_id),
-      String(payload.provider_id),
+      payload.data_set_id,
+      payload.provider_id,
       payload.payer.toLowerCase(),
       withCDN,
     )

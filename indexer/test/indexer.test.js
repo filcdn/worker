@@ -136,37 +136,6 @@ describe('retriever.indexer', () => {
       expect(dataSets.length).toBe(1)
     })
 
-    it('stores numeric ID values as integers', async () => {
-      const dataSetId = Number(randomId())
-      const providerId = Number(randomId())
-      const req = new Request('https://host/fwss/data-set-created', {
-        method: 'POST',
-        headers: {
-          [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
-        },
-        body: JSON.stringify({
-          data_set_id: dataSetId,
-          payer: '0xPayerAddress',
-          provider_id: providerId,
-          metadata_keys: ['withCDN'],
-        }),
-      })
-      mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
-      const res = await workerImpl.fetch(req, env, ctx, {
-        checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
-      })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(String(dataSetId))
-        .all()
-      expect(dataSets.length).toBe(1)
-      expect(dataSets[0]?.id).toMatch(/^\d+$/)
-    })
-
     it('checks if payer address is sanctioned when with_cdn = true', async () => {
       const dataSetId = randomId()
       const providerId = randomId()
@@ -530,7 +499,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const providerId = 0
+      const providerId = '0'
       const req = new Request(
         'https://host/service-provider-registry/product-added',
         {
@@ -540,7 +509,7 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({
             provider_id: providerId,
-            product_type: 0,
+            product_type: '0',
             service_url: serviceUrl,
           }),
         },
@@ -563,7 +532,7 @@ describe('retriever.indexer', () => {
   describe('POST /service-provider-registry/product-updated', () => {
     it('updates service URLs for an existing provider', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const providerId = 0
+      const providerId = '0'
       const newServiceUrl = 'https://new-provider.example.com'
 
       // First insert the initial provider URL
@@ -576,7 +545,7 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({
             provider_id: providerId,
-            product_type: 0,
+            product_type: '0',
             service_url: serviceUrl,
           }),
         },
@@ -597,7 +566,7 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({
             provider_id: providerId,
-            product_type: 0,
+            product_type: '0',
             service_url: newServiceUrl,
           }),
         },
@@ -635,8 +604,8 @@ describe('retriever.indexer', () => {
     })
 
     it('removes a provider from the providers table', async () => {
-      const providerId = 0
-      const productType = 0
+      const providerId = '0'
+      const productType = '0'
       const serviceUrl = 'https://provider.example.com'
 
       // First, insert a provider
@@ -696,8 +665,8 @@ describe('retriever.indexer', () => {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
           },
           body: JSON.stringify({
-            provider_id: 13,
-            product_type: 0,
+            provider_id: '13',
+            product_type: '0',
           }),
         },
       )
@@ -725,8 +694,8 @@ describe('POST /service-provider-registry/provider-removed', () => {
   })
 
   it('removes a provider from the providers table', async () => {
-    const providerId = 0
-    const blockNumber = 10
+    const providerId = '0'
+    const blockNumber = '10'
     const serviceUrl = 'https://provider.example.com'
 
     // First, insert a provider
@@ -739,7 +708,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
         },
         body: JSON.stringify({
           provider_id: providerId,
-          product_type: 0,
+          product_type: '0',
           block_number: blockNumber,
           service_url: serviceUrl,
         }),
@@ -786,7 +755,7 @@ describe('POST /service-provider-registry/provider-removed', () => {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          provider_id: 13,
+          provider_id: '13',
         }),
       },
     )
@@ -812,11 +781,7 @@ async function withPieces(env, dataSetId, pieceIds, pieceCids) {
   `,
   )
     .bind(
-      ...pieceIds.flatMap((pieceId, i) => [
-        String(pieceId),
-        String(dataSetId),
-        pieceCids[i],
-      ]),
+      ...pieceIds.flatMap((pieceId, i) => [pieceId, dataSetId, pieceCids[i]]),
     )
     .run()
 }

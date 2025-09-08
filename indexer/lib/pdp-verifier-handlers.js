@@ -1,7 +1,7 @@
 /**
  * @param {Env} env
- * @param {number | string} dataSetId
- * @param {(number | string)[]} pieceIds
+ * @param {string} dataSetId
+ * @param {string[]} pieceIds
  * @param {string[]} pieceCids
  */
 export async function insertDataSetPieces(env, dataSetId, pieceIds, pieceCids) {
@@ -18,19 +18,15 @@ export async function insertDataSetPieces(env, dataSetId, pieceIds, pieceCids) {
     `,
   )
     .bind(
-      ...pieceIds.flatMap((pieceId, i) => [
-        String(pieceId),
-        String(dataSetId),
-        pieceCids[i],
-      ]),
+      ...pieceIds.flatMap((pieceId, i) => [pieceId, dataSetId, pieceCids[i]]),
     )
     .run()
 }
 
 /**
  * @param {Env} env
- * @param {number | string} dataSetId
- * @param {(number | string)[]} pieceIds
+ * @param {string} dataSetId
+ * @param {string[]} pieceIds
  */
 export async function removeDataSetPieces(env, dataSetId, pieceIds) {
   await env.DB.prepare(
@@ -42,6 +38,6 @@ export async function removeDataSetPieces(env, dataSetId, pieceIds) {
       .join(', ')})
     `,
   )
-    .bind(String(dataSetId), ...pieceIds.map(String))
+    .bind(dataSetId, ...pieceIds)
     .run()
 }

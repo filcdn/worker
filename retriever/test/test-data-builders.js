@@ -3,9 +3,9 @@ import { getBadBitsEntry } from '../lib/bad-bits-util'
 /**
  * @param {Env} env
  * @param {Object} options
- * @param {number} options.serviceProviderId
+ * @param {string} options.serviceProviderId
  * @param {string} options.pieceCid
- * @param {number} options.dataSetId
+ * @param {string} options.dataSetId
  * @param {boolean} options.withCDN
  * @param {string} options.payerAddress
  * @param {string} options.pieceId
@@ -13,12 +13,12 @@ import { getBadBitsEntry } from '../lib/bad-bits-util'
 export async function withDataSetPieces(
   env,
   {
-    serviceProviderId = 0,
+    serviceProviderId = '0',
     payerAddress = '0x1234567890abcdef1234567890abcdef12345608',
     pieceCid = 'bagaTEST',
-    dataSetId = 0,
+    dataSetId = '0',
     withCDN = true,
-    pieceId = 0,
+    pieceId = '0',
   } = {},
 ) {
   await env.DB.batch([
@@ -27,26 +27,21 @@ export async function withDataSetPieces(
       INSERT INTO data_sets (id, service_provider_id, payer_address, with_cdn)
       VALUES (?, ?, ?, ?)
     `,
-    ).bind(
-      String(dataSetId),
-      String(serviceProviderId),
-      payerAddress.toLowerCase(),
-      withCDN,
-    ),
+    ).bind(dataSetId, serviceProviderId, payerAddress.toLowerCase(), withCDN),
 
     env.DB.prepare(
       `
       INSERT INTO pieces (id, data_set_id, cid)
       VALUES (?, ?, ?)
     `,
-    ).bind(String(pieceId), String(dataSetId), pieceCid),
+    ).bind(pieceId, dataSetId, pieceCid),
   ])
 }
 
 /**
  * @param {Env} env
  * @param {Object} options
- * @param {number} id
+ * @param {string} id
  * @param {string} [options.serviceUrl]
  */
 export async function withApprovedProvider(
@@ -59,7 +54,7 @@ export async function withApprovedProvider(
     VALUES (?, ?)
   `,
   )
-    .bind(String(id), serviceUrl)
+    .bind(id, serviceUrl)
     .run()
 }
 

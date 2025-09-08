@@ -4,8 +4,8 @@ const PRODUCT_TYPE_PDP = 0
 
 /**
  * @param {Env} env
- * @param {string | number} providerId
- * @param {string | number} productType
+ * @param {string} providerId
+ * @param {string} productType
  * @param {string} serviceUrl
  * @returns {Promise<Response>}
  */
@@ -16,8 +16,8 @@ export async function handleProductAdded(
   serviceUrl,
 ) {
   if (
-    (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    (typeof productType !== 'string' && typeof productType !== 'number') ||
+    typeof providerId !== 'string' ||
+    typeof productType !== 'string' ||
     typeof serviceUrl !== 'string'
   ) {
     console.error('ServiceProviderRegistry.ProductAdded: Invalid payload', {
@@ -35,8 +35,8 @@ export async function handleProductAdded(
 
 /**
  * @param {Env} env
- * @param {string | number} providerId
- * @param {string | number} productType
+ * @param {string} providerId
+ * @param {string} productType
  * @param {string} serviceUrl
  * @returns {Promise<Response>}
  */
@@ -47,8 +47,8 @@ export async function handleProductUpdated(
   serviceUrl,
 ) {
   if (
-    (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    (typeof productType !== 'string' && typeof productType !== 'number') ||
+    typeof providerId !== 'string' ||
+    typeof productType !== 'string' ||
     typeof serviceUrl !== 'string'
   ) {
     console.error('ServiceProviderRegistry.ProductUpdated: Invalid payload', {
@@ -66,15 +66,12 @@ export async function handleProductUpdated(
 
 /**
  * @param {Env} env
- * @param {string | number} providerId
- * @param {string | number} productType
+ * @param {string} providerId
+ * @param {string} productType
  * @returns {Promise<Response>}
  */
 export async function handleProductRemoved(env, providerId, productType) {
-  if (
-    (typeof providerId !== 'string' && typeof providerId !== 'number') ||
-    (typeof productType !== 'string' && typeof productType !== 'number')
-  ) {
+  if (typeof providerId !== 'string' || typeof productType !== 'string') {
     console.error('ServiceProviderRegistry.ProductRemoved: Invalid payload', {
       providerId,
       productType,
@@ -100,11 +97,11 @@ export async function handleProductRemoved(env, providerId, productType) {
 
 /**
  * @param {Env} env
- * @param {string | number} providerId
+ * @param {string} providerId
  * @returns {Promise<Response>}
  */
 export async function handleProviderRemoved(env, providerId) {
-  if (typeof providerId !== 'string' && typeof providerId !== 'number') {
+  if (typeof providerId !== 'string') {
     console.error('ServiceProviderRegistry.ProviderRemoved: Invalid payload', {
       providerId,
     })
@@ -126,7 +123,7 @@ export async function handleProviderRemoved(env, providerId) {
 
 /**
  * @param {Env} env
- * @param {string | number} providerId
+ * @param {string} providerId
  * @param {string} serviceUrl
  * @returns {Promise<Response>}
  */
