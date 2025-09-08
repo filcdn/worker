@@ -8,7 +8,8 @@
   "workspaces": [
     "bad-bits",
     "indexer",
-    "retriever"
+    "retriever",
+    "subgraph"
   ],
   "scripts": {
     "build:types": "npm run build:types --workspaces --if-present",
