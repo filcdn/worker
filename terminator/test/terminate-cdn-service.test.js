@@ -58,6 +58,30 @@ describe('terminateCDNServiceForSanctionedWallets', () => {
     expect(mockQueue.sendBatch).not.toHaveBeenCalled()
   })
 
+  it('skips if `terminate_service_tx_hash` is not `null`', async () => {
+    const dataSetId = '1'
+    const payerAddress = '0xSanctionedAddress'
+    await withWallet(env, payerAddress, true)
+    await withDataSet(env, {
+      id: dataSetId,
+      payerAddress,
+      withCDN: true,
+      terminateServiceTxHash: '0xExistingTxHash',
+    })
+
+    const mockQueue = {
+      sendBatch: vi.fn().mockResolvedValue(undefined),
+    }
+    const envOverride = {
+      ...env,
+      TRANSACTION_QUEUE: mockQueue,
+    }
+
+    await terminateCDNServiceForSanctionedWallets(envOverride)
+
+    expect(mockQueue.sendBatch).not.toHaveBeenCalled()
+  })
+
   it('sends multiple messages for multiple sanctioned data sets', async () => {
     const payerAddress = '0xSanctionedAddress'
     await withWallet(env, payerAddress, true)

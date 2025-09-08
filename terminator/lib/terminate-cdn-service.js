@@ -12,7 +12,7 @@ export async function terminateCDNServiceForSanctionedWallets(env) {
       SELECT DISTINCT ds.id
       FROM data_sets ds
         LEFT JOIN wallet_details wd ON ds.payer_address = wd.address
-      WHERE ds.with_cdn = 1 AND wd.is_sanctioned = 1;
+      WHERE ds.with_cdn = 1 AND wd.is_sanctioned = 1 AND ds.terminate_service_tx_hash IS NULL;
   `,
   ).run()
 

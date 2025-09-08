@@ -5,6 +5,7 @@ import {
 } from '../lib/queue-handlers.js'
 import { env } from 'cloudflare:test'
 import { abi as fwssAbi } from '../lib/filecoin-warm-storage-service.js'
+import { randomId, withDataSet } from './test-helpers.js'
 
 // Test fixtures and helpers
 const createMockEnv = (env) => ({
@@ -46,10 +47,11 @@ const createMockChainClient = (env) => ({
 
 describe('handleTerminateServiceQueueMessage', () => {
   const date = new Date(2000, 1, 1, 13)
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
     vi.useFakeTimers()
     vi.setSystemTime(date)
+    await env.DB.exec('DELETE FROM data_sets')
   })
 
   afterEach(() => {
@@ -57,7 +59,8 @@ describe('handleTerminateServiceQueueMessage', () => {
   })
 
   it('processes terminate service message successfully', async () => {
-    const message = { dataSetId: 123 }
+    const dataSetId = randomId()
+    const message = { dataSetId }
     const mockEnv = createMockEnv(env)
     const mockChainClient = createMockChainClient(env)
     const mockRequest = { address: '0xcontract' }
@@ -65,16 +68,27 @@ describe('handleTerminateServiceQueueMessage', () => {
       request: mockRequest,
     })
     mockChainClient.walletClient.writeContract.mockResolvedValue('0xtxhash123')
+    await withDataSet(mockEnv, { id: dataSetId.toString(), withCDN: true })
 
     await handleTerminateServiceQueueMessage(message, mockEnv, {
       getChainClient: (env) => mockChainClient,
     })
 
+    const { results: dataSets } = await env.DB.prepare(
+      'SELECT terminate_service_tx_hash FROM data_sets WHERE id = ?',
+    )
+      .bind(dataSetId)
+      .all()
+
+    expect(dataSets).toStrictEqual([
+      { terminate_service_tx_hash: '0xtxhash123' },
+    ])
+
     expect(mockChainClient.publicClient.simulateContract).toHaveBeenCalledWith({
       address: '0xcontract',
       abi: fwssAbi,
       functionName: 'terminateCDNService',
-      args: [123],
+      args: [BigInt(dataSetId)],
     })
 
     expect(mockChainClient.walletClient.writeContract).toHaveBeenCalledWith(
@@ -90,7 +104,8 @@ describe('handleTerminateServiceQueueMessage', () => {
   })
 
   it('handles contract simulation failure', async () => {
-    const message = { dataSetId: 456 }
+    const dataSetId = randomId()
+    const message = { dataSetId }
     const error = new Error('Contract simulation failed')
     const mockEnv = createMockEnv(env)
     const mockChainClient = createMockChainClient()
@@ -107,7 +122,7 @@ describe('handleTerminateServiceQueueMessage', () => {
   })
 
   it('handles contract call failure', async () => {
-    const message = { dataSetId: 789 }
+    const message = { dataSetId: randomId() }
     const error = new Error('Contract call failed')
     const mockEnv = createMockEnv(env)
     const mockChainClient = createMockChainClient()
@@ -123,7 +138,7 @@ describe('handleTerminateServiceQueueMessage', () => {
   })
 
   it('handles workflow creation failure', async () => {
-    const message = { dataSetId: 999 }
+    const message = { dataSetId: randomId() }
     const error = new Error('Workflow creation failed')
     const mockEnv = createMockEnv(env)
 
@@ -139,10 +154,11 @@ describe('handleTerminateServiceQueueMessage', () => {
 
 describe('handleTransactionCancelQueueMessage', () => {
   const date = new Date(2000, 1, 1, 13)
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
     vi.useFakeTimers()
     vi.setSystemTime(date)
+    await env.DB.exec('DELETE FROM data_sets')
   })
 
   afterEach(() => {
@@ -151,9 +167,12 @@ describe('handleTransactionCancelQueueMessage', () => {
 
   describe('when original transaction is still pending', () => {
     it('cancels pending transaction successfully -- get receipt raises error', async () => {
+      const transactionHash = '0xoriginalhash123'
+      const cancelTransactionHash = '0xtxhash123'
       const message = {
-        transactionHash: '0xoriginalhash123',
+        transactionHash,
       }
+      await withDataSet(env, { terminateServiceTxHash: transactionHash })
       const mockEnv = createMockEnv(env)
       const mockChainClient = createMockChainClient(env)
 
@@ -171,11 +190,31 @@ describe('handleTransactionCancelQueueMessage', () => {
       })
       mockChainClient.walletClient.sendTransaction = vi
         .fn()
-        .mockResolvedValue('0xtxhash123')
+        .mockResolvedValue(cancelTransactionHash)
 
       await handleTransactionCancelQueueMessage(message, mockEnv, {
         getChainClient: () => mockChainClient,
       })
+
+      const { results: dataSets } = await env.DB.prepare(
+        'SELECT terminate_service_tx_hash FROM data_sets WHERE terminate_service_tx_hash = ?',
+      )
+        .bind(transactionHash)
+        .all()
+
+      expect(dataSets).toStrictEqual([])
+
+      const { results: updatedDataSets } = await env.DB.prepare(
+        'SELECT terminate_service_tx_hash FROM data_sets WHERE terminate_service_tx_hash = ?',
+      )
+        .bind(cancelTransactionHash)
+        .all()
+
+      expect(updatedDataSets).toStrictEqual([
+        {
+          terminate_service_tx_hash: cancelTransactionHash,
+        },
+      ])
 
       expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
         {

@@ -4,7 +4,7 @@ import { abi as fwssAbi } from './filecoin-warm-storage-service.js'
 /**
  * @typedef {{
  *   type: 'terminate-cdn-service'
- *   dataSetId: number
+ *   dataSetId: string
  * }} TerminateServiceMessage
  */
 
@@ -56,7 +56,7 @@ export async function handleTerminateServiceQueueMessage(
       abi: fwssAbi,
       address: env.FILECOIN_WARM_STORAGE_SERVICE_ADDRESS,
       functionName: 'terminateCDNService',
-      args: [dataSetId],
+      args: [BigInt(dataSetId)],
     })
 
     console.log(
@@ -67,6 +67,16 @@ export async function handleTerminateServiceQueueMessage(
     const hash = await walletClient.writeContract(request)
 
     console.log(`Transaction sent for dataSetId: ${dataSetId}, hash: ${hash}`)
+
+    await env.DB.prepare(
+      `
+    UPDATE data_sets
+    SET terminate_service_tx_hash = ?
+    WHERE id = ?
+    `,
+    )
+      .bind(hash, dataSetId)
+      .run()
 
     // Start transaction monitor workflow
     await env.TRANSACTION_MONITOR_WORKFLOW.create({
@@ -158,6 +168,12 @@ export async function handleTransactionCancelQueueMessage(
     console.log(
       `Sent cancellation transaction ${cancelHash} for original transaction ${transactionHash}`,
     )
+
+    await env.DB.prepare(
+      `UPDATE data_sets SET terminate_service_tx_hash = ? WHERE terminate_service_tx_hash = ?`,
+    )
+      .bind(cancelHash, transactionHash)
+      .run()
 
     // Start a new transaction monitor workflow for the cancellation transaction
     await env.TRANSACTION_MONITOR_WORKFLOW.create({

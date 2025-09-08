@@ -15,11 +15,14 @@ export async function withDataSet(
     serviceProviderId = '1',
     payerAddress = '0xPayer',
     withCDN = true,
+    terminateServiceTxHash = null,
   },
 ) {
   await env.DB.prepare(
-    `INSERT INTO data_sets (id, service_provider_id, payer_address, with_cdn) VALUES (?, ?, ?, ?)`,
+    `INSERT INTO data_sets (id, service_provider_id, payer_address, with_cdn, terminate_service_tx_hash) VALUES (?, ?, ?, ?, ?)`,
   )
-    .bind(id, serviceProviderId, payerAddress, withCDN)
+    .bind(id, serviceProviderId, payerAddress, withCDN, terminateServiceTxHash)
     .run()
 }
+
+export const randomId = () => String(Math.ceil(Math.random() * 1e10))
