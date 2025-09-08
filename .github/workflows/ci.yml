@@ -29,6 +29,10 @@ jobs:
         working-directory: subgraph
         run: npm ci
 
+      - name: Run codegen
+        working-directory: subgraph
+        run: npm run codegen
+
       - name: Test Subgraph
         working-directory: subgraph
         run: npm run test
