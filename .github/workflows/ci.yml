@@ -50,13 +50,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ matrix.environment }}
-      - name: Deploy Service Monitor
-        uses: cloudflare/wrangler-action@v3
-        with:
-          workingDirectory: service-monitor
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          environment: ${{ matrix.environment }}
       - if: failure()
         uses: slackapi/slack-github-action@v2.1.1
         with:
