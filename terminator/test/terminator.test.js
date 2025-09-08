@@ -4,9 +4,9 @@ import {
   createExecutionContext,
   waitOnExecutionContext,
 } from 'cloudflare:test'
-import monitor from '../bin/service-monitor.js'
+import terminator from '../bin/terminator.js'
 
-describe('Service Monitor - scheduled entrypoint', () => {
+describe('Terminator - scheduled entrypoint', () => {
   it('calls terminateCDNServiceForSanctionedWallets with correct env', async () => {
     const mockController = {}
     const ctx = createExecutionContext()
@@ -14,7 +14,7 @@ describe('Service Monitor - scheduled entrypoint', () => {
     const mockTerminateCDNServiceForSanctionedWallets = vi
       .fn()
       .mockResolvedValue(undefined)
-    await monitor.scheduled(mockController, env, ctx, {
+    await terminator.scheduled(mockController, env, ctx, {
       terminateCDNServiceForSanctionedWallets:
         mockTerminateCDNServiceForSanctionedWallets,
     })
@@ -29,7 +29,7 @@ describe('Service Monitor - scheduled entrypoint', () => {
   })
 })
 
-describe('Service Monitor - queue entrypoint', () => {
+describe('Terminator - queue entrypoint', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -37,7 +37,7 @@ describe('Service Monitor - queue entrypoint', () => {
   it('processes terminate-cdn-service messages correctly', async () => {
     const ctx = createExecutionContext()
     const mockMessage = {
-      body: { type: 'terminate-cdn-service', dataSetId: 123 },
+      body: { type: 'terminate-cdn-service', dataSetId: '123' },
       ack: vi.fn(),
       retry: vi.fn(),
     }
@@ -48,7 +48,7 @@ describe('Service Monitor - queue entrypoint', () => {
     const batch = { messages: [mockMessage] }
 
     // Mock the queue handler
-    await monitor.queue(batch, env, ctx, {
+    await terminator.queue(batch, env, ctx, {
       handleTerminateServiceQueueMessage:
         mockHandleTerminateServiceQueueMessage,
     })
@@ -76,7 +76,7 @@ describe('Service Monitor - queue entrypoint', () => {
     const batch = { messages: [mockMessage] }
 
     // Mock the queue handler
-    await monitor.queue(batch, env, ctx, {
+    await terminator.queue(batch, env, ctx, {
       handleTransactionCancelQueueMessage:
         mockHandleTransactionCancelQueueMessage,
     })
@@ -100,7 +100,7 @@ describe('Service Monitor - queue entrypoint', () => {
     }
     const batch = { messages: [mockMessage] }
 
-    await monitor.queue(batch, env, ctx)
+    await terminator.queue(batch, env, ctx)
     await waitOnExecutionContext(ctx)
 
     expect(mockMessage.ack).toHaveBeenCalled()
@@ -121,7 +121,7 @@ describe('Service Monitor - queue entrypoint', () => {
       .fn()
       .mockRejectedValue(error)
 
-    await monitor.queue(batch, env, ctx, {
+    await terminator.queue(batch, env, ctx, {
       handleTerminateServiceQueueMessage:
         mockHandleTerminateServiceQueueMessage,
     })
@@ -159,7 +159,7 @@ describe('Service Monitor - queue entrypoint', () => {
       .fn()
       .mockResolvedValue(undefined)
 
-    await monitor.queue(batch, env, ctx, {
+    await terminator.queue(batch, env, ctx, {
       handleTerminateServiceQueueMessage:
         mockHandleTerminateServiceQueueMessage,
       handleTransactionCancelQueueMessage:
@@ -205,7 +205,7 @@ describe('Service Monitor - queue entrypoint', () => {
       .fn()
       .mockResolvedValue(undefined)
 
-    await monitor.queue(batch, env, ctx, {
+    await terminator.queue(batch, env, ctx, {
       handleTerminateServiceQueueMessage:
         mockHandleTerminateServiceQueueMessage,
       handleTransactionCancelQueueMessage:
