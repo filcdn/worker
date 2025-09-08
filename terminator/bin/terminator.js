@@ -12,7 +12,7 @@ import {
 /**
  * @typedef {{
  *   type: 'terminate-cdn-service'
- *   dataSetId: number
+ *   dataSetId: string
  * }} TerminateServiceMessage
  */
 

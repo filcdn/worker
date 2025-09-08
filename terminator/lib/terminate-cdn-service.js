@@ -2,7 +2,7 @@
  * @param {{
  *   DB: D1Database
  *   TRANSACTION_QUEUE: import('cloudflare:workers').Queue<{
- *     dataSetId: number
+ *     dataSetId: string
  *   }>
  * }} env
  */
