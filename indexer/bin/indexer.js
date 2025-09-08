@@ -73,7 +73,7 @@ export default {
           typeof payload.provider_id === 'number' ||
           typeof payload.provider_id === 'string'
         ) ||
-        !Array.isArray(payload.metadata_keys)
+        typeof payload.metadata_keys !== 'string'
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
