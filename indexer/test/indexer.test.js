@@ -14,6 +14,11 @@ env.SECRET_HEADER_VALUE = 'secret-header-value'
 env.CHAINALYSIS_API_KEY = 'mock-chainalysis-api-key'
 
 describe('retriever.indexer', () => {
+  beforeEach(async () => {
+    // Reset the database before each test
+    await env.DB.exec('DELETE FROM service_providers')
+  })
+
   it('requires authentication', async () => {
     const req = new Request('https://host/', { method: 'POST' })
     const res = await workerImpl.fetch(req, env)
@@ -536,7 +541,7 @@ describe('retriever.indexer', () => {
     })
     it('inserts a provider service URL', async () => {
       const serviceUrl = 'https://provider.example.com'
-      const providerId = 0
+      const providerId = 123
       const req = new Request(
         'https://host/service-provider-registry/product-added',
         {
@@ -558,12 +563,14 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('OK')
 
       const { results: providers } = await env.DB.prepare(
-        'SELECT * FROM service_providers WHERE id = ?',
-      )
-        .bind(providerId)
-        .all()
-      expect(providers.length).toBe(1)
-      expect(providers[0].service_url).toBe(serviceUrl)
+        'SELECT * FROM service_providers',
+      ).all()
+      expect(providers).toEqual([
+        {
+          id: providerId.toString(),
+          service_url: serviceUrl,
+        },
+      ])
     })
   })
   describe('POST /service-provider-registry/product-updated', () => {
