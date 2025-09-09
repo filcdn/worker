@@ -90,7 +90,7 @@ export async function handleProductRemoved(env, providerId, productType) {
         DELETE FROM service_providers WHERE id = ?
       `,
   )
-    .bind(providerId)
+    .bind(String(providerId))
     .run()
   if (result.meta.changes === 0) {
     return new Response('Provider Not Found', { status: 404 })
@@ -116,7 +116,7 @@ export async function handleProviderRemoved(env, providerId) {
         DELETE FROM service_providers WHERE id = ?
       `,
   )
-    .bind(providerId)
+    .bind(String(providerId))
     .run()
   if (result.meta.changes === 0) {
     return new Response('Provider Not Found', { status: 404 })
@@ -153,7 +153,7 @@ async function handleProviderServiceUrlUpdate(env, providerId, serviceUrl) {
           service_url=excluded.service_url
       `,
   )
-    .bind(providerId, serviceUrl)
+    .bind(String(providerId), serviceUrl)
     .run()
   return new Response('OK', { status: 200 })
 }
