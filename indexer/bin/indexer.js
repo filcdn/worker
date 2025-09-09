@@ -65,7 +65,6 @@ export default {
     const pathname = new URL(request.url).pathname
     if (pathname === '/fwss/data-set-created') {
       if (
-        !payload.data_set_id ||
         !(
           typeof payload.data_set_id === 'number' ||
           typeof payload.data_set_id === 'string'
