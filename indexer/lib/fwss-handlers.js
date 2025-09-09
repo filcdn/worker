@@ -1,4 +1,4 @@
-import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
+import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from './chainalysis.js'
 
 /**
  * Handle proof set rail creation
@@ -10,14 +10,16 @@ import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from 
  * @throws {Error} If there is an error with fetching payer's address sanction
  *   status or during the database operation
  */
-export async function handleProofSetRailCreated(
+export async function handleFWSSDataSetCreated(
   env,
   payload,
   { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned },
 ) {
   const { CHAINALYSIS_API_KEY } = env
 
-  if (payload.with_cdn) {
+  const withCDN = payload.metadata_keys.split(',').includes('withCDN')
+
+  if (withCDN) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {
       CHAINALYSIS_API_KEY,
     })
@@ -31,29 +33,46 @@ export async function handleProofSetRailCreated(
         last_screened_at = excluded.last_screened_at
       `,
     )
-      .bind(payload.payer, isPayerSanctioned)
+      .bind(payload.payer.toLowerCase(), isPayerSanctioned)
       .run()
   }
 
   await env.DB.prepare(
     `
-      INSERT INTO indexer_proof_set_rails (
-        proof_set_id,
-        rail_id,
-        payer,
-        payee,
+      INSERT INTO data_sets (
+        id,
+        service_provider_id,
+        payer_address,
         with_cdn
       )
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?)
       ON CONFLICT DO NOTHING
     `,
   )
     .bind(
-      String(payload.proof_set_id),
-      String(payload.rail_id),
-      payload.payer,
-      payload.payee,
-      payload.with_cdn ?? null,
+      String(payload.data_set_id),
+      String(payload.provider_id),
+      payload.payer.toLowerCase(),
+      withCDN,
     )
+    .run()
+}
+
+/**
+ * Handle Filecoin Warm Storage Service service termination
+ *
+ * @param {Env} env
+ * @param {any} payload
+ * @throws {Error}
+ */
+export async function handleFWSSServiceTerminated(env, payload) {
+  await env.DB.prepare(
+    `
+      UPDATE data_sets
+      SET with_cdn = false
+      WHERE id = ?
+    `,
+  )
+    .bind(String(payload.data_set_id))
     .run()
 }

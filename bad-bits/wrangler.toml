@@ -26,7 +26,7 @@ ENVIRONMENT = "calibration"
 
 [[env.calibration.d1_databases]]
 binding = "DB"
-database_name = "filcdn-db"
+database_name = "filcdn-calibration-db"
 database_id = "8cc92155-16f6-426a-b782-2965e0daf103"
 
 [env.calibration.triggers]

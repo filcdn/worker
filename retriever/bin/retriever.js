@@ -5,9 +5,9 @@ import {
   measureStreamedEgress,
 } from '../lib/retrieval.js'
 import {
-  getOwnerAndValidateClient,
+  getStorageProviderAndValidatePayer,
   logRetrievalResult,
-  updateProofSetSats,
+  updateDataSetStats,
 } from '../lib/store.js'
 import { httpAssert } from '../lib/http-assert.js'
 import { setContentSecurityPolicy } from '../lib/content-security-policy.js'
@@ -64,23 +64,23 @@ export default {
     const workerStartedAt = performance.now()
     const requestCountryCode = request.headers.get('CF-IPCountry')
 
-    const { clientWalletAddress, rootCid } = parseRequest(request, env)
+    const { payerWalletAddress, pieceCid } = parseRequest(request, env)
 
-    httpAssert(clientWalletAddress && rootCid, 400, 'Missing required fields')
+    httpAssert(payerWalletAddress && pieceCid, 400, 'Missing required fields')
     httpAssert(
-      isValidEthereumAddress(clientWalletAddress),
+      isValidEthereumAddress(payerWalletAddress),
       400,
-      `Invalid address: ${clientWalletAddress}. Address must be a valid ethereum address.`,
+      `Invalid address: ${payerWalletAddress}. Address must be a valid ethereum address.`,
     )
 
     try {
       // Timestamp to measure file retrieval performance (from cache and from SP)
       const fetchStartedAt = performance.now()
 
-      const [{ ownerAddress, pieceRetrievalUrl, proofSetId }, isBadBit] =
+      const [{ serviceProviderId, serviceUrl, dataSetId }, isBadBit] =
         await Promise.all([
-          getOwnerAndValidateClient(env, clientWalletAddress, rootCid),
-          findInBadBits(env, rootCid),
+          getStorageProviderAndValidatePayer(env, payerWalletAddress, pieceCid),
+          findInBadBits(env, pieceCid),
         ])
 
       httpAssert(
@@ -90,14 +90,14 @@ export default {
       )
 
       httpAssert(
-        ownerAddress,
+        serviceProviderId,
         404,
-        `Unsupported Storage Provider (PDP ProofSet Owner): ${ownerAddress}`,
+        `Unsupported Service Provider: ${serviceProviderId}`,
       )
 
       const { response: originResponse, cacheMiss } = await retrieveFile(
-        pieceRetrievalUrl,
-        rootCid,
+        serviceUrl,
+        pieceCid,
         env.ORIGIN_CACHE_TTL,
         { signal: request.signal },
       )
@@ -108,19 +108,17 @@ export default {
         // return the original response object.
         ctx.waitUntil(
           logRetrievalResult(env, {
-            clientAddress: clientWalletAddress,
-            ownerAddress,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes: 0,
             requestCountryCode,
             timestamp: requestTimestamp,
-            proofSetId,
+            dataSetId,
           }),
         )
         const response = new Response(originResponse.body, originResponse)
         setContentSecurityPolicy(response)
-        response.headers.set('X-Proof-Set-ID', proofSetId)
+        response.headers.set('X-Data-Set-ID', dataSetId)
         response.headers.set(
           'Cache-Control',
           `public, max-age=${env.CLIENT_CACHE_TTL}`,
@@ -141,8 +139,6 @@ export default {
           const lastByteFetchedAt = performance.now()
 
           await logRetrievalResult(env, {
-            clientAddress: clientWalletAddress,
-            ownerAddress,
             cacheMiss,
             responseStatus: originResponse.status,
             egressBytes,
@@ -153,10 +149,10 @@ export default {
               fetchTtlb: lastByteFetchedAt - fetchStartedAt,
               workerTtfb: firstByteAt - workerStartedAt,
             },
-            proofSetId,
+            dataSetId,
           })
 
-          await updateProofSetSats(env, { proofSetId, egressBytes })
+          await updateDataSetStats(env, { dataSetId, egressBytes })
         })(),
       )
 
@@ -167,7 +163,7 @@ export default {
         headers: originResponse.headers,
       })
       setContentSecurityPolicy(response)
-      response.headers.set('X-Proof-Set-ID', proofSetId)
+      response.headers.set('X-Data-Set-ID', dataSetId)
       response.headers.set(
         'Cache-Control',
         `public, max-age=${env.CLIENT_CACHE_TTL}`,
@@ -178,14 +174,12 @@ export default {
 
       ctx.waitUntil(
         logRetrievalResult(env, {
-          clientAddress: clientWalletAddress,
-          ownerAddress: null,
           cacheMiss: null,
           responseStatus: status,
           egressBytes: null,
           requestCountryCode,
           timestamp: requestTimestamp,
-          proofSetId: null,
+          dataSetId: null,
         }),
       )
 

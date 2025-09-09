@@ -1,7 +1,7 @@
 /**
  * Retrieves the file under the pieceCID from the constructed URL.
  *
- * @param {string} baseUrl - The base URL to storage provider serving the piece.
+ * @param {string} baseUrl - The base URL to service provider serving the piece.
  * @param {string} pieceCid - The CID of the piece to retrieve.
  * @param {number} [cacheTtl=86400] - Cache TTL in seconds (default: 86400).
  *   Default is `86400`
@@ -63,13 +63,13 @@ export async function measureStreamedEgress(reader) {
 }
 
 /**
- * @param {string} pieceRetrievalBaseUrl
+ * @param {string} serviceUrl
  * @param {string} pieceCid
  * @returns {string}
  */
-export function getRetrievalUrl(pieceRetrievalBaseUrl, pieceCid) {
-  if (!pieceRetrievalBaseUrl.endsWith('/')) {
-    pieceRetrievalBaseUrl += '/'
+export function getRetrievalUrl(serviceUrl, pieceCid) {
+  if (!serviceUrl.endsWith('/')) {
+    serviceUrl += '/'
   }
-  return `${pieceRetrievalBaseUrl}piece/${pieceCid}`
+  return `${serviceUrl}piece/${pieceCid}`
 }

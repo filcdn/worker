@@ -9,7 +9,7 @@ import {
 } from 'cloudflare:test'
 import assert from 'node:assert/strict'
 import {
-  withProofSetRoots,
+  withDataSetPieces,
   withApprovedProvider,
   withBadBits,
   withWalletDetails,
@@ -24,39 +24,37 @@ const DNS_ROOT = '.filcdn.io'
 env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
-  const defaultClientAddress = '0x1234567890abcdef1234567890abcdef12345678'
-  const realRootCid = CONTENT_STORED_ON_CALIBRATION[0].rootCid
+  const defaultPayerAddress = '0x1234567890abcdef1234567890abcdef12345678'
+  const { pieceCid: realPieceCid, dataSetId: realDataSetId } =
+    CONTENT_STORED_ON_CALIBRATION[0]
 
   beforeAll(async () => {
     await env.DB.batch([
-      env.DB.prepare('DELETE FROM indexer_roots'),
-      env.DB.prepare('DELETE FROM indexer_proof_sets'),
-      env.DB.prepare('DELETE FROM indexer_proof_set_rails'),
+      env.DB.prepare('DELETE FROM pieces'),
+      env.DB.prepare('DELETE FROM data_sets'),
       env.DB.prepare('DELETE FROM bad_bits'),
       env.DB.prepare('DELETE FROM wallet_details'),
     ])
 
     let i = 1
     for (const {
-      owner,
-      pieceRetrievalUrl,
-      rootCid,
-      proofSetId,
+      serviceProviderId,
+      serviceUrl,
+      pieceCid,
+      dataSetId,
     } of CONTENT_STORED_ON_CALIBRATION) {
-      const rootId = `root-${i}`
-      const railId = `rail-${i}`
-      await withProofSetRoots(env, {
-        owner,
-        rootCid,
-        clientAddress: defaultClientAddress,
+      const pieceId = `root-${i}`
+      await withDataSetPieces(env, {
+        serviceProviderId,
+        pieceCid,
+        payerAddress: defaultPayerAddress,
         withCDN: true,
-        proofSetId,
-        railId,
-        rootId,
+        dataSetId,
+        pieceId,
       })
       await withApprovedProvider(env, {
-        ownerAddress: owner,
-        pieceRetrievalUrl,
+        id: serviceProviderId,
+        serviceUrl,
       })
       i++
     }
@@ -64,7 +62,7 @@ describe('retriever.fetch', () => {
 
   it('redirects to https://filcdn.com when no CID was provided', async () => {
     const ctx = createExecutionContext()
-    const req = new Request(`https://${defaultClientAddress}${DNS_ROOT}/`)
+    const req = new Request(`https://${defaultPayerAddress}${DNS_ROOT}/`)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
     expect(res.status).toBe(302)
@@ -103,10 +101,10 @@ describe('retriever.fetch', () => {
     )
   })
 
-  it('returns 400 if provided client address is invalid', async () => {
+  it('returns 400 if provided payer address is invalid', async () => {
     const ctx = createExecutionContext()
     const mockRetrieveFile = vi.fn()
-    const req = withRequest('bar', realRootCid)
+    const req = withRequest('bar', realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -127,7 +125,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -144,7 +142,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -161,7 +159,7 @@ describe('retriever.fetch', () => {
       cacheMiss: false,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -182,7 +180,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -192,11 +190,11 @@ describe('retriever.fetch', () => {
     expect(csp).toContain('https://*.filcdn.io')
   })
 
-  it('fetches the file from calibration storage provider', async () => {
+  it('fetches the file from calibration service provider', async () => {
     const expectedHash =
-      '8a56ccfc341865af4ec1c2d836e52e71dcd959e41a8522f60bfcc3ff4e99d388'
+      'b9614f45cf8d401a0384eb58376b00cbcbb14f98fcba226d9fe1effe298af673'
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, { retrieveFile })
     await waitOnExecutionContext(ctx)
     expect(res.status).toBe(200)
@@ -219,24 +217,23 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, response_status, egress_bytes, cache_miss, client_address
+      `SELECT id, response_status, egress_bytes, cache_miss
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultClientAddress)
+      .bind(String(realDataSetId))
       .all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
       {
         id: 1, // Assuming this is the first log entry
-        client_address: defaultClientAddress,
         response_status: 200,
         egress_bytes: expectedEgressBytes,
         cache_miss: 1, // 1 for true, 0 for false
@@ -257,24 +254,23 @@ describe('retriever.fetch', () => {
       cacheMiss: false,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      `SELECT id, response_status, egress_bytes, cache_miss, client_address
+      `SELECT id, response_status, egress_bytes, cache_miss
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultClientAddress)
+      .bind(String(realDataSetId))
       .all()
     const result = readOutput.results
     assert.deepStrictEqual(result, [
       {
         id: 1, // Assuming this is the first log entry
-        client_address: defaultClientAddress,
         response_status: 200,
         egress_bytes: expectedEgressBytes,
         cache_miss: 0, // 1 for true, 0 for false
@@ -297,7 +293,7 @@ describe('retriever.fetch', () => {
       }
     }
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -308,17 +304,15 @@ describe('retriever.fetch', () => {
         response_status,
         fetch_ttfb,
         fetch_ttlb,
-        worker_ttfb,
-        client_address
+        worker_ttfb
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultClientAddress)
+      .bind(String(realDataSetId))
       .all()
     assert.strictEqual(readOutput.results.length, 1)
     const result = readOutput.results[0]
 
-    assert.deepStrictEqual(result.client_address, defaultClientAddress)
     assert.strictEqual(result.response_status, 200)
     assert.strictEqual(typeof result.fetch_ttfb, 'number')
     assert.strictEqual(typeof result.fetch_ttlb, 'number')
@@ -335,7 +329,7 @@ describe('retriever.fetch', () => {
       }
     }
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid, 'GET', {
+    const req = withRequest(defaultPayerAddress, realPieceCid, 'GET', {
       'CF-IPCountry': 'US',
     })
     const res = await worker.fetch(req, env, ctx, {
@@ -346,9 +340,9 @@ describe('retriever.fetch', () => {
     const { results } = await env.DB.prepare(
       `SELECT request_country_code
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultClientAddress)
+      .bind(String(realDataSetId))
       .all()
     assert.deepStrictEqual(results, [
       {
@@ -368,56 +362,58 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
     assert.strictEqual(res.status, 200)
     const readOutput = await env.DB.prepare(
-      'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ?',
+      'SELECT egress_bytes FROM retrieval_logs WHERE data_set_id = ?',
     )
-      .bind(defaultClientAddress)
+      .bind(String(realDataSetId))
       .all()
     assert.strictEqual(readOutput.results.length, 1)
     assert.strictEqual(readOutput.results[0].egress_bytes, 0)
   })
   it(
-    'measures egress correctly from real storage provider',
+    'measures egress correctly from real service provider',
     { timeout: 10000 },
     async () => {
-      const tasks = CONTENT_STORED_ON_CALIBRATION.map(({ owner, rootCid }) => {
-        return (async () => {
-          try {
-            const ctx = createExecutionContext()
-            const req = withRequest(defaultClientAddress, rootCid)
-            const res = await worker.fetch(req, env, ctx, { retrieveFile })
-            await waitOnExecutionContext(ctx)
+      const tasks = CONTENT_STORED_ON_CALIBRATION.map(
+        ({ dataSetId, pieceCid, serviceProviderId }) => {
+          return (async () => {
+            try {
+              const ctx = createExecutionContext()
+              const req = withRequest(defaultPayerAddress, pieceCid)
+              const res = await worker.fetch(req, env, ctx, { retrieveFile })
+              await waitOnExecutionContext(ctx)
 
-            assert.strictEqual(res.status, 200)
+              assert.strictEqual(res.status, 200)
 
-            const content = await res.arrayBuffer()
-            const actualBytes = content.byteLength
+              const content = await res.arrayBuffer()
+              const actualBytes = content.byteLength
 
-            const { results } = await env.DB.prepare(
-              'SELECT egress_bytes FROM retrieval_logs WHERE client_address = ? AND owner_address = ?',
-            )
-              .bind(defaultClientAddress, owner)
-              .all()
+              const { results } = await env.DB.prepare(
+                'SELECT egress_bytes FROM retrieval_logs WHERE data_set_id = ?',
+              )
+                .bind(String(dataSetId))
+                .all()
 
-            assert.strictEqual(results.length, 1)
-            assert.strictEqual(results[0].egress_bytes, actualBytes)
+              assert.strictEqual(results.length, 1)
+              assert.strictEqual(results[0].egress_bytes, actualBytes)
 
-            return { owner, success: true }
-          } catch (err) {
-            console.warn(
-              `⚠️ Warning: Fetch or verification failed for owner ${owner}:`,
-              err,
-            )
-            throw err
-          }
-        })()
-      })
+              return { serviceProviderId, success: true }
+            } catch (err) {
+              console.warn(
+                `⚠️ Warning: Fetch or verification failed for serviceProvider ${serviceProviderId}:`,
+                err,
+              )
+              throw err
+            }
+          })()
+        },
+      )
 
       try {
         const res = await Promise.allSettled(tasks)
@@ -425,54 +421,52 @@ describe('retriever.fetch', () => {
           throw new Error('All tasks failed')
         }
       } catch (err) {
-        const ownersChecked = CONTENT_STORED_ON_CALIBRATION.map((o) => o.owner)
+        const serviceProvidersChecked = CONTENT_STORED_ON_CALIBRATION.map(
+          (o) => o.serviceProviderId,
+        )
         throw new Error(
-          `❌ All owners failed to fetch. Owners checked: ${ownersChecked.join(', ')}`,
+          `❌ All service providers failed to fetch. Service providers checked: ${serviceProvidersChecked.join(', ')}`,
         )
       }
     },
   )
 
   it('requests payment if withCDN=false', async () => {
-    const proofSetId = 'test-proof-set-no-cdn'
-    const railId = 'rail-no-cdn'
-    const rootId = 'root-no-cdn'
-    const rootCid =
+    const dataSetId = 'test-data-set-no-cdn'
+    const pieceId = 'root-no-cdn'
+    const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const owner = '0xOWNER'
-    await withProofSetRoots(env, {
-      owner,
-      rootCid,
-      proofSetId,
-      railId,
+    const serviceProviderId = 'service-provider'
+    await withDataSetPieces(env, {
+      serviceProviderId,
+      pieceCid,
+      dataSetId,
       withCDN: false,
-      rootId,
+      pieceId,
     })
 
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid, 'GET')
+    const req = withRequest(defaultPayerAddress, pieceCid, 'GET')
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
     assert.strictEqual(res.status, 402)
   })
-  it('reads the provider URL from the database, comparing owner address case-insensitively', async () => {
-    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e9'
-    const clientAddress = '0x1234567890abcdef1234567890abcdef12345608'
-    const rootCid = 'bagaTest'
+  it('reads the provider URL from the database', async () => {
+    const serviceProviderId = 'service-provider-id'
+    const payerAddress = '0x1234567890abcdef1234567890abcdef12345608'
+    const pieceCid = 'bagaTest'
     const body = 'file content'
 
-    expect(providerAddress.toLowerCase()).not.toEqual(providerAddress)
-
-    await withProofSetRoots(env, {
-      owner: providerAddress,
-      rootCid,
-      clientAddress,
+    await withDataSetPieces(env, {
+      serviceProviderId,
+      pieceCid,
+      payerAddress,
     })
 
     await withApprovedProvider(env, {
-      ownerAddress: providerAddress,
-      pieceRetrievalUrl: 'https://mock-pdp-url.com',
+      id: serviceProviderId,
+      serviceUrl: 'https://mock-pdp-url.com',
     })
 
     const mockRetrieveFile = async () => {
@@ -485,7 +479,7 @@ describe('retriever.fetch', () => {
     }
 
     const ctx = createExecutionContext()
-    const req = withRequest(clientAddress, rootCid)
+    const req = withRequest(payerAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -497,52 +491,52 @@ describe('retriever.fetch', () => {
   })
 
   it('throws an error if the providerAddress is not found in the database', async () => {
-    const providerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C720000'
-    const clientAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
-    const rootCid = 'bagaTest'
+    const serviceProviderId = 'service-provider-id'
+    const payerAddress = '0x2A06D234246eD18b6C91de8349fF34C22C7268e8'
+    const pieceCid = 'bagaTest'
 
-    await withProofSetRoots(env, {
-      owner: providerAddress,
-      rootCid,
-      clientAddress,
+    await withDataSetPieces(env, {
+      serviceProviderId,
+      pieceCid,
+      payerAddress,
     })
 
     const ctx = createExecutionContext()
-    const req = withRequest(clientAddress, rootCid)
+    const req = withRequest(payerAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
     // Expect an error because no URL was found
     expect(res.status).toBe(404)
     expect(await res.text()).toBe(
-      `No approved storage provider found for client '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and root_cid 'bagaTest'.`,
+      `No approved service provider found for payer '0x2a06d234246ed18b6c91de8349ff34c22c7268e8' and piece_cid 'bagaTest'.`,
     )
   })
 
-  it('returns ProofSet ID in the X-Proof-Set-ID response header', async () => {
-    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+  it('returns data set ID in the X-Data-Set-ID response header', async () => {
+    const { pieceCid, dataSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response('hello'),
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid)
+    const req = withRequest(defaultPayerAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
     expect(await res.text()).toBe('hello')
-    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+    expect(res.headers.get('X-Data-Set-ID')).toBe(String(dataSetId))
   })
 
-  it('stores ProofSet ID in retrieval logs', async () => {
-    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+  it('stores data set ID in retrieval logs', async () => {
+    const { pieceCid, dataSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response('hello'),
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid)
+    const req = withRequest(defaultPayerAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -551,37 +545,35 @@ describe('retriever.fetch', () => {
 
     assert.strictEqual(res.status, 200)
     const { results } = await env.DB.prepare(
-      `SELECT id, response_status, proof_set_id, cache_miss, client_address
+      `SELECT id, response_status, cache_miss
        FROM retrieval_logs
-       WHERE client_address = ?`,
+       WHERE data_set_id = ?`,
     )
-      .bind(defaultClientAddress)
+      .bind(String(dataSetId))
       .all()
     assert.deepStrictEqual(results, [
       {
         id: 1, // Assuming this is the first log entry
-        client_address: defaultClientAddress,
         response_status: 200,
-        proof_set_id: proofSetId.toString(),
         cache_miss: 1, // 1 for true, 0 for false
       },
     ])
   })
 
-  it('returns ProofSet ID in the X-ProofSet-ID response header when the response body is empty', async () => {
-    const { rootCid, proofSetId } = CONTENT_STORED_ON_CALIBRATION[0]
+  it('returns data set ID in the X-Data-Set-ID response header when the response body is empty', async () => {
+    const { pieceCid, dataSetId } = CONTENT_STORED_ON_CALIBRATION[0]
     const mockRetrieveFile = vi.fn().mockResolvedValue({
       response: new Response(null, { status: 404 }),
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, rootCid)
+    const req = withRequest(defaultPayerAddress, pieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
     await waitOnExecutionContext(ctx)
     expect(res.body).toBeNull()
-    expect(res.headers.get('X-Proof-Set-ID')).toBe(String(proofSetId))
+    expect(res.headers.get('X-Data-Set-ID')).toBe(String(dataSetId))
   })
 
   it('supports HEAD requests', async () => {
@@ -593,7 +585,7 @@ describe('retriever.fetch', () => {
       cacheMiss: true,
     })
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid, 'HEAD')
+    const req = withRequest(defaultPayerAddress, realPieceCid, 'HEAD')
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -602,7 +594,7 @@ describe('retriever.fetch', () => {
   })
 
   it('rejects retrieval requests for CIDs found in the Bad Bits denylist', async () => {
-    await withBadBits(env, realRootCid)
+    await withBadBits(env, realPieceCid)
 
     const fakeResponse = new Response('hello')
     const mockRetrieveFile = vi.fn().mockResolvedValue({
@@ -611,7 +603,7 @@ describe('retriever.fetch', () => {
     })
 
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid)
+    const req = withRequest(defaultPayerAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx, {
       retrieveFile: mockRetrieveFile,
     })
@@ -622,31 +614,29 @@ describe('retriever.fetch', () => {
     )
   })
 
-  it('reject retrieval request if client is sanctioned', async () => {
-    const proofSetId = 'test-proof-set-client-sanctioned'
-    const railId = 'rail-proof-set-client-sanctioned'
-    const rootId = 'root-proof-set-client-sanctioned'
-    const rootCid =
+  it('reject retrieval request if payer is sanctioned', async () => {
+    const dataSetId = 'test-data-set-payer-sanctioned'
+    const pieceId = 'root-data-set-payer-sanctioned'
+    const pieceCid =
       'baga6ea4seaqaleibb6ud4xeemuzzpsyhl6cxlsymsnfco4cdjka5uzajo2x4ipa'
-    const owner = '0xOWNER'
-    const clientAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
-    await withProofSetRoots(env, {
-      owner,
-      clientAddress,
-      rootCid,
-      proofSetId,
-      railId,
+    const serviceProviderId = 'service-provider-id'
+    const payerAddress = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
+    await withDataSetPieces(env, {
+      serviceProviderId,
+      payerAddress,
+      pieceCid,
+      dataSetId,
       withCDN: true,
-      rootId,
+      pieceId,
     })
 
     await withWalletDetails(
       env,
-      clientAddress,
+      payerAddress,
       true, // Sanctioned
     )
     const ctx = createExecutionContext()
-    const req = withRequest(clientAddress, rootCid, 'GET')
+    const req = withRequest(payerAddress, pieceCid, 'GET')
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
@@ -654,7 +644,7 @@ describe('retriever.fetch', () => {
   })
   it('does not log to retrieval_logs on method not allowed (405)', async () => {
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, realRootCid, 'POST')
+    const req = withRequest(defaultPayerAddress, realPieceCid, 'POST')
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
@@ -662,87 +652,85 @@ describe('retriever.fetch', () => {
     expect(await res.text()).toBe('Method Not Allowed')
 
     const result = await env.DB.prepare(
-      `SELECT response_status FROM retrieval_logs WHERE client_address = ? ORDER BY id DESC LIMIT 1`,
+      `SELECT response_status FROM retrieval_logs WHERE data_set_id = ? ORDER BY id DESC LIMIT 1`,
     )
-      .bind(defaultClientAddress)
+      .bind(realDataSetId)
       .first()
     expect(result).toBeNull()
   })
-  it('logs to retrieval_logs on unsupported storage provider (404)', async () => {
-    const invalidRootCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
-    const proofSetId = 'unsupported-owner-test'
-    const unsupportedOwner = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+  it('logs to retrieval_logs on unsupported service provider (404)', async () => {
+    const invalidPieceCid = 'baga6ea4seaq3invalidrootcidfor404loggingtest'
+    const dataSetId = 'unsupported-serviceProvider-test'
+    const unsupportedServiceProviderId = 0
 
     await env.DB.batch([
       env.DB.prepare(
-        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
-      ).bind(proofSetId, unsupportedOwner),
-      env.DB.prepare(
-        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
-      ).bind('root-unsupported', proofSetId, invalidRootCid),
-      env.DB.prepare(
-        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO data_sets (id, service_provider_id, payer_address, with_cdn) VALUES (?, ?, ?, ?)',
       ).bind(
-        proofSetId,
-        'rail-unsupported',
-        defaultClientAddress,
-        unsupportedOwner,
+        dataSetId,
+        unsupportedServiceProviderId,
+        defaultPayerAddress,
         true,
       ),
+      env.DB.prepare(
+        'INSERT INTO pieces (id, data_set_id, cid) VALUES (?, ?, ?)',
+      ).bind('piece-unsupported', dataSetId, invalidPieceCid),
     ])
 
     const ctx = createExecutionContext()
-    const req = withRequest(defaultClientAddress, invalidRootCid)
+    const req = withRequest(defaultPayerAddress, invalidPieceCid)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
     expect(res.status).toBe(404)
-    expect(await res.text()).toContain('No approved storage provider found')
+    expect(await res.text()).toContain('No approved service provider found')
 
     const result = await env.DB.prepare(
-      'SELECT * FROM retrieval_logs WHERE client_address = ? AND response_status = 404 AND owner_address IS NULL and CACHE_MISS IS NULL and egress_bytes IS NULL',
+      'SELECT * FROM retrieval_logs WHERE data_set_id = ? AND response_status = 404 and CACHE_MISS IS NULL and egress_bytes IS NULL',
     )
-      .bind(defaultClientAddress)
+      .bind(dataSetId)
       .first()
     expect(result).toBeDefined()
   })
-  it('does not log to retrieval_logs when client address is invalid (400)', async () => {
+  it('does not log to retrieval_logs when payer address is invalid (400)', async () => {
+    const { count: countBefore } = await env.DB.prepare(
+      'SELECT COUNT(*) AS count FROM retrieval_logs',
+    ).first()
+
     const invalidAddress = 'not-an-address'
     const ctx = createExecutionContext()
-    const req = withRequest(invalidAddress, realRootCid)
+    const req = withRequest(invalidAddress, realPieceCid)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
 
     expect(res.status).toBe(400)
     expect(await res.text()).toContain('Invalid address')
 
-    const result = await env.DB.prepare(
-      'SELECT * FROM retrieval_logs WHERE client_address = ? LIMIT 1',
-    )
-      .bind(invalidAddress)
-      .first()
+    const { count: countAfter } = await env.DB.prepare(
+      'SELECT COUNT(*) AS count FROM retrieval_logs',
+    ).first()
 
-    expect(result).toBeNull() // No logs should be created for invalid client address
+    expect(countAfter).toEqual(countBefore)
   })
 })
 
 /**
- * @param {string} clientWalletAddress
- * @param {string} rootCid
+ * @param {string} payerWalletAddress
+ * @param {string} pieceCid
  * @param {string} method
  * @param {Object} headers
  * @returns {Request}
  */
 function withRequest(
-  clientWalletAddress,
-  rootCid,
+  payerWalletAddress,
+  pieceCid,
   method = 'GET',
   headers = {},
 ) {
   let url = 'http://'
-  if (clientWalletAddress) url += `${clientWalletAddress}.`
+  if (payerWalletAddress) url += `${payerWalletAddress}.`
   url += DNS_ROOT.slice(1) // remove the leading '.'
-  if (rootCid) url += `/${rootCid}`
+  if (pieceCid) url += `/${pieceCid}`
 
   return new Request(url, { method, headers })
 }
