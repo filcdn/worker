@@ -17,7 +17,7 @@ export async function handleFWSSDataSetCreated(
 ) {
   const { CHAINALYSIS_API_KEY } = env
 
-  const withCDN = payload.metadata_keys.includes('withCDN')
+  const withCDN = payload.metadata_keys.split(',').includes('withCDN')
 
   if (withCDN) {
     const isPayerSanctioned = await checkIfAddressIsSanctioned(payload.payer, {
@@ -55,5 +55,24 @@ export async function handleFWSSDataSetCreated(
       payload.payer.toLowerCase(),
       withCDN,
     )
+    .run()
+}
+
+/**
+ * Handle Filecoin Warm Storage Service service termination
+ *
+ * @param {Env} env
+ * @param {any} payload
+ * @throws {Error}
+ */
+export async function handleFWSSServiceTerminated(env, payload) {
+  await env.DB.prepare(
+    `
+      UPDATE data_sets
+      SET with_cdn = false
+      WHERE id = ?
+    `,
+  )
+    .bind(String(payload.data_set_id))
     .run()
 }

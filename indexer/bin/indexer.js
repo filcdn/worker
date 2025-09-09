@@ -5,12 +5,16 @@ import {
   handleProviderRemoved,
 } from '../lib/service-provider-registry-handlers.js'
 import { checkIfAddressIsSanctioned as defaultCheckIfAddressIsSanctioned } from '../lib/chainalysis.js'
-import { handleFWSSDataSetCreated } from '../lib/fwss-handlers.js'
+import {
+  handleFWSSDataSetCreated,
+  handleFWSSServiceTerminated,
+} from '../lib/fwss-handlers.js'
 import {
   removeDataSetPieces,
   insertDataSetPieces,
 } from '../lib/pdp-verifier-handlers.js'
 import { screenWallets } from '../lib/wallet-screener.js'
+import { CID } from 'multiformats/cid'
 
 // We need to keep an explicit definition of IndexerEnv because our monorepo has multiple
 // worker-configuration.d.ts files, each file (re)defining the global Env interface, causing the
@@ -70,7 +74,7 @@ export default {
           typeof payload.provider_id === 'number' ||
           typeof payload.provider_id === 'string'
         ) ||
-        !Array.isArray(payload.metadata_keys)
+        typeof payload.metadata_keys !== 'string'
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
@@ -103,18 +107,24 @@ export default {
           typeof payload.set_id === 'string'
         ) ||
         !payload.piece_ids ||
-        typeof payload.piece_ids !== 'string' ||
+        !Array.isArray(payload.piece_ids) ||
         !payload.piece_cids ||
-        typeof payload.piece_cids !== 'string'
+        !Array.isArray(payload.piece_cids)
       ) {
         console.error('PDPVerifier.PiecesAdded: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       /** @type {string[]} */
-      const pieceIds = payload.piece_ids.split(',')
+      const pieceIds = payload.piece_ids
       /** @type {string[]} */
-      const pieceCids = payload.piece_cids.split(',')
+      const pieceCids = payload.piece_cids.map(
+        (/** @type {string} */ cidInHex) => {
+          const cidBytes = Buffer.from(cidInHex.slice(2), 'hex')
+          const rootCidObj = CID.decode(cidBytes)
+          return rootCidObj.toString()
+        },
+      )
 
       console.log(
         `New pieces (piece_ids=[${pieceIds.join(', ')}], piece_cids=[${pieceCids.join(', ')}], data_set_id=${payload.set_id})`,
@@ -144,6 +154,30 @@ export default {
       )
 
       await removeDataSetPieces(env, payload.set_id, pieceIds)
+      return new Response('OK', { status: 200 })
+    } else if (
+      pathname === '/fwss/service-terminated' ||
+      pathname === '/fwss/cdn-service-terminated'
+    ) {
+      if (
+        !payload.data_set_id ||
+        !(
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
+        )
+      ) {
+        console.error(
+          'FilecoinWarmStorageService.(ServiceTerminated | CDNServiceTerminated): Invalid payload',
+          payload,
+        )
+        return new Response('Bad Request', { status: 400 })
+      }
+
+      console.log(
+        `Terminating service for data set (data_set_id=${payload.data_set_id})`,
+      )
+
+      await handleFWSSServiceTerminated(env, payload)
       return new Response('OK', { status: 200 })
     } else if (pathname === '/service-provider-registry/product-added') {
       const {

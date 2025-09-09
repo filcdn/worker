@@ -3,6 +3,7 @@ updates:
   - package-ecosystem: 'npm'
     directories:
       - '/'
+      - '/subgraph'
     schedule:
       interval: 'daily'
       time: '09:00'

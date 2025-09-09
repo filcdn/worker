@@ -71,7 +71,7 @@ describe('retriever.indexer', () => {
           data_set_id: dataSetId,
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
 
@@ -117,7 +117,7 @@ describe('retriever.indexer', () => {
             data_set_id: dataSetId,
             payer: '0xPayerAddress',
             provider_id: providerId,
-            metadata_keys: ['withCDN'],
+            metadata_keys: 'withCDN',
           }),
         })
         mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
@@ -148,7 +148,7 @@ describe('retriever.indexer', () => {
           data_set_id: dataSetId,
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
       mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
@@ -181,7 +181,7 @@ describe('retriever.indexer', () => {
           data_set_id: dataSetId,
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
 
@@ -202,7 +202,7 @@ describe('retriever.indexer', () => {
           data_set_id: randomId(),
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: [],
+          metadata_keys: '',
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
@@ -251,7 +251,7 @@ describe('retriever.indexer', () => {
           data_set_id: randomId(),
           payer: '0xPayerAddress',
           provider_id: randomId(),
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
 
@@ -290,7 +290,7 @@ describe('retriever.indexer', () => {
           data_set_id: randomId(),
           payer: '0xPayerAddress',
           provider_id: randomId(),
-          metadata_keys: ['withCDN'],
+          metadata_keys: 'withCDN',
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
@@ -318,7 +318,7 @@ describe('retriever.indexer', () => {
         data_set_id: dataSetId,
         payer: '0xPayerAddress',
         provider_id: providerId,
-        metadata_keys: ['withCDN'],
+        metadata_keys: 'withCDN',
       }
       const req = new Request('https://host/fwss/data-set-created', {
         method: 'POST',
@@ -351,6 +351,9 @@ describe('retriever.indexer', () => {
   })
 
   describe('POST /pdp-verifier/pieces-added', () => {
+    const TEST_CID_HEX =
+      '0x0155912024c6db010b63fa0aff84de00a4cd98802e03d1df5ea18ea430c3a0cdc84af4fc4024ab2714'
+
     const CTX = {}
 
     it('returns 400 if set_id or piece_ids is missing', async () => {
@@ -368,17 +371,18 @@ describe('retriever.indexer', () => {
 
     it('inserts pieces for a data set', async () => {
       const dataSetId = randomId()
-      const pieceIds = [randomId(), randomId()]
-      const pieceCids = [randomId(), randomId()]
       const req = new Request('https://host/pdp-verifier/pieces-added', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
         },
         body: JSON.stringify({
-          set_id: dataSetId,
-          piece_ids: pieceIds.join(','),
-          piece_cids: pieceCids.join(','),
+          set_id: dataSetId.toString(),
+          piece_ids: ['91', '99'],
+          piece_cids: [
+            '0x0155912024c6db010b63fa0aff84de00a4cd98802e03d1df5ea18ea430c3a0cdc84af4fc4024ab2714',
+            '0x0155912025969fc401148089adc0ad4f2687f89d0ee984b155cad54834330f2afc1f1d42a59dc1691e05',
+          ],
         }),
       })
       const res = await workerImpl.fetch(req, env, CTX)
@@ -386,23 +390,26 @@ describe('retriever.indexer', () => {
       expect(await res.text()).toBe('OK')
 
       const { results: pieces } = await env.DB.prepare(
-        'SELECT * FROM pieces WHERE data_set_id = ?',
+        'SELECT id, cid FROM pieces WHERE data_set_id = ? ORDER BY id',
       )
         .bind(dataSetId)
         .all()
-      expect(pieces.length).toBe(2)
-      expect(pieces[0].id).toBe(pieceIds[0])
-      expect(pieces[0].data_set_id).toBe(dataSetId)
-      expect(pieces[0].cid).toBe(pieceCids[0])
-      expect(pieces[1].id).toBe(pieceIds[1])
-      expect(pieces[1].data_set_id).toBe(dataSetId)
-      expect(pieces[1].cid).toBe(pieceCids[1])
+      expect(pieces).toEqual([
+        {
+          id: '91',
+          cid: 'bafkzcibey3nqcc3d7ifp7bg6acsm3geafyb5dx26ughkimgdudg4qsxu7racjkzhcq',
+        },
+        {
+          id: '99',
+          cid: 'bafkzcibfs2p4iaiuqce23qfnj4tip6e5b3uyjmkvzlkuqnbtb4vpyhy5iksz3qljdycq',
+        },
+      ])
     })
 
     it('does not insert duplicate pieces for the same data set', async () => {
       const dataSetId = randomId()
-      const pieceIds = [randomId(), randomId()]
-      const pieceCids = [randomId(), randomId()]
+      const pieceIds = [randomId()]
+      const pieceCids = [TEST_CID_HEX]
       for (let i = 0; i < 2; i++) {
         const req = new Request('https://host/pdp-verifier/pieces-added', {
           method: 'POST',
@@ -411,8 +418,8 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({
             set_id: dataSetId,
-            piece_ids: pieceIds.join(','),
-            piece_cids: pieceCids.join(','),
+            piece_ids: pieceIds,
+            piece_cids: pieceCids,
           }),
         })
         const res = await workerImpl.fetch(req, env, CTX)
@@ -425,7 +432,7 @@ describe('retriever.indexer', () => {
       )
         .bind(dataSetId)
         .all()
-      expect(pieces.length).toBe(2)
+      expect(pieces.length).toBe(1)
     })
 
     it('allows multiple data sets to have the same piece id', async () => {
@@ -440,8 +447,8 @@ describe('retriever.indexer', () => {
           },
           body: JSON.stringify({
             set_id: dataSetId,
-            piece_ids: '0',
-            piece_cids: randomId(),
+            piece_ids: ['0'],
+            piece_cids: [TEST_CID_HEX],
           }),
         })
         const res = await workerImpl.fetch(req, env, CTX)
@@ -819,4 +826,116 @@ async function withPieces(env, dataSetId, pieceIds, pieceCids) {
       ]),
     )
     .run()
+}
+
+describe('POST /fwss/cdn-service-terminated', () => {
+  beforeEach(async () => {
+    await env.DB.exec('DELETE FROM data_sets')
+  })
+
+  it('returns 400 if data_set_id is missing', async () => {
+    const req = new Request('https://host/fwss/cdn-service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({}),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('sets `withCDN` flag to `false`', async () => {
+    const dataSetId = await withDataSet(env, {
+      withCDN: true,
+      serviceProviderId: '1',
+      payerAddress: '0xPayerAddress',
+    })
+    const req = new Request('https://host/fwss/cdn-service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        data_set_id: dataSetId,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: dataSets } = await env.DB.prepare(
+      'SELECT id, with_cdn FROM data_sets WHERE id = ?',
+    )
+      .bind(dataSetId)
+      .all()
+    expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
+  })
+})
+
+describe('POST /fwss/service-terminated', () => {
+  beforeEach(async () => {
+    await env.DB.exec('DELETE FROM data_sets')
+  })
+
+  it('returns 400 if data_set_id is missing', async () => {
+    const req = new Request('https://host/fwss/service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({}),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(400)
+    expect(await res.text()).toBe('Bad Request')
+  })
+
+  it('sets `withCDN` flag to `false`', async () => {
+    const dataSetId = await withDataSet(env, {
+      withCDN: true,
+      serviceProviderId: '1',
+      payerAddress: '0xPayerAddress',
+    })
+    const req = new Request('https://host/fwss/service-terminated', {
+      method: 'POST',
+      headers: {
+        [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
+      },
+      body: JSON.stringify({
+        data_set_id: dataSetId,
+      }),
+    })
+    const res = await workerImpl.fetch(req, env)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('OK')
+
+    const { results: dataSets } = await env.DB.prepare(
+      'SELECT id, with_cdn FROM data_sets WHERE id = ?',
+    )
+      .bind(dataSetId)
+      .all()
+    expect(dataSets).toStrictEqual([{ id: dataSetId, with_cdn: 0 }])
+  })
+})
+
+async function withDataSet(
+  env,
+  { dataSetId = randomId(), withCDN = true, serviceProviderId, payerAddress },
+) {
+  await env.DB.prepare(
+    `
+    INSERT INTO data_sets (
+      id,
+      with_cdn,
+      service_provider_id,
+      payer_address
+    )
+    VALUES (?, ?, ?, ?)`,
+  )
+    .bind(String(dataSetId), withCDN, serviceProviderId, payerAddress)
+    .run()
+
+  return dataSetId
 }
