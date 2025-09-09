@@ -6,7 +6,10 @@ cd "$(dirname "$(readlink -f "$0")")"
 # Add monorepo's node_modules to the PATH
 PATH=../node_modules/.bin:$PATH
 
-if ! wrangler d1 list --env mainnet | grep -q filcdn-mainnet-db; then
-  wrangler d1 create filcdn-mainnet-db --env mainnet
+DB=filcdn-mainnet-db
+ENV=mainnet
+
+if ! wrangler d1 list | grep -q "$DB"; then
+  wrangler d1 create "$DB" --env "$ENV"
 fi
-wrangler d1 migrations apply filcdn-mainnet-db --remote --env mainnet
+wrangler d1 migrations apply "$DB" --remote --env "$ENV"
