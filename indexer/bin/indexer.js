@@ -76,7 +76,7 @@ export default {
           typeof payload.provider_id === 'string'
         ) ||
         (typeof payload.metadata_keys !== 'string' &&
-          payload.metadata_keys !== null)
+          typeof payload.metadata_keys !== 'undefined')
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
