@@ -116,7 +116,7 @@ export async function handleProviderRemoved(env, providerId) {
         DELETE FROM service_providers WHERE id = ?
       `,
   )
-    .bind(providerId)
+    .bind(String(providerId))
     .run()
   if (result.meta.changes === 0) {
     return new Response('Provider Not Found', { status: 404 })

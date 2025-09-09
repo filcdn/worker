@@ -624,7 +624,7 @@ describe('retriever.indexer', () => {
       const { results: providers } = await env.DB.prepare(
         'SELECT * FROM service_providers WHERE id = ?',
       )
-        .bind(providerId)
+        .bind(String(providerId))
         .all()
       expect(providers.length).toBe(1)
       expect(providers[0].service_url).toBe(newServiceUrl)
@@ -695,7 +695,7 @@ describe('retriever.indexer', () => {
       const { results: providers } = await env.DB.prepare(
         'SELECT * FROM service_providers WHERE id = ?',
       )
-        .bind(providerId)
+        .bind(String(providerId))
         .all()
       expect(providers.length).toBe(0) // The provider should be removed
     })
