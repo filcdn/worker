@@ -1,6 +1,9 @@
 name: CI
 on:
   push:
+    branches:
+      - main
+      - 'update/m2.5'
   pull_request:
 
 jobs:
@@ -16,6 +19,26 @@ jobs:
 
       - run: npm run lint
       - run: npm test
+
+  test-subgraph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: subgraph
+        run: npm ci
+
+      - name: Run codegen
+        working-directory: subgraph
+        run: npm run codegen
+
+      - name: Test Subgraph
+        working-directory: subgraph
+        run: npm run test
 
   deploy:
     strategy:

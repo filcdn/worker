@@ -1,0 +1,18 @@
+type PiecesAdded @entity(immutable: true) {
+  id: Bytes!
+  setId: String! # uint256
+  pieceIds: [String!]! # uint256[]
+  pieceCids: [String!]!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PiecesRemoved @entity(immutable: true) {
+  id: Bytes!
+  setId: String! # uint256
+  pieceIds: [String!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
