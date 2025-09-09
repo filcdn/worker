@@ -202,7 +202,6 @@ describe('retriever.indexer', () => {
           data_set_id: randomId(),
           payer: '0xPayerAddress',
           provider_id: providerId,
-          metadata_keys: null,
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
