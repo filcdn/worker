@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import { getChainClient as defaultGetChainClient } from './chain.js'
 import { abi as fwssAbi } from './fwss.js'
 

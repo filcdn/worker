@@ -91,7 +91,7 @@ describe('Terminator - queue entrypoint', () => {
     expect(mockMessage.retry).not.toHaveBeenCalled()
   })
 
-  it('handles unknown message types gracefully', async () => {
+  it('handles unknown message types -- single unknown message', async () => {
     const ctx = createExecutionContext()
     const mockMessage = {
       body: { type: 'unknown-type', data: 'test' },
@@ -100,10 +100,28 @@ describe('Terminator - queue entrypoint', () => {
     }
     const batch = { messages: [mockMessage] }
 
-    await terminator.queue(batch, env, ctx)
+    await expect(terminator.queue(batch, env, ctx)).rejects.toThrowError(
+      'Unknown message type: unknown-type',
+    )
     await waitOnExecutionContext(ctx)
-
     expect(mockMessage.ack).toHaveBeenCalled()
+    expect(mockMessage.retry).not.toHaveBeenCalled()
+  })
+
+  it('handles unknown message types -- multiple unknown messages', async () => {
+    const ctx = createExecutionContext()
+    const mockMessage = {
+      body: { type: 'unknown-type', data: 'test' },
+      ack: vi.fn(),
+      retry: vi.fn(),
+    }
+    const batch = { messages: [mockMessage, mockMessage] }
+
+    await expect(terminator.queue(batch, env, ctx)).rejects.toThrowError(
+      'Unknown message types',
+    )
+    await waitOnExecutionContext(ctx)
+    expect(mockMessage.ack).toHaveBeenCalledTimes(2)
     expect(mockMessage.retry).not.toHaveBeenCalled()
   })
 

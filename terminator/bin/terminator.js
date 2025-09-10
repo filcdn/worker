@@ -74,6 +74,7 @@ export default {
       handleTransactionCancelQueueMessage = defaultHandleTransactionCancelQueueMessage,
     } = {},
   ) {
+    const unknownMessageErrors = []
     for (const message of batch.messages) {
       console.log(
         `Processing transaction queue message of type: ${message.type}`,
@@ -89,13 +90,21 @@ export default {
             break
 
           default:
-            throw new Error(`Unknown message type: ${message.body.type}`)
+            unknownMessageErrors.push(
+              new Error(`Unknown message type: ${message.body.type}`),
+            )
         }
         message.ack()
       } catch (error) {
         console.error(`Failed to process queue message, retrying:`, error)
         message.retry()
       }
+    }
+
+    if (unknownMessageErrors.length === 1) {
+      throw unknownMessageErrors[0]
+    } else if (unknownMessageErrors.length) {
+      throw new AggregateError(unknownMessageErrors, 'Unknown message types')
     }
   },
 }
