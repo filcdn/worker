@@ -3,7 +3,7 @@ import { TransactionMonitorWorkflow } from '../lib/transaction-monitor-workflow.
 import { terminateCDNServiceForSanctionedWallets as defaultTerminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-service.js'
 import {
   handleTerminateCdnServiceQueueMessage as defaultHandleTerminateCdnServiceQueueMessage,
-  handleTransactionCancelQueueMessage as defaultHandleTransactionCancelQueueMessage,
+  handleTransactionRetryQueueMessage as defaultHandleTransactionRetryQueueMessage,
 } from '../lib/queue-handlers.js'
 
 /**
@@ -15,9 +15,9 @@ import {
 
 /**
  * @typedef {{
- *   type: 'transaction-cancel'
+ *   type: 'transaction-retry'
  *   transactionHash: string
- * }} TransactionCancelMessage
+ * }} TransactionRetryMessage
  */
 
 /**
@@ -31,7 +31,7 @@ import {
  *   FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY: string
  *   DB: D1Database
  *   TRANSACTION_QUEUE: import('cloudflare:workers').Queue<
- *     TerminateServiceMessage | TransactionCancelMessage
+ *     TerminateServiceMessage | TransactionRetryMessage
  *   >
  *   TRANSACTION_MONITOR_WORKFLOW: import('cloudflare:workers').WorkflowEntrypoint
  * }} TerminatorEnv
@@ -59,9 +59,7 @@ export default {
   /**
    * Queue consumer for all transaction-related messages
    *
-   * @param {MessageBatch<
-   *   TerminateServiceMessage | TransactionCancelMessage
-   * >} batch
+   * @param {MessageBatch<TerminateServiceMessage | TransactionRetryMessage>} batch
    * @param {TerminatorEnv} env
    * @param {ExecutionContext} ctx
    */
@@ -71,7 +69,7 @@ export default {
     ctx,
     {
       handleTerminateCdnServiceQueueMessage = defaultHandleTerminateCdnServiceQueueMessage,
-      handleTransactionCancelQueueMessage = defaultHandleTransactionCancelQueueMessage,
+      handleTransactionRetryQueueMessage = defaultHandleTransactionRetryQueueMessage,
     } = {},
   ) {
     const unknownMessageErrors = []
@@ -85,8 +83,8 @@ export default {
             await handleTerminateCdnServiceQueueMessage(message.body, env)
             break
 
-          case 'transaction-cancel':
-            await handleTransactionCancelQueueMessage(message.body, env)
+          case 'transaction-retry':
+            await handleTransactionRetryQueueMessage(message.body, env)
             break
 
           default:

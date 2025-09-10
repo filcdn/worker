@@ -1,6 +1,7 @@
 import assert from 'node:assert'
-import { getChainClient as defaultGetChainClient } from './chain.js'
 import { abi as fwssAbi } from './fwss.js'
+import { getChainClient as defaultGetChainClient } from './chain.js'
+import { getRecentSendMessage as defaultGetRecentSendMessage } from './filfox.js'
 
 /**
  * @typedef {{
@@ -11,9 +12,9 @@ import { abi as fwssAbi } from './fwss.js'
 
 /**
  * @typedef {{
- *   type: 'transaction-cancel'
+ *   type: 'transaction-retry'
  *   transactionHash: string
- * }} TransactionCancelMessage
+ * }} TransactionRetryMessage
  */
 
 /**
@@ -24,9 +25,7 @@ import { abi as fwssAbi } from './fwss.js'
  *   FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY: string
  *   TRANSACTION_MONITOR_WORKFLOW: import('cloudflare:workers').WorkflowEntrypoint
  *   TRANSACTION_QUEUE: import('cloudflare:workers').Queue<
- *     | TerminateServiceMessage
- *     | TransactionCancelMessage
- *     | TransactionRetryMessage
+ *     TerminateServiceMessage | TransactionRetryMessage
  *   >
  * }} Env
  */
@@ -99,22 +98,23 @@ export async function handleTerminateCdnServiceQueueMessage(
 }
 
 /**
- * Handles transaction cancellation queue messages
+ * Handles transaction retry queue messages
  *
- * @param {TransactionCancelMessage} message
+ * @param {TransactionRetryMessage} message
  * @param {Env} env
  */
-export async function handleTransactionCancelQueueMessage(
+export async function handleTransactionRetryQueueMessage(
   message,
   env,
-  { getChainClient = defaultGetChainClient } = {},
+  {
+    getChainClient = defaultGetChainClient,
+    getRecentSendMessage = defaultGetRecentSendMessage,
+  } = {},
 ) {
   const { transactionHash } = message
   assert(transactionHash)
 
-  console.log(
-    `Processing transaction cancellation for hash: ${transactionHash}`,
-  )
+  console.log(`Processing transaction retry for hash: ${transactionHash}`)
 
   try {
     const { publicClient, walletClient } = getChainClient(env)
@@ -127,14 +127,14 @@ export async function handleTransactionCancelQueueMessage(
 
       if (receipt && receipt.blockNumber && receipt.blockNumber > 0n) {
         console.log(
-          `Transaction ${transactionHash} is no longer pending, cancellation not needed`,
+          `Transaction ${transactionHash} is no longer pending, retry not needed`,
         )
         return
       }
     } catch (error) {
-      // Transaction not found or still pending, continue with cancellation
+      // Transaction not found or still pending, continue with retry
       console.log(
-        `Transaction ${transactionHash} is still pending, proceeding with cancellation`,
+        `Transaction ${transactionHash} is still pending, proceeding with retry`,
       )
     }
 
@@ -143,55 +143,62 @@ export async function handleTransactionCancelQueueMessage(
       hash: transactionHash,
     })
 
+    console.log(`Retrieved original transaction ${transactionHash} for retry`)
+
+    const recentSendMessage = await getRecentSendMessage()
     console.log(
-      `Retrieved original transaction ${transactionHash} for cancellation`,
+      `Calculating gas fees from the recent Send message ${recentSendMessage.cid}`,
     )
 
-    // Calculate higher gas price (150% of original)
-    const newGasPrice = originalTx.gasPrice
-      ? (originalTx.gasPrice * 3n) / 2n
-      : undefined
-    const newMaxFeePerGas = originalTx.maxFeePerGas
-      ? (originalTx.maxFeePerGas * 3n) / 2n
-      : undefined
-    const newMaxPriorityFeePerGas = originalTx.maxPriorityFeePerGas
-      ? (originalTx.maxPriorityFeePerGas * 3n) / 2n
-      : undefined
+    // Increase by 25% + 1 attoFIL (easier: 25.2%) and round up
+    const newMaxPriorityFeePerGas =
+      (originalTx.maxPriorityFeePerGas * 1252n + 1000n) / 1000n
+    const newGasLimit = BigInt(
+      Math.min(
+        Math.ceil(
+          Math.max(Number(originalTx.gasLimit), recentSendMessage.gasLimit) *
+            1.1,
+        ),
+        1e10, // block gas limit
+      ),
+    )
 
-    // Send empty transaction to same address with same nonce but higher gas to cancel
-    const cancelHash = await walletClient.sendTransaction({
+    // Replace the transaction by sending a new one with the same nonce but higher gas fees
+    const retryHash = await walletClient.sendTransaction({
       to: originalTx.to,
-      value: 0n,
       nonce: originalTx.nonce,
-      gasPrice: newGasPrice,
-      maxFeePerGas: newMaxFeePerGas,
+      value: originalTx.value,
+      input: originalTx.input,
+      gasLimit: newGasLimit,
+      maxFeePerGas:
+        newMaxPriorityFeePerGas > recentSendMessage.gasFeeCap
+          ? newMaxPriorityFeePerGas
+          : recentSendMessage.gasFeeCap,
       maxPriorityFeePerGas: newMaxPriorityFeePerGas,
     })
 
     console.log(
-      `Sent cancellation transaction ${cancelHash} for original transaction ${transactionHash}`,
+      `Sent retry transaction ${retryHash} for original transaction ${transactionHash}`,
     )
 
     await env.DB.prepare(
       `UPDATE data_sets SET terminate_service_tx_hash = ? WHERE terminate_service_tx_hash = ?`,
     )
-      .bind(cancelHash, transactionHash)
+      .bind(retryHash, transactionHash)
       .run()
 
-    // Start a new transaction monitor workflow for the cancellation transaction
+    // Start a new transaction monitor workflow for the retry transaction
     await env.TRANSACTION_MONITOR_WORKFLOW.create({
-      id: `transaction-monitor-${cancelHash}-${Date.now()}`,
+      id: `transaction-monitor-${retryHash}-${Date.now()}`,
       params: {
-        transactionHash: cancelHash,
+        transactionHash: retryHash,
       },
     })
 
-    console.log(
-      `Started transaction monitor workflow for cancellation: ${cancelHash}`,
-    )
+    console.log(`Started transaction monitor workflow for retry: ${retryHash}`)
   } catch (error) {
     console.error(
-      `Failed to process transaction cancellation for hash: ${transactionHash}`,
+      `Failed to process transaction retry for hash: ${transactionHash}`,
       error,
     )
     throw error

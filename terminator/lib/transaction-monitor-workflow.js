@@ -3,7 +3,7 @@ import { WorkflowEntrypoint } from 'cloudflare:workers'
 import { getChainClient as defaultGetChainClient } from './chain.js'
 
 /**
- * Workflow that monitors a transaction and starts cancel workflow if it takes
+ * Workflow that monitors a transaction and starts retry workflow if it takes
  * too long
  */
 export class TransactionMonitorWorkflow extends WorkflowEntrypoint {
@@ -34,13 +34,13 @@ export class TransactionMonitorWorkflow extends WorkflowEntrypoint {
         },
       )
     } catch (error) {
-      // Send message to cancel queue
+      // Send retry message to transaction queue
       await step.do(
-        'send to cancel queue',
+        'send to retry queue',
         { timeout: '30 seconds' },
         async () => {
           await this.env.TRANSACTION_QUEUE.send({
-            type: 'transaction-cancel',
+            type: 'transaction-retry',
             transactionHash,
           })
         },

@@ -62,28 +62,28 @@ describe('Terminator - queue entrypoint', () => {
     expect(mockMessage.retry).not.toHaveBeenCalled()
   })
 
-  it('processes transaction-cancel messages correctly', async () => {
+  it('processes transaction-retry messages correctly', async () => {
     const ctx = createExecutionContext()
     const mockMessage = {
-      body: { type: 'transaction-cancel', transactionHash: '0xabc123' },
+      body: { type: 'transaction-retry', transactionHash: '0xabc123' },
       ack: vi.fn(),
       retry: vi.fn(),
     }
 
-    const mockHandleTransactionCancelQueueMessage = vi
+    const mockHandleTransactionRetryQueueMessage = vi
       .fn()
       .mockResolvedValue(undefined)
     const batch = { messages: [mockMessage] }
 
     // Mock the queue handler
     await terminator.queue(batch, env, ctx, {
-      handleTransactionCancelQueueMessage:
-        mockHandleTransactionCancelQueueMessage,
+      handleTransactionRetryQueueMessage:
+        mockHandleTransactionRetryQueueMessage,
     })
 
     await waitOnExecutionContext(ctx)
 
-    expect(mockHandleTransactionCancelQueueMessage).toHaveBeenCalledWith(
+    expect(mockHandleTransactionRetryQueueMessage).toHaveBeenCalledWith(
       mockMessage.body,
       env,
     )
@@ -162,7 +162,7 @@ describe('Terminator - queue entrypoint', () => {
         retry: vi.fn(),
       },
       {
-        body: { type: 'transaction-cancel', transactionHash: '0xdef456' },
+        body: { type: 'transaction-retry', transactionHash: '0xdef456' },
         ack: vi.fn(),
         retry: vi.fn(),
       },
@@ -173,15 +173,15 @@ describe('Terminator - queue entrypoint', () => {
     const mockHandleTerminateCdnServiceQueueMessage = vi
       .fn()
       .mockResolvedValue(undefined)
-    const mockHandleTransactionCancelQueueMessage = vi
+    const mockHandleTransactionRetryQueueMessage = vi
       .fn()
       .mockResolvedValue(undefined)
 
     await terminator.queue(batch, env, ctx, {
       handleTerminateCdnServiceQueueMessage:
         mockHandleTerminateCdnServiceQueueMessage,
-      handleTransactionCancelQueueMessage:
-        mockHandleTransactionCancelQueueMessage,
+      handleTransactionRetryQueueMessage:
+        mockHandleTransactionRetryQueueMessage,
     })
 
     await waitOnExecutionContext(ctx)
@@ -190,7 +190,7 @@ describe('Terminator - queue entrypoint', () => {
       messages[0].body,
       env,
     )
-    expect(mockHandleTransactionCancelQueueMessage).toHaveBeenCalledWith(
+    expect(mockHandleTransactionRetryQueueMessage).toHaveBeenCalledWith(
       messages[1].body,
       env,
     )
@@ -208,7 +208,7 @@ describe('Terminator - queue entrypoint', () => {
         retry: vi.fn(),
       },
       {
-        body: { type: 'transaction-cancel', transactionHash: '0xdef456' },
+        body: { type: 'transaction-retry', transactionHash: '0xdef456' },
         ack: vi.fn(),
         retry: vi.fn(),
       },
@@ -219,15 +219,15 @@ describe('Terminator - queue entrypoint', () => {
     const mockHandleTerminateCdnServiceQueueMessage = vi
       .fn()
       .mockRejectedValue(error)
-    const mockHandleTransactionCancelQueueMessage = vi
+    const mockHandleTransactionRetryQueueMessage = vi
       .fn()
       .mockResolvedValue(undefined)
 
     await terminator.queue(batch, env, ctx, {
       handleTerminateCdnServiceQueueMessage:
         mockHandleTerminateCdnServiceQueueMessage,
-      handleTransactionCancelQueueMessage:
-        mockHandleTransactionCancelQueueMessage,
+      handleTransactionRetryQueueMessage:
+        mockHandleTransactionRetryQueueMessage,
     })
 
     await waitOnExecutionContext(ctx)
@@ -236,7 +236,7 @@ describe('Terminator - queue entrypoint', () => {
       messages[0].body,
       env,
     )
-    expect(mockHandleTransactionCancelQueueMessage).toHaveBeenCalledWith(
+    expect(mockHandleTransactionRetryQueueMessage).toHaveBeenCalledWith(
       messages[1].body,
       env,
     )
