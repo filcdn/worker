@@ -73,10 +73,10 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ matrix.environment }}
-      - name: Deploy Service Monitor
+      - name: Deploy Terminator
         uses: cloudflare/wrangler-action@v3
         with:
-          workingDirectory: service-monitor
+          workingDirectory: terminator
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ matrix.environment }}
