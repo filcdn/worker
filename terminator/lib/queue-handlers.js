@@ -1,5 +1,5 @@
 import { getChainClient as defaultGetChainClient } from './chain.js'
-import { abi as fwssAbi } from './filecoin-warm-storage-service.js'
+import { abi as fwssAbi } from './fwss.js'
 
 /**
  * @typedef {{
@@ -36,7 +36,7 @@ import { abi as fwssAbi } from './filecoin-warm-storage-service.js'
  * @param {TerminateServiceMessage} message
  * @param {Env} env
  */
-export async function handleTerminateServiceQueueMessage(
+export async function handleTerminateCdnServiceQueueMessage(
   message,
   env,
   { getChainClient = defaultGetChainClient } = {},

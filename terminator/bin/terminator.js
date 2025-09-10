@@ -1,11 +1,8 @@
 /** @import {MessageBatch} from 'cloudflare:workers' */
 import { TransactionMonitorWorkflow } from '../lib/transaction-monitor-workflow.js'
+import { terminateCDNServiceForSanctionedWallets as defaultTerminateCDNServiceForSanctionedWallets } from '../lib/terminate-cdn-service.js'
 import {
-  terminateCDNServiceForSanctionedWallets as defaultTerminateCDNServiceForSanctionedWallets,
-  terminateCDNServiceForSanctionedWallets,
-} from '../lib/terminate-cdn-service.js'
-import {
-  handleTerminateServiceQueueMessage as defaultHandleTerminateServiceQueueMessage,
+  handleTerminateCdnServiceQueueMessage as defaultHandleTerminateCdnServiceQueueMessage,
   handleTransactionCancelQueueMessage as defaultHandleTransactionCancelQueueMessage,
 } from '../lib/queue-handlers.js'
 
@@ -73,7 +70,7 @@ export default {
     env,
     ctx,
     {
-      handleTerminateServiceQueueMessage = defaultHandleTerminateServiceQueueMessage,
+      handleTerminateCdnServiceQueueMessage = defaultHandleTerminateCdnServiceQueueMessage,
       handleTransactionCancelQueueMessage = defaultHandleTransactionCancelQueueMessage,
     } = {},
   ) {
@@ -84,7 +81,7 @@ export default {
       try {
         switch (message.body.type) {
           case 'terminate-cdn-service':
-            await handleTerminateServiceQueueMessage(message.body, env)
+            await handleTerminateCdnServiceQueueMessage(message.body, env)
             break
 
           case 'transaction-cancel':

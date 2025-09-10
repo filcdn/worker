@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
-  handleTerminateServiceQueueMessage,
+  handleTerminateCdnServiceQueueMessage,
   handleTransactionCancelQueueMessage,
 } from '../lib/queue-handlers.js'
 import { env } from 'cloudflare:test'
-import { abi as fwssAbi } from '../lib/filecoin-warm-storage-service.js'
+import { abi as fwssAbi } from '../lib/fwss.js'
 import { randomId, withDataSet } from './test-helpers.js'
 
 // Test fixtures and helpers
@@ -45,7 +45,7 @@ const createMockChainClient = (env) => ({
   },
 })
 
-describe('handleTerminateServiceQueueMessage', () => {
+describe('handleTerminateCdnServiceQueueMessage', () => {
   const date = new Date(2000, 1, 1, 13)
   beforeEach(async () => {
     vi.clearAllMocks()
@@ -70,7 +70,7 @@ describe('handleTerminateServiceQueueMessage', () => {
     mockChainClient.walletClient.writeContract.mockResolvedValue('0xtxhash123')
     await withDataSet(mockEnv, { id: dataSetId.toString(), withCDN: true })
 
-    await handleTerminateServiceQueueMessage(message, mockEnv, {
+    await handleTerminateCdnServiceQueueMessage(message, mockEnv, {
       getChainClient: (env) => mockChainClient,
     })
 
@@ -113,7 +113,7 @@ describe('handleTerminateServiceQueueMessage', () => {
     mockChainClient.publicClient.simulateContract.mockRejectedValue(error)
 
     await expect(
-      handleTerminateServiceQueueMessage(message, mockEnv, {
+      handleTerminateCdnServiceQueueMessage(message, mockEnv, {
         getChainClient: (env) => mockChainClient,
       }),
     ).rejects.toThrow('Contract simulation failed')
@@ -130,7 +130,7 @@ describe('handleTerminateServiceQueueMessage', () => {
     mockChainClient.walletClient.writeContract.mockRejectedValue(error)
 
     await expect(
-      handleTerminateServiceQueueMessage(message, mockEnv, {
+      handleTerminateCdnServiceQueueMessage(message, mockEnv, {
         getChainClient: (env) => mockChainClient,
       }),
     ).rejects.toThrow('Contract call failed')
@@ -145,7 +145,7 @@ describe('handleTerminateServiceQueueMessage', () => {
     mockEnv.TRANSACTION_MONITOR_WORKFLOW.create.mockRejectedValue(error)
 
     await expect(
-      handleTerminateServiceQueueMessage(message, mockEnv, {
+      handleTerminateCdnServiceQueueMessage(message, mockEnv, {
         getChainClient: createMockChainClient,
       }),
     ).rejects.toThrow('Workflow creation failed')
