@@ -89,11 +89,11 @@ export default {
             break
 
           default:
-            console.error(`Unknown message type: ${message.body.type}`)
+            throw new Error(`Unknown message type: ${message.body.type}`)
         }
         message.ack()
       } catch (error) {
-        console.error(`Failed to process queue message:`, error)
+        console.error(`Failed to process queue message, retrying:`, error)
         message.retry()
       }
     }

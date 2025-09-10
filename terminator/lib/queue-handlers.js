@@ -42,6 +42,7 @@ export async function handleTerminateCdnServiceQueueMessage(
   { getChainClient = defaultGetChainClient } = {},
 ) {
   const { dataSetId } = message
+  assert(dataSetId)
 
   console.log(
     `Processing terminate CDN service request for dataSetId: ${dataSetId}`,
@@ -108,6 +109,7 @@ export async function handleTransactionCancelQueueMessage(
   { getChainClient = defaultGetChainClient } = {},
 ) {
   const { transactionHash } = message
+  assert(transactionHash)
 
   console.log(
     `Processing transaction cancellation for hash: ${transactionHash}`,
