@@ -11,6 +11,10 @@ export async function screenWallets(
   env,
   { staleThresholdMs, batchSize, checkIfAddressIsSanctioned },
 ) {
+  console.log(
+    `Screening wallets for sanctions (stale threshold ${staleThresholdMs}ms, batch size ${batchSize})...`,
+  )
+
   const { results: wallets } = await env.DB.prepare(
     `
     SELECT address FROM wallet_details
@@ -23,7 +27,10 @@ export async function screenWallets(
     .all()
 
   // No wallets with a stale sanction check, nothing to do.
-  if (!wallets || !wallets.length) return
+  if (!wallets || !wallets.length) {
+    console.log('No wallets to screen, exiting.')
+    return
+  }
 
   const updateStatementTemplate = env.DB.prepare(
     `
@@ -39,6 +46,9 @@ export async function screenWallets(
         CHAINALYSIS_API_KEY: env.CHAINALYSIS_API_KEY,
       })
       updateStatements.push(updateStatementTemplate.bind(isSanctioned, address))
+      console.log(
+        `Screened wallet ${address} with result: is_sanctioned=${isSanctioned}`,
+      )
     } catch (error) {
       console.error({
         message: `Failed to screen wallet ${address}: ${/** @type {Error} */ (error).message}`,
@@ -50,4 +60,5 @@ export async function screenWallets(
   }
 
   await env.DB.batch(updateStatements)
+  console.log(`Updated last_screened_at for ${updateStatements.length} wallets`)
 }
