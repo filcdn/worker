@@ -59,10 +59,6 @@ export default {
     await terminateCDNServiceForSanctionedWallets(env)
   },
 
-  async fetch(ctx, env) {
-    return await terminateCDNServiceForSanctionedWallets(env)
-  },
-
   /**
    * Queue consumer for all transaction-related messages
    *
