@@ -33,18 +33,6 @@ export class TransactionMonitorWorkflow extends WorkflowEntrypoint {
           })
         },
       )
-
-      await step.do(
-        'clean terminate_service_tx_hash when transaction is confirmed',
-        {},
-        async () => {
-          this.env.DB.prepare(
-            'UPDATE data_sets SET terminate_service_tx_hash = NULL WHERE terminate_service_tx_hash = ?',
-          )
-            .bind(transactionHash)
-            .run()
-        },
-      )
     } catch (error) {
       // Send message to cancel queue
       await step.do(
