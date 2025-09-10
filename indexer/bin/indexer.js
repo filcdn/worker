@@ -29,6 +29,7 @@ import { CID } from 'multiformats/cid'
  *   SECRET_HEADER_KEY: string
  *   SECRET_HEADER_VALUE: string
  *   CHAINALYSIS_API_KEY: string
+ *   GOLDSKY_SUBGRAPH_URL: string
  * }} IndexerEnv
  */
 
@@ -64,7 +65,6 @@ export default {
     const pathname = new URL(request.url).pathname
     if (pathname === '/fwss/data-set-created') {
       if (
-        !payload.data_set_id ||
         !(
           typeof payload.data_set_id === 'number' ||
           typeof payload.data_set_id === 'string'
@@ -73,8 +73,7 @@ export default {
         !(
           typeof payload.provider_id === 'number' ||
           typeof payload.provider_id === 'string'
-        ) ||
-        typeof payload.metadata_keys !== 'string'
+        )
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
@@ -260,7 +259,7 @@ export default {
     } = {},
   ) {
     const results = await Promise.allSettled([
-      this.checkGoldskyStatus({ fetch }),
+      this.checkGoldskyStatus(env, { fetch }),
       screenWallets(env, {
         batchSize: Number(env.WALLET_SCREENING_BATCH_SIZE),
         staleThresholdMs: Number(env.WALLET_SCREENING_STALE_THRESHOLD_MS),
@@ -278,18 +277,17 @@ export default {
   },
 
   /**
+   * @param {IndexerEnv} env
    * @param {object} options
    * @param {typeof globalThis.fetch} options.fetch
    */
-  async checkGoldskyStatus({ fetch }) {
+  async checkGoldskyStatus(env, { fetch }) {
     const [subgraph] = await Promise.all([
       (async () => {
-        const res = await fetch(
-          'https://api.goldsky.com/api/public/project_cmb91qc80slyu01wca6e2eupl/subgraphs/pdp-verifier/1.0.0/gn',
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              query: `
+        const res = await fetch(env.GOLDSKY_SUBGRAPH_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            query: `
               query {
                 _meta {
                   hasIndexingErrors
@@ -299,9 +297,8 @@ export default {
                 }
               }
             `,
-            }),
-          },
-        )
+          }),
+        })
         const { data } = await res.json()
         return data
       })(),
