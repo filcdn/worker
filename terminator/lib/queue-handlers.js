@@ -153,6 +153,7 @@ export async function handleTransactionRetryQueueMessage(
     // Increase by 25% + 1 attoFIL (easier: 25.2%) and round up
     const newMaxPriorityFeePerGas =
       (originalTx.maxPriorityFeePerGas * 1252n + 1000n) / 1000n
+
     const newGasLimit = BigInt(
       Math.min(
         Math.ceil(
@@ -163,6 +164,11 @@ export async function handleTransactionRetryQueueMessage(
       ),
     )
 
+    const newMaxFeePerGas =
+      newMaxPriorityFeePerGas > recentSendMessage.gasFeeCap
+        ? newMaxPriorityFeePerGas
+        : recentSendMessage.gasFeeCap
+
     // Replace the transaction by sending a new one with the same nonce but higher gas fees
     const retryHash = await walletClient.sendTransaction({
       to: originalTx.to,
@@ -170,10 +176,7 @@ export async function handleTransactionRetryQueueMessage(
       value: originalTx.value,
       input: originalTx.input,
       gasLimit: newGasLimit,
-      maxFeePerGas:
-        newMaxPriorityFeePerGas > recentSendMessage.gasFeeCap
-          ? newMaxPriorityFeePerGas
-          : recentSendMessage.gasFeeCap,
+      maxFeePerGas: newMaxFeePerGas,
       maxPriorityFeePerGas: newMaxPriorityFeePerGas,
     })
 

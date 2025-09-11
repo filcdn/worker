@@ -1,5 +1,18 @@
 import assert from 'node:assert'
 
+/**
+ * @typedef {{
+ *   cid: string
+ *   gasLimit: number
+ *   gasFeeCap: string
+ * }} FilfoxSendMessage
+ */
+
+/**
+ * Fetches a recent Send message from Filfox to use as a reference for gas fees.
+ *
+ * @returns {Promise<FilfoxSendMessage>}
+ */
 export const getRecentSendMessage = async () => {
   let res = await fetch('https://filfox.info/api/v1/message/list?method=Send')
   if (!res.ok) {

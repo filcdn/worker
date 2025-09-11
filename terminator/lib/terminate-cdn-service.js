@@ -27,6 +27,9 @@ export async function terminateCDNServiceForSanctionedWallets(env) {
   }))
 
   if (messages.length > 0) {
+    // Queue is utilised here so we can avoid tracking nonces for transactions.
+    // By setting the queue concurrency to 1 we're able to send transactions
+    // one at a time and hence pick up new nonce every time we send a new transaction.
     await env.TRANSACTION_QUEUE.sendBatch(messages)
     console.log(`Sent ${messages.length} messages to transaction queue`)
   }

@@ -8,7 +8,6 @@ logpush = true
 enabled = true
 head_sampling_rate = 1
 
-
 [[d1_databases]]
 binding = "DB"
 database_name = "test-db"
@@ -54,10 +53,11 @@ crons = ["*/1 * * * *"]  # Run every minute
 queue = "transaction-queue-dev"
 binding = "TRANSACTION_QUEUE"
 
+# queue concurrency has to be set to 1 in order to send 
+# transactions at a time and avoid nonce tracking
 [[env.dev.queues.consumers]]
 queue = "transaction-queue-dev"
-max_batch_size = 1
-max_batch_timeout = 5
+max_concurrency = 1
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
@@ -65,10 +65,11 @@ dead_letter_queue = "transaction-dlq"
 queue = "transaction-queue-mainnet"
 binding = "TRANSACTION_QUEUE"
 
+# queue concurrency has to be set to 1 in order to send 
+# transactions at a time and avoid nonce tracking
 [[env.mainnet.queues.consumers]]
 queue = "transaction-queue-mainnet"
-max_batch_size = 1
-max_batch_timeout = 5
+max_concurrency = 1
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
@@ -76,10 +77,11 @@ dead_letter_queue = "transaction-dlq"
 queue = "transaction-queue-calibration"
 binding = "TRANSACTION_QUEUE"
 
+# queue concurrency has to be set to 1 in order to send 
+# transactions at a time and avoid nonce tracking
 [[env.calibration.queues.consumers]]
 queue = "transaction-queue-calibration"
-max_batch_size = 1
-max_batch_timeout = 5
+max_concurrency = 1
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
