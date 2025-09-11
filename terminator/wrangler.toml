@@ -54,7 +54,7 @@ queue = "transaction-queue-dev"
 binding = "TRANSACTION_QUEUE"
 
 # queue concurrency has to be set to 1 in order to send 
-# transactions at a time and avoid nonce tracking
+# transactions one at a time and avoid nonce tracking
 [[env.dev.queues.consumers]]
 queue = "transaction-queue-dev"
 max_concurrency = 1
