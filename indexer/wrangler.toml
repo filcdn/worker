@@ -38,6 +38,15 @@ database_id = "78f15bbb-391f-4797-9016-a6cb86c0b9b8"
 [env.calibration.triggers]
 crons = ["*/1 * * * *"]  # Run every minute
 
+[[env.calibration.queues.producers]]
+queue = "indexer-retry-queue-calibration"
+binding = "RETRY_QUEUE"
+
+[[env.calibration.queues.consumers]]
+queue = "indexer-retry-queue-calibration"
+max_batch_size = 100
+max_batch_timeout = 30
+
 [env.mainnet.vars]
 ENVIRONMENT = "mainnet"
 WALLET_SCREENING_BATCH_SIZE = 10
@@ -53,11 +62,11 @@ database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"
 [env.mainnet.triggers]
 crons = ["*/1 * * * *"]  # Run every minute
 
-[[queues.producers]]
-queue = "retry-queue"
+[[env.mainnet.queues.producers]]
+queue = "indexer-retry-queue-mainnet"
 binding = "RETRY_QUEUE"
 
-[[queues.consumers]]
-queue = "retry-queue"
+[[env.mainnet.queues.consumers]]
+queue = "indexer-retry-queue-mainnet"
 max_batch_size = 100
 max_batch_timeout = 30
