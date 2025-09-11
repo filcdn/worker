@@ -39,19 +39,19 @@ sources:
       - name: pdp-verifier-alpha-calibnet
         version: 1.1.0
     name: pieces_removed
-  source_1_copy_copy:
+  source_fwss_cdn_service_terminated:
     type: subgraph_entity
     subgraphs:
       - name: fwss-alpha-calibnet
         version: 1.0.0
     name: cdn_service_terminated
-  source_2_copy_copy:
+  source__service_provider_registry__product_removed:
     type: subgraph_entity
     subgraphs:
       - name: service-provider-registry-alpha-calibnet
         version: 1.0.0
     name: product_removed
-  source_2_copy_copy_copy:
+  source__service_provider_registry__provider_removed:
     type: subgraph_entity
     subgraphs:
       - name: service-provider-registry-alpha-calibnet
@@ -95,22 +95,22 @@ sinks:
     secret_name: WEBHOOK_SECRET_CMBHIZHPO0
     one_row_per_request: true
     from: source_3_copy
-  sink_1_copy_copy:
+  sink_fwss_cdn_service_terminated:
     url: https://index.calibration.filcdn.io/fwss/cdn-service-terminated
     type: webhook
     secret_name: WEBHOOK_SECRET_CMBHIZHPO0
     one_row_per_request: true
-    from: source_1_copy_copy
-  sink_1_copy_copy_copy_copy_copy:
+    from: source_fwss_cdn_service_terminated
+  sink__service_provider_registry__product_removed:
     url: https://index.calibration.filcdn.io/service-provider-registry/product-removed
     type: webhook
     secret_name: WEBHOOK_SECRET_CMBHIZHPO0
     one_row_per_request: true
-    from: source_2_copy_copy
-  sink_1_copy_copy_copy_copy_copy_copy:
+    from: source__service_provider_registry__product_removed
+  sink_service_provider_registry__provider_removed:
     url: https://index.calibration.filcdn.io/service-provider-registry/provider-removed
     type: webhook
     secret_name: WEBHOOK_SECRET_CMBHIZHPO0
     one_row_per_request: true
-    from: source_2_copy_copy_copy
-use_dedicated_ip: false
+    from: source__service_provider_registry__provider_removed
+use_dedicated_ip: true
