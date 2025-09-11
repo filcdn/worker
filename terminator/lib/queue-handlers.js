@@ -76,7 +76,7 @@ export async function handleTerminateCdnServiceQueueMessage(
     WHERE id = ?
     `,
     )
-      .bind(hash, dataSetId)
+      .bind(hash, String(dataSetId))
       .run()
 
     // Start transaction monitor workflow
