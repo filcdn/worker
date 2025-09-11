@@ -50,7 +50,7 @@ database_id = "e8de6418-2cb7-4413-9ba0-a9c8aacf9a66"
 crons = ["*/1 * * * *"]  # Run every minute
 
 [[env.dev.queues.producers]]
-queue = "transaction-queue-dev"
+queue = "terminator-transaction-queue-dev"
 binding = "TRANSACTION_QUEUE"
 
 # queue concurrency has to be set to 1 in order to send 
