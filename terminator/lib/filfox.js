@@ -1,4 +1,4 @@
-import assert from 'assert'
+import assert from 'node:assert'
 
 export const getRecentSendMessage = async () => {
   let res = await fetch('https://filfox.info/api/v1/message/list?method=Send')
