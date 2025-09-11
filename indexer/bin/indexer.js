@@ -221,7 +221,7 @@ export default {
     { checkIfAddressIsSanctioned = defaultCheckIfAddressIsSanctioned } = {},
   ) {
     for (const message of batch.messages) {
-      if (message.body.type === 'proof-set-rail-created') {
+      if (message.body.type === 'fwss-data-set-created') {
         try {
           await handleFWSSDataSetCreated(env, message.body.payload, {
             checkIfAddressIsSanctioned,
