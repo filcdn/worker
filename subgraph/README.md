@@ -10,7 +10,9 @@ Before you begin, ensure you have the following installed and set up:
 2.  **Goldsky Account:** You need an account on Goldsky to host your subgraph. Sign up at [goldsky.com](https://goldsky.com/).
 3.  **Goldsky CLI:** This tool allows you to deploy subgraphs to the Goldsky platform. Follow the installation instructions in the [Goldsky Documentation](https://docs.goldsky.com/introduction).
 
-## Deploying the Subgraph to Goldsky
+## Subgraphs
+
+### Deploying the Subgraph to Goldsky
 
 Follow these steps to build and deploy the subgraph:
 
@@ -77,7 +79,7 @@ Follow these steps to build and deploy the subgraph:
     goldsky subgraph tag delete <your-subgraph-name>/<version> --tag <tag-name>
     ```
 
-## Modifying and Redeploying the Subgraph
+### Modifying and Redeploying the Subgraph
 
 If you need to make changes to the subgraph's logic, schema, or configuration, follow these general steps:
 
@@ -108,6 +110,14 @@ If you need to make changes to the subgraph's logic, schema, or configuration, f
 
 - **AssemblyScript:** Subgraph mappings are written in AssemblyScript, a subset of TypeScript that compiles to Wasm. Learn more at [https://www.assemblyscript.org/](https://www.assemblyscript.org/).
 - **The Graph Documentation:** The official documentation covers subgraph development in detail: [https://thegraph.com/docs/en/subgraphs/developing/creating/starting-your-subgraph/](https://thegraph.com/docs/en/subgraphs/developing/creating/starting-your-subgraph/).
+
+## Goldsky Pipelines
+
+### Apply updates
+
+```shell
+goldsky pipeline apply -f pipelines/alpha-calibnet.yaml
+```
 
 ## Further Information
 
