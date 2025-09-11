@@ -21,7 +21,7 @@ export async function withDataSet(
   await env.DB.prepare(
     `INSERT INTO data_sets (id, service_provider_id, payer_address, with_cdn, terminate_service_tx_hash) VALUES (?, ?, ?, ?, ?)`,
   )
-    .bind(id, serviceProviderId, payerAddress, withCDN, terminateServiceTxHash)
+    .bind(String(id), String(serviceProviderId), payerAddress, withCDN, terminateServiceTxHash)
     .run()
 }
 
