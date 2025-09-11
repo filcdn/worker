@@ -107,5 +107,5 @@ export default {
   },
 }
 
-// Re-export workflows
+// Cloudflare worker runtime requires that you export workflows from the entrypoint file
 export { TransactionMonitorWorkflow }
