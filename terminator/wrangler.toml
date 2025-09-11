@@ -66,7 +66,7 @@ queue = "terminator-transaction-queue-mainnet"
 binding = "TRANSACTION_QUEUE"
 
 # queue concurrency has to be set to 1 in order to send 
-# transactions at a time and avoid nonce tracking
+# transactions one at a time and avoid nonce tracking
 [[env.mainnet.queues.consumers]]
 queue = "terminator-transaction-queue-mainnet"
 max_concurrency = 1
@@ -78,7 +78,7 @@ queue = "terminator-transaction-queue-calibration"
 binding = "TRANSACTION_QUEUE"
 
 # queue concurrency has to be set to 1 in order to send 
-# transactions at a time and avoid nonce tracking
+# transactions one at a time and avoid nonce tracking
 [[env.calibration.queues.consumers]]
 queue = "terminator-transaction-queue-calibration"
 max_concurrency = 1
