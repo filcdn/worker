@@ -56,46 +56,46 @@ binding = "TRANSACTION_QUEUE"
 # queue concurrency has to be set to 1 in order to send 
 # transactions one at a time and avoid nonce tracking
 [[env.dev.queues.consumers]]
-queue = "transaction-queue-dev"
+queue = "terminator-transaction-queue-dev"
 max_concurrency = 1
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
 [[env.mainnet.queues.producers]]
-queue = "transaction-queue-mainnet"
+queue = "terminator-transaction-queue-mainnet"
 binding = "TRANSACTION_QUEUE"
 
 # queue concurrency has to be set to 1 in order to send 
 # transactions at a time and avoid nonce tracking
 [[env.mainnet.queues.consumers]]
-queue = "transaction-queue-mainnet"
+queue = "terminator-transaction-queue-mainnet"
 max_concurrency = 1
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
 [[env.calibration.queues.producers]]
-queue = "transaction-queue-calibration"
+queue = "terminator-transaction-queue-calibration"
 binding = "TRANSACTION_QUEUE"
 
 # queue concurrency has to be set to 1 in order to send 
 # transactions at a time and avoid nonce tracking
 [[env.calibration.queues.consumers]]
-queue = "transaction-queue-calibration"
+queue = "terminator-transaction-queue-calibration"
 max_concurrency = 1
 max_retries = 3
 dead_letter_queue = "transaction-dlq"
 
 [[env.dev.workflows]]
-name = "transaction-monitor-workflow-dev"
+name = "terminator-transaction-monitor-workflow-dev"
 binding = "TRANSACTION_MONITOR_WORKFLOW"
 class_name = "TransactionMonitorWorkflow"
 
 [[env.calibration.workflows]]
-name = "transaction-monitor-workflow-calibration"
+name = "terminator-transaction-monitor-workflow-calibration"
 binding = "TRANSACTION_MONITOR_WORKFLOW"
 class_name = "TransactionMonitorWorkflow"
 
 [[env.mainnet.workflows]]
-name = "transaction-monitor-workflow-mainnet"
+name = "terminator-transaction-monitor-workflow-mainnet"
 binding = "TRANSACTION_MONITOR_WORKFLOW"
 class_name = "TransactionMonitorWorkflow"
