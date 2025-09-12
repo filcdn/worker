@@ -1,0 +1,8 @@
+{
+  "filecoin-calibration": {
+    "PDPVerifier": {
+      "address": "0x445238eca6c6ab8dff1aa6087d9c05734d22f137",
+      "startBlock": 2988200
+    }
+  }
+}

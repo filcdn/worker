@@ -8,7 +8,8 @@
   "workspaces": [
     "bad-bits",
     "indexer",
-    "retriever"
+    "retriever",
+    "terminator"
   ],
   "scripts": {
     "build:types": "npm run build:types --workspaces --if-present",
@@ -21,12 +22,12 @@
   "prettier": "@checkernetwork/prettier-config",
   "devDependencies": {
     "@checkernetwork/prettier-config": "^1.0.1",
-    "@cloudflare/vitest-pool-workers": "^0.8.68",
-    "@types/node": "^22.18.0",
+    "@cloudflare/vitest-pool-workers": "^0.8.71",
+    "@types/node": "^22.18.1",
     "neostandard": "^0.12.1",
     "prettier": "^3.6.2",
     "typescript": "^5.8.3",
     "vitest": "3.1.4",
-    "wrangler": "^4.32.0"
+    "wrangler": "^4.35.0"
   }
 }
