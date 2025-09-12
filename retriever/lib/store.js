@@ -161,7 +161,9 @@ export async function getOwnerAndValidateClient(env, clientAddress, rootCid) {
     `Wallet '${clientAddress}' is sanctioned and cannot retrieve root_cid '${rootCid}'.`,
   )
 
-  const withApprovedProvider = withClientNotSanctioned.filter((row) => row.piece_retrieval_url)
+  const withApprovedProvider = withClientNotSanctioned.filter(
+    (row) => row.piece_retrieval_url,
+  )
   httpAssert(
     withApprovedProvider.length > 0,
     404,
