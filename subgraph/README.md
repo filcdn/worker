@@ -116,7 +116,7 @@ If you need to make changes to the subgraph's logic, schema, or configuration, f
 ### Apply updates
 
 ```shell
-goldsky pipeline apply -f pipelines/alpha-calibnet.yaml
+goldsky pipeline apply pipelines/alpha-calibnet.yaml
 ```
 
 ## Further Information
