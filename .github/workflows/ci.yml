@@ -73,6 +73,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ matrix.environment }}
+      - name: Deploy Terminator
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: terminator
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: ${{ matrix.environment }}
       - if: failure()
         uses: slackapi/slack-github-action@v2.1.1
         with:
