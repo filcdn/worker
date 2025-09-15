@@ -6,6 +6,7 @@ import {
 import { env } from 'cloudflare:test'
 import { abi as fwssAbi } from '../lib/fwss.js'
 import { randomId, withDataSet } from './test-helpers.js'
+import { privateKeyToAccount } from 'viem/accounts'
 
 // Test fixtures and helpers
 const createMockEnv = (env) => ({
@@ -21,6 +22,10 @@ const createMockEnv = (env) => ({
     send: vi.fn().mockResolvedValue(undefined),
   },
 })
+
+const mockAccount = privateKeyToAccount(
+  '0xdead000000000000000000000000000000000000000000000000000000000000',
+)
 
 const createMockChainClient = (env) => ({
   walletClient: {
@@ -43,6 +48,7 @@ const createMockChainClient = (env) => ({
       value: '1000000000000000000',
     }),
   },
+  account: mockAccount,
 })
 
 describe('handleTerminateCdnServiceQueueMessage', () => {
@@ -85,6 +91,7 @@ describe('handleTerminateCdnServiceQueueMessage', () => {
     ])
 
     expect(mockChainClient.publicClient.simulateContract).toHaveBeenCalledWith({
+      account: mockAccount,
       address: '0xcontract',
       abi: fwssAbi,
       functionName: 'terminateCDNService',
@@ -226,6 +233,7 @@ describe('handleTransactionRetryQueueMessage', () => {
 
       expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
         {
+          account: mockAccount,
           to: '0xcontract',
           value: 0n,
           nonce: 42,
@@ -283,6 +291,7 @@ describe('handleTransactionRetryQueueMessage', () => {
 
       expect(mockChainClient.walletClient.sendTransaction).toHaveBeenCalledWith(
         {
+          account: mockAccount,
           to: '0xcontract',
           value: 0n,
           nonce: 42,
