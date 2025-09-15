@@ -49,11 +49,11 @@ export async function handleTerminateCdnServiceQueueMessage(
   )
 
   try {
-    // Get contract instance
-    const { walletClient, publicClient } = getChainClient(env)
+    const { walletClient, publicClient, account } = getChainClient(env)
 
     // Create contract call
     const { request } = await publicClient.simulateContract({
+      account,
       abi: fwssAbi,
       address: env.FILECOIN_WARM_STORAGE_SERVICE_ADDRESS,
       functionName: 'terminateCDNService',
@@ -117,7 +117,7 @@ export async function handleTransactionRetryQueueMessage(
   console.log(`Processing transaction retry for hash: ${transactionHash}`)
 
   try {
-    const { publicClient, walletClient } = getChainClient(env)
+    const { publicClient, walletClient, account } = getChainClient(env)
 
     // First check if the original transaction is still pending
     try {
@@ -171,6 +171,7 @@ export async function handleTransactionRetryQueueMessage(
 
     // Replace the transaction by sending a new one with the same nonce but higher gas fees
     const retryHash = await walletClient.sendTransaction({
+      account,
       to: originalTx.to,
       nonce: originalTx.nonce,
       value: originalTx.value,

@@ -8,7 +8,6 @@ import { filecoinCalibration, filecoin } from 'viem/chains'
  *   RPC_URL: string
  *   FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY: string
  * }} env
- * @returns
  */
 export function getChainClient(env) {
   const chain = env.ENVIRONMENT === 'mainnet' ? filecoin : filecoinCalibration
@@ -27,5 +26,5 @@ export function getChainClient(env) {
     account,
   })
 
-  return { publicClient, walletClient }
+  return { publicClient, walletClient, account }
 }
