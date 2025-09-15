@@ -75,7 +75,7 @@ export default {
     const unknownMessageErrors = []
     for (const message of batch.messages) {
       console.log(
-        `Processing transaction queue message of type: ${message.type}`,
+        `Processing transaction queue message of type: ${message.body.type}`,
       )
       try {
         switch (message.body.type) {
