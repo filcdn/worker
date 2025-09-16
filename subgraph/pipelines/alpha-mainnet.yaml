@@ -113,4 +113,4 @@ sinks:
     secret_name: WEBHOOK_SECRET_CMBHIZHPO0
     one_row_per_request: true
     from: source__service_provider_registry__provider_removed
-use_dedicated_ip: true
+use_dedicated_ip: false
