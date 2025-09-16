@@ -19,7 +19,7 @@ sources:
     type: subgraph_entity
     subgraphs:
       - name: pdp-verifier-alpha-mainnet
-        version: 0.1.0
+        version: 0.0.0
     name: pieces_added
   source__fwss__service_terminated:
     type: subgraph_entity
@@ -37,7 +37,7 @@ sources:
     type: subgraph_entity
     subgraphs:
       - name: pdp-verifier-alpha-mainnet
-        version: 0.1.0
+        version: 0.0.0
     name: pieces_removed
   source_fwss_cdn_service_terminated:
     type: subgraph_entity
