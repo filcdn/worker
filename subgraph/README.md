@@ -39,7 +39,8 @@ Follow these steps to build and deploy the subgraph:
     goldsky login
     ```
 
-4. **Select network:**
+4.  **Select network:**
+
     ```bash
     cp subgraph-{calibnet|mainnet}.yaml subgraph.yaml
     ```
@@ -93,7 +94,8 @@ If you need to make changes to the subgraph's logic, schema, or configuration, f
     - `subgraph-{calibnet|mainnet}.yaml`: To update contract addresses, ABIs, start blocks, or event handlers.
     - `src/*.ts`: To alter the logic that processes blockchain events and maps them to the defined schema entities.
 
-2. **Select network:**
+2.  **Select network:**
+
     ```bash
     cp subgraph-{calibnet|mainnet}.yaml subgraph.yaml
     ```
