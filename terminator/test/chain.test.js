@@ -9,12 +9,14 @@ describe('getChainClient', () => {
       FILECOIN_WARM_STORAGE_SERVICE_ADDRESS:
         '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1',
       FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY:
-        '0x4c0883a69102937d6231471b5dbb6204fe5129617082796fbc48dfcb573d7e0c',
+        '0xdead000000000000000000000000000000000000000000000000000000000000',
     }
 
-    const { walletClient, publicClient } = getChainClient(env)
+    const { walletClient, publicClient, account } = getChainClient(env)
     expect(walletClient).toBeDefined()
     expect(publicClient).toBeDefined()
+    expect(account).toBeDefined()
+    expect(account.address).toBe('0xe1AB69E519d887765cF0bb51D0cFFF2264B38080')
     const chainId = await publicClient.getChainId()
     expect(chainId).toBe(314)
   })
@@ -26,12 +28,14 @@ describe('getChainClient', () => {
       FILECOIN_WARM_STORAGE_SERVICE_ADDRESS:
         '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1',
       FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY:
-        '0x4c0883a69102937d6231471b5dbb6204fe5129617082796fbc48dfcb573d7e0c',
+        '0xdead000000000000000000000000000000000000000000000000000000000000',
     }
 
-    const { walletClient, publicClient } = getChainClient(env)
+    const { walletClient, publicClient, account } = getChainClient(env)
     expect(walletClient).toBeDefined()
     expect(publicClient).toBeDefined()
+    expect(account).toBeDefined()
+    expect(account.address).toBe('0xe1AB69E519d887765cF0bb51D0cFFF2264B38080')
     const chainId = await publicClient.getChainId()
     expect(chainId).toBe(314159)
   })
@@ -43,12 +47,14 @@ describe('getChainClient', () => {
       FILECOIN_WARM_STORAGE_SERVICE_ADDRESS:
         '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1',
       FILCDN_CONTROLLER_ADDRESS_PRIVATE_KEY:
-        '0x4c0883a69102937d6231471b5dbb6204fe5129617082796fbc48dfcb573d7e0c',
+        '0xdead000000000000000000000000000000000000000000000000000000000000',
     }
 
-    const { walletClient, publicClient } = getChainClient(env)
+    const { walletClient, publicClient, account } = getChainClient(env)
     expect(walletClient).toBeDefined()
     expect(publicClient).toBeDefined()
+    expect(account).toBeDefined()
+    expect(account.address).toBe('0xe1AB69E519d887765cF0bb51D0cFFF2264B38080')
     const chainId = await publicClient.getChainId()
     expect(chainId).toBe(314159)
   })
