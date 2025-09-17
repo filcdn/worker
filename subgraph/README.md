@@ -98,7 +98,8 @@ If you need to make changes to the subgraph's logic, schema, or configuration, f
 2.  **Select network:**
 
     ```bash
-    cp subgraph-{calibnet|mainnet}.yaml subgraph.yaml
+    npm run select-calibnet
+    npm run select-mainnet
     ```
 
 3.  **Regenerate Code:** After modifying the schema or manifest, always regenerate the AssemblyScript types:
