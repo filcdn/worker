@@ -21,6 +21,9 @@ jobs:
       - run: npm test
 
   test-subgraph:
+    strategy:
+      matrix:
+        network: [calibnet, mainnet]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -31,6 +34,9 @@ jobs:
       - name: Install dependencies
         working-directory: subgraph
         run: npm ci
+
+      - name: Select network
+        run: cp subgraph/subgraph-${{ matrix.network }} subgraph/subgraph.yaml
 
       - name: Run codegen
         working-directory: subgraph
