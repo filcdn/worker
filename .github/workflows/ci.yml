@@ -36,7 +36,7 @@ jobs:
         run: npm ci
 
       - name: Select network
-        run: cp subgraph/subgraph-${{ matrix.network }} subgraph/subgraph.yaml
+        run: cp subgraph/subgraph-${{ matrix.network }}.yaml subgraph/subgraph.yaml
 
       - name: Run codegen
         working-directory: subgraph
