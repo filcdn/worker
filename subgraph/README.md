@@ -42,7 +42,8 @@ Follow these steps to build and deploy the subgraph:
 4.  **Select network:**
 
     ```bash
-    cp subgraph-{calibnet|mainnet}.yaml subgraph.yaml
+    npm run select-calibnet
+    npm run select-mainnet
     ```
 
 5.  **Generate Code:**

@@ -8,6 +8,8 @@
     "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ filcdn-fwssdev",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 filcdn-fwssdev",
     "remove-local": "graph remove --node http://localhost:8020/ filcdn-fwssdev",
+    "select-mainnet": "cp subgraph-mainnet.yaml subgraph.yaml",
+    "select-calibnet": "cp subgraph-calibnet.yaml subgraph.yaml",
     "test": "graph test"
   },
   "dependencies": {
