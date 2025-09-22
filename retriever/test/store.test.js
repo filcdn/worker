@@ -279,6 +279,78 @@ describe('getStorageProviderAndValidatePayer', () => {
       serviceUrl: 'https://pdp-provider-1.xyz',
     })
   })
+
+  it('excludes sanctioned clients from approved providers selection', async () => {
+    const proofSetId = 'set-sanctioned-test'
+    const rootCid = 'sanctioned-root-cid'
+    const sanctionedClientAddress = '0x1111567890abcdef1234567890abcdef12345111'
+    const unsanctionedClientAddress =
+      '0x2222def1234567890abcdef1234567890abcd2222'
+    const ownerAddress = '0x3333234246eD18b6C91de8349fF34C22C72683333'
+
+    // Set up an approved provider
+    await withApprovedProvider(env, {
+      ownerAddress,
+      pieceRetrievalUrl: 'https://approved-provider.xyz',
+    })
+
+    // Add the sanctioned client to the wallet_details table
+    await env.DB.prepare(
+      'INSERT INTO wallet_details (address, is_sanctioned) VALUES (?, ?)',
+    )
+      .bind(sanctionedClientAddress.toLowerCase(), true)
+      .run()
+
+    // Set up proof set and roots for both clients
+    await env.DB.batch([
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_sets (set_id, owner) VALUES (?, ?)',
+      ).bind(proofSetId, ownerAddress),
+      env.DB.prepare(
+        'INSERT INTO indexer_roots (root_id, set_id, root_cid) VALUES (?, ?, ?)',
+      ).bind('root-sanctioned', proofSetId, rootCid),
+      // Rails for both sanctioned and unsanctioned clients
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(
+        proofSetId,
+        'rail-sanctioned',
+        sanctionedClientAddress,
+        ownerAddress,
+        true,
+      ),
+      env.DB.prepare(
+        'INSERT INTO indexer_proof_set_rails (proof_set_id, rail_id, payer, payee, with_cdn) VALUES (?, ?, ?, ?, ?)',
+      ).bind(
+        proofSetId,
+        'rail-unsanctioned',
+        unsanctionedClientAddress,
+        ownerAddress,
+        true,
+      ),
+    ])
+
+    // Test 1: Sanctioned client should be rejected
+    await assert.rejects(
+      async () =>
+        await getStorageProviderAndValidatePayer(env, sanctionedClientAddress, rootCid),
+      /sanctioned/i,
+      'Should reject sanctioned client',
+    )
+
+    // Test 2: Unsanctioned client should work normally
+    const result = await getStorageProviderAndValidatePayer(
+      env,
+      unsanctionedClientAddress,
+      rootCid,
+    )
+    assert.strictEqual(result.ownerAddress, ownerAddress.toLowerCase())
+    assert.strictEqual(result.proofSetId, proofSetId)
+    assert.strictEqual(
+      result.pieceRetrievalUrl,
+      'https://approved-provider.xyz',
+    )
+  })
 })
 
 describe('updateDataSetStats', () => {
