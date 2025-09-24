@@ -59,6 +59,12 @@ export default {
     if (URL.parse(request.url)?.pathname === '/') {
       return Response.redirect('https://filbeam.com/', 302)
     }
+    if (URL.parse(request.url)?.hostname.endsWith('filcdn.io')) {
+      return Response.redirect(
+        request.url.replace('.filcdn.io', env.DNS_ROOT),
+        301,
+      )
+    }
 
     const requestTimestamp = new Date().toISOString()
     const workerStartedAt = performance.now()
