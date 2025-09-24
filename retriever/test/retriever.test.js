@@ -60,22 +60,22 @@ describe('retriever.fetch', () => {
     }
   })
 
-  it('redirects to https://filcdn.com when no CID was provided', async () => {
+  it('redirects to https://filbeam.com when no CID was provided', async () => {
     const ctx = createExecutionContext()
     const req = new Request(`https://${defaultPayerAddress}${DNS_ROOT}/`)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
     expect(res.status).toBe(302)
-    expect(res.headers.get('Location')).toBe('https://filcdn.com/')
+    expect(res.headers.get('Location')).toBe('https://filbeam.com/')
   })
 
-  it('redirects to https://filcdn.com when no CID and no wallet address were provided', async () => {
+  it('redirects to https://filbeam.com when no CID and no wallet address were provided', async () => {
     const ctx = createExecutionContext()
     const req = new Request(`https://${DNS_ROOT.slice(1)}/`)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
     expect(res.status).toBe(302)
-    expect(res.headers.get('Location')).toBe('https://filcdn.com/')
+    expect(res.headers.get('Location')).toBe('https://filbeam.com/')
   })
 
   it('returns 405 for unsupported request methods', async () => {

@@ -57,7 +57,7 @@ export default {
       'Method Not Allowed',
     )
     if (URL.parse(request.url)?.pathname === '/') {
-      return Response.redirect('https://filcdn.com/', 302)
+      return Response.redirect('https://filbeam.com/', 302)
     }
 
     const requestTimestamp = new Date().toISOString()
