@@ -20,7 +20,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-const DNS_ROOT = '.filcdn.io'
+const DNS_ROOT = '.filbeam.io'
 env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
@@ -97,7 +97,7 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
     expect(res.status).toBe(400)
     expect(await res.text()).toBe(
-      'Invalid hostname: filcdn.io. It must end with .filcdn.io.',
+      'Invalid hostname: filbeam.io. It must end with .filbeam.io.',
     )
   })
 
@@ -187,7 +187,7 @@ describe('retriever.fetch', () => {
     await waitOnExecutionContext(ctx)
     const csp = res.headers.get('Content-Security-Policy')
     expect(csp).toMatch(/^default-src 'self'/)
-    expect(csp).toContain('https://*.filcdn.io')
+    expect(csp).toContain('https://*.filbeam.io')
   })
 
   it('fetches the file from calibration service provider', async () => {
