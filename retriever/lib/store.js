@@ -159,7 +159,9 @@ export async function getStorageProviderAndValidatePayer(
     `Wallet '${payerAddress}' is sanctioned and cannot retrieve piece_cid '${pieceCid}'.`,
   )
 
-  const withApprovedProvider = withCDN.filter((row) => row.service_url)
+  const withApprovedProvider = withPayerNotSanctioned.filter(
+    (row) => row.service_url,
+  )
   httpAssert(
     withApprovedProvider.length > 0,
     404,
