@@ -21,7 +21,7 @@ import { findInBadBits } from '../lib/bad-bits-util.js'
  *   ENVIRONMENT: 'dev' | 'calibration ' | 'mainnet'
  *   ORIGIN_CACHE_TTL: 86400
  *   CLIENT_CACHE_TTL: 31536000
- *   DNS_ROOT: '.localhost' | '.calibration.filcdn.io' | '.filcdn.io'
+ *   DNS_ROOT: '.localhost' | '.calibration.filbeam.io' | '.filbeam.io'
  *   DB: D1Database
  * }} RetrieverEnv
  */
