@@ -61,7 +61,7 @@ export default {
     }
     if (URL.parse(request.url)?.hostname.endsWith('filcdn.io')) {
       return Response.redirect(
-        request.url.replace('.filcdn.io', env.DNS_ROOT),
+        request.url.replace('filcdn.io', 'filbeam.io'),
         301,
       )
     }

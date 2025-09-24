@@ -21,7 +21,6 @@ function sleep(ms) {
 }
 
 const DNS_ROOT = '.filbeam.io'
-const OLD_DNS_ROOT = '.filcdn.io'
 env.DNS_ROOT = DNS_ROOT
 
 describe('retriever.fetch', () => {
@@ -81,11 +80,11 @@ describe('retriever.fetch', () => {
 
   it('redirects to https://*.filcdn.io/* when old domain was used', async () => {
     const ctx = createExecutionContext()
-    const req = new Request(`https://foo${OLD_DNS_ROOT}/bar`)
+    const req = new Request(`https://foo.filcdn.io/bar`)
     const res = await worker.fetch(req, env, ctx)
     await waitOnExecutionContext(ctx)
     expect(res.status).toBe(301)
-    expect(res.headers.get('Location')).toBe(`https://foo${DNS_ROOT}/bar`)
+    expect(res.headers.get('Location')).toBe(`https://foo.filbeam.io/bar`)
   })
 
   it('returns 405 for unsupported request methods', async () => {
