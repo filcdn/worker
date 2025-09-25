@@ -19,11 +19,11 @@ dataSources:
         - PiecesRemoved
       abis:
         - name: PDPVerifier
-          file: ./abis/PDPVerifier.json
+          file: ./abis/PDPVerifier.abi.json
       eventHandlers:
         - event: PiecesRemoved(indexed uint256,uint256[])
           handler: handlePiecesRemoved
-      file: ./src/pdp-verifier.ts
+      file: ./src/PDPVerifier.ts
   - kind: ethereum
     name: FilecoinWarmStorageService
     network: filecoin
