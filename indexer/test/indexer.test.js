@@ -141,7 +141,7 @@ describe('retriever.indexer', () => {
       expect(dataSets.length).toBe(1)
     })
 
-    it('stores numeric ID values as integers', async () => {
+    it('rejects numeric ID values', async () => {
       const dataSetId = Number(randomId())
       const providerId = Number(randomId())
       const req = new Request('https://host/fwss/data-set-created', {
@@ -160,16 +160,7 @@ describe('retriever.indexer', () => {
       const res = await workerImpl.fetch(req, env, ctx, {
         checkIfAddressIsSanctioned: mockCheckIfAddressIsSanctioned,
       })
-      expect(res.status).toBe(200)
-      expect(await res.text()).toBe('OK')
-
-      const { results: dataSets } = await env.DB.prepare(
-        'SELECT * FROM data_sets WHERE id = ?',
-      )
-        .bind(String(dataSetId))
-        .all()
-      expect(dataSets.length).toBe(1)
-      expect(dataSets[0]?.id).toMatch(/^\d+$/)
+      expect(res.status).toBe(400)
     })
 
     it('checks if payer address is sanctioned when with_cdn = true', async () => {

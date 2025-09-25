@@ -1,7 +1,7 @@
 /**
  * @param {Env} env
- * @param {number | string} dataSetId
- * @param {number | string} pieceId
+ * @param {string} dataSetId
+ * @param {string} pieceId
  * @param {string} pieceCid
  */
 export async function insertDataSetPiece(env, dataSetId, pieceId, pieceCid) {

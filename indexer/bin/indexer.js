@@ -65,31 +65,18 @@ export default {
     const pathname = new URL(request.url).pathname
     if (pathname === '/fwss/data-set-created') {
       if (
-        !(
-          typeof payload.data_set_id === 'number' ||
-          typeof payload.data_set_id === 'string'
-        ) ||
+        !(typeof payload.data_set_id === 'string') ||
         !payload.payer ||
-        !(
-          typeof payload.provider_id === 'number' ||
-          typeof payload.provider_id === 'string'
-        )
+        !(typeof payload.provider_id === 'string') ||
+        !Array.isArray(payload.metadata_keys) ||
+        !Array.isArray(payload.metadata_keys)
       ) {
         console.error('FWSS.DataSetCreated: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
-      if (!Array.isArray(payload.metadata_keys)) {
-        console.error(
-          `Unexpected payload.metadata_keys value ${JSON.stringify(payload.metadata_keys)}`,
-        )
-        return new Response('Bad Request: Invalid metadata_keys', {
-          status: 400,
-        })
-      }
-
       console.log(
-        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, metadata_keys=${JSON.stringify(payload.metadata_keys)})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, metadata_keys=[${payload.metadata_keys.join(', ')}])`,
       )
 
       try {
@@ -110,35 +97,16 @@ export default {
       return new Response('OK', { status: 200 })
     } else if (pathname === '/fwss/piece-added') {
       if (
-        !(
-          typeof payload.data_set_id === 'number' ||
-          typeof payload.data_set_id === 'string'
-        ) ||
+        !(typeof payload.data_set_id === 'string') ||
         !payload.piece_id ||
         !(typeof payload.piece_id === 'string') ||
         !payload.piece_cid ||
-        !(typeof payload.piece_cid === 'string')
+        !(typeof payload.piece_cid === 'string') ||
+        !Array.isArray(payload.metadata_keys) ||
+        !Array.isArray(payload.metadata_values)
       ) {
-        console.error('PDPVerifier.PiecesAdded: Invalid payload', payload)
+        console.error('FWSS.PieceAdded: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
-      }
-
-      if (!Array.isArray(payload.metadata_keys)) {
-        console.error(
-          `Unexpected payload.metadata_keys value ${JSON.stringify(payload.metadata_keys)}`,
-        )
-        return new Response('Bad Request: Invalid metadata_keys', {
-          status: 400,
-        })
-      }
-
-      if (!Array.isArray(payload.metadata_values)) {
-        console.error(
-          `Unexpected payload.metadata_values value ${JSON.stringify(payload.metadata_values)}`,
-        )
-        return new Response('Bad Request: Invalid metadata_values', {
-          status: 400,
-        })
       }
 
       /** @type {string} */
@@ -148,15 +116,10 @@ export default {
       const rootCidObj = CID.decode(cidBytes)
       const pieceCid = rootCidObj.toString()
 
-      /** @type {string[]} */
-      const metadataKeys = payload.metadata_keys
-      /** @type {string[]} */
-      const metadataValues = payload.metadata_values
-
       console.log(
-        `New piece (piece_id=[${pieceId}], piece_cids=[${pieceCid}], data_set_id=${payload.data_set_id} metadataKeys=${JSON.stringify(metadataKeys)}, metadataValues=${JSON.stringify(
-          metadataValues,
-        )})`,
+        `New piece (piece_id=${pieceId}, piece_cid=${pieceCid}, data_set_id=${payload.data_set_id} metadata_keys=[${payload.metadata_keys.join(', ')}], metadata_values=[${payload.metadata_values.join(
+          ', ',
+        )}])`,
       )
 
       await insertDataSetPiece(env, payload.data_set_id, pieceId, pieceCid)
@@ -164,10 +127,7 @@ export default {
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-removed') {
       if (
-        !(
-          typeof payload.data_set_id === 'number' ||
-          typeof payload.data_set_id === 'string'
-        ) ||
+        !(typeof payload.data_set_id === 'string') ||
         !payload.piece_ids ||
         !Array.isArray(payload.piece_ids)
       ) {
