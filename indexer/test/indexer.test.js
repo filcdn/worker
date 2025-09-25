@@ -77,6 +77,7 @@ describe('retriever.indexer', () => {
           payer: '0xPayerAddress',
           provider_id: providerId,
           metadata_keys: ['withCDN'],
+          metadata_values: [''],
         }),
       })
 
@@ -123,6 +124,7 @@ describe('retriever.indexer', () => {
             payer: '0xPayerAddress',
             provider_id: providerId,
             metadata_keys: ['withCDN'],
+            metadata_values: [''],
           }),
         })
         mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
@@ -154,6 +156,7 @@ describe('retriever.indexer', () => {
           payer: '0xPayerAddress',
           provider_id: providerId,
           metadata_keys: ['withCDN'],
+          metadata_values: [''],
         }),
       })
       mockCheckIfAddressIsSanctioned.mockResolvedValueOnce(false)
@@ -178,6 +181,7 @@ describe('retriever.indexer', () => {
           payer: '0xPayerAddress',
           provider_id: providerId,
           metadata_keys: ['withCDN'],
+          metadata_values: [''],
         }),
       })
 
@@ -199,6 +203,7 @@ describe('retriever.indexer', () => {
           payer: '0xPayerAddress',
           provider_id: providerId,
           metadata_keys: [],
+          metadata_values: [],
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
@@ -248,6 +253,7 @@ describe('retriever.indexer', () => {
           payer: '0xPayerAddress',
           provider_id: randomId(),
           metadata_keys: ['withCDN'],
+          metadata_values: [''],
         }),
       })
 
@@ -287,6 +293,7 @@ describe('retriever.indexer', () => {
           payer: '0xPayerAddress',
           provider_id: randomId(),
           metadata_keys: ['withCDN'],
+          metadata_values: [''],
         }),
       })
       res = await workerImpl.fetch(req, env, ctx, {
@@ -315,6 +322,7 @@ describe('retriever.indexer', () => {
         payer: '0xPayerAddress',
         provider_id: providerId,
         metadata_keys: ['withCDN'],
+        metadata_values: [''],
       }
       const req = new Request('https://host/fwss/data-set-created', {
         method: 'POST',
