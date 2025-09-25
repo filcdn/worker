@@ -21,7 +21,7 @@ import { findInBadBits } from '../lib/bad-bits-util.js'
  *   ENVIRONMENT: 'dev' | 'calibration ' | 'mainnet'
  *   ORIGIN_CACHE_TTL: 86400
  *   CLIENT_CACHE_TTL: 31536000
- *   DNS_ROOT: '.localhost' | '.calibration.filcdn.io' | '.filcdn.io'
+ *   DNS_ROOT: '.localhost' | '.calibration.filbeam.io' | '.filbeam.io'
  *   DB: D1Database
  * }} RetrieverEnv
  */
@@ -58,6 +58,12 @@ export default {
     )
     if (URL.parse(request.url)?.pathname === '/') {
       return Response.redirect('https://filbeam.com/', 302)
+    }
+    if (URL.parse(request.url)?.hostname.endsWith('filcdn.io')) {
+      return Response.redirect(
+        request.url.replace('filcdn.io', 'filbeam.io'),
+        301,
+      )
     }
 
     const requestTimestamp = new Date().toISOString()
