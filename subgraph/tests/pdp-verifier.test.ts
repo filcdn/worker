@@ -24,7 +24,7 @@ import {
 // More assert options:
 // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#asserts
 
-describe('FilCDN Subgraph', () => {
+describe('FilBeam Subgraph', () => {
   beforeEach(() => {
     clearStore()
   })
