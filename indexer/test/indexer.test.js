@@ -355,14 +355,14 @@ describe('retriever.indexer', () => {
     })
   })
 
-  describe('POST /fwss/pieces-added', () => {
+  describe('POST /fwss/piece-added', () => {
     const TEST_CID_HEX =
       '0x0155912024c6db010b63fa0aff84de00a4cd98802e03d1df5ea18ea430c3a0cdc84af4fc4024ab2714'
 
     const CTX = {}
 
     it('returns 400 if data_set_id or piece_id is missing', async () => {
-      const req = new Request('https://host/fwss/pieces-added', {
+      const req = new Request('https://host/fwss/piece-added', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -376,7 +376,7 @@ describe('retriever.indexer', () => {
 
     it('inserts a piece for a data set', async () => {
       const dataSetId = randomId()
-      const req = new Request('https://host/fwss/pieces-added', {
+      const req = new Request('https://host/fwss/piece-added', {
         method: 'POST',
         headers: {
           [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -411,7 +411,7 @@ describe('retriever.indexer', () => {
       const dataSetId = randomId()
       const pieceId = randomId().toString()
       for (let i = 0; i < 2; i++) {
-        const req = new Request('https://host/fwss/pieces-added', {
+        const req = new Request('https://host/fwss/piece-added', {
           method: 'POST',
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,
@@ -442,7 +442,7 @@ describe('retriever.indexer', () => {
       dataSetIds.sort()
 
       for (const dataSetId of dataSetIds) {
-        const req = new Request('https://host/fwss/pieces-added', {
+        const req = new Request('https://host/fwss/piece-added', {
           method: 'POST',
           headers: {
             [env.SECRET_HEADER_KEY]: env.SECRET_HEADER_VALUE,

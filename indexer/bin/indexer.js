@@ -108,7 +108,7 @@ export default {
       }
 
       return new Response('OK', { status: 200 })
-    } else if (pathname === '/fwss/pieces-added') {
+    } else if (pathname === '/fwss/piece-added') {
       if (
         !(
           typeof payload.data_set_id === 'number' ||
