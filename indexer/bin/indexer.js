@@ -11,7 +11,7 @@ import {
 } from '../lib/fwss-handlers.js'
 import {
   removeDataSetPieces,
-  insertDataSetPieces,
+  insertDataSetPiece,
 } from '../lib/pdp-verifier-handlers.js'
 import { screenWallets } from '../lib/wallet-screener.js'
 import { CID } from 'multiformats/cid'
@@ -79,8 +79,17 @@ export default {
         return new Response('Bad Request', { status: 400 })
       }
 
+      if (!Array.isArray(payload.metadata_keys)) {
+        console.error(
+          `Unexpected payload.metadata_keys value ${JSON.stringify(payload.metadata_keys)}`,
+        )
+        return new Response('Bad Request: Invalid metadata_keys', {
+          status: 400,
+        })
+      }
+
       console.log(
-        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, metadata_keys=${payload.metadata_keys})`,
+        `New FWSS data set (data_set_id=${payload.data_set_id}, provider_id=${payload.provider_id}, payer=${payload.payer}, metadata_keys=${JSON.stringify(payload.metadata_keys)})`,
       )
 
       try {
@@ -99,60 +108,81 @@ export default {
       }
 
       return new Response('OK', { status: 200 })
-    } else if (pathname === '/pdp-verifier/pieces-added') {
+    } else if (pathname === '/fwss/pieces-added') {
       if (
         !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
         ) ||
-        !payload.piece_ids ||
-        !Array.isArray(payload.piece_ids) ||
-        !payload.piece_cids ||
-        !Array.isArray(payload.piece_cids)
+        !payload.piece_id ||
+        !(typeof payload.piece_id === 'string') ||
+        !payload.piece_cid ||
+        !(typeof payload.piece_cid === 'string')
       ) {
         console.error('PDPVerifier.PiecesAdded: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
+      if (!Array.isArray(payload.metadata_keys)) {
+        console.error(
+          `Unexpected payload.metadata_keys value ${JSON.stringify(payload.metadata_keys)}`,
+        )
+        return new Response('Bad Request: Invalid metadata_keys', {
+          status: 400,
+        })
+      }
+
+      if (!Array.isArray(payload.metadata_values)) {
+        console.error(
+          `Unexpected payload.metadata_values value ${JSON.stringify(payload.metadata_values)}`,
+        )
+        return new Response('Bad Request: Invalid metadata_values', {
+          status: 400,
+        })
+      }
+
+      /** @type {string} */
+      const pieceId = payload.piece_id
+
+      const cidBytes = Buffer.from(payload.piece_cid.slice(2), 'hex')
+      const rootCidObj = CID.decode(cidBytes)
+      const pieceCid = rootCidObj.toString()
+
       /** @type {string[]} */
-      const pieceIds = payload.piece_ids
+      const metadataKeys = payload.metadata_keys
       /** @type {string[]} */
-      const pieceCids = payload.piece_cids.map(
-        (/** @type {string} */ cidInHex) => {
-          const cidBytes = Buffer.from(cidInHex.slice(2), 'hex')
-          const rootCidObj = CID.decode(cidBytes)
-          return rootCidObj.toString()
-        },
-      )
+      const metadataValues = payload.metadata_values
 
       console.log(
-        `New pieces (piece_ids=[${pieceIds.join(', ')}], piece_cids=[${pieceCids.join(', ')}], data_set_id=${payload.set_id})`,
+        `New piece (piece_id=[${pieceId}], piece_cids=[${pieceCid}], data_set_id=${payload.data_set_id} metadataKeys=${JSON.stringify(metadataKeys)}, metadataValues=${JSON.stringify(
+          metadataValues,
+        )})`,
       )
 
-      await insertDataSetPieces(env, payload.set_id, pieceIds, pieceCids)
+      await insertDataSetPiece(env, payload.data_set_id, pieceId, pieceCid)
 
       return new Response('OK', { status: 200 })
     } else if (pathname === '/pdp-verifier/pieces-removed') {
       if (
         !(
-          typeof payload.set_id === 'number' ||
-          typeof payload.set_id === 'string'
+          typeof payload.data_set_id === 'number' ||
+          typeof payload.data_set_id === 'string'
         ) ||
         !payload.piece_ids ||
-        typeof payload.piece_ids !== 'string'
+        !Array.isArray(payload.piece_ids)
       ) {
         console.error('PDPVerifier.PiecesRemoved: Invalid payload', payload)
         return new Response('Bad Request', { status: 400 })
       }
 
       /** @type {string[]} */
-      const pieceIds = payload.piece_ids.split(',')
+      const pieceIds = payload.piece_ids
 
       console.log(
-        `Removing pieces (piece_ids=[${pieceIds.join(', ')}], data_set_id=${payload.set_id})`,
+        `Removing pieces (piece_ids=[${pieceIds.join(', ')}], data_set_id=${payload.data_set_id})`,
       )
 
-      await removeDataSetPieces(env, payload.set_id, pieceIds)
+      await removeDataSetPieces(env, payload.data_set_id, pieceIds)
       return new Response('OK', { status: 200 })
     } else if (
       pathname === '/fwss/service-terminated' ||
